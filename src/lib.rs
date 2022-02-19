@@ -16,8 +16,8 @@ extern crate log;
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::render;
-use std::{collections::HashMap, fmt::Display, hash::Hash};
 use template::Template;
+use std::{collections::HashMap, fmt::Display, hash::Hash};
 use value::Value;
 
 #[derive(Default)]
@@ -27,29 +27,29 @@ pub struct MiniTemplate<K: Eq + Hash + Display> {
 }
 
 impl<K: Eq + Hash + Display> MiniTemplate<K> {
-    #[cfg(feature = "default_modifiers")]
-    pub fn new_with_default_modifiers() -> MiniTemplate<K> {
-        use modifier::default::*;
-
-        let mut tpl = MiniTemplate {
+    #[deprecated]
+    pub fn new() -> Self {
+        MiniTemplate {
             modifier: HashMap::new(),
             template: HashMap::new(),
-        };
+        }
+    }
 
-        tpl.add_modifier("slice", &slice_modifier);
-        tpl.add_modifier("regex", &match_modifier);
-        tpl.add_modifier("match", &match_modifier);
-        tpl.add_modifier("replace", &replace_modifier);
-        tpl.add_modifier("replace_regex", &replace_regex_modifier);
-        tpl.add_modifier("upper", &upper);
-        tpl.add_modifier("lower", &lower);
-        tpl.add_modifier("repeat", &repeat);
+    pub fn add_default_modifiers(&mut self) {
+        use modifier::*;
+        self.add_modifier("slice", &slice_modifier);
+        self.add_modifier("regex", &match_modifier);
+        self.add_modifier("match", &match_modifier);
+        self.add_modifier("replace", &replace_modifier);
+        self.add_modifier("replace_regex", &replace_regex_modifier);
+        self.add_modifier("upper", &upper);
+        self.add_modifier("lower", &lower);
+        self.add_modifier("repeat", &repeat);
 
-        tpl.add_modifier("add", &add);
-        tpl.add_modifier("sub", &sub);
-        tpl.add_modifier("mul", &mul);
-        tpl.add_modifier("div", &div);
-        tpl
+        self.add_modifier("add", &add);
+        self.add_modifier("sub", &sub);
+        self.add_modifier("mul", &mul);
+        self.add_modifier("div", &div);
     }
 
     pub fn add_modifier(&mut self, key: &'static str, modifier: &'static Modifier) {

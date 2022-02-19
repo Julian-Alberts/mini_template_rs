@@ -1,3 +1,6 @@
+use log::error;
+use regex::Regex;
+
 use super::value::Value;
 pub use error::*;
 
@@ -5,7 +8,7 @@ pub use error::*;
 macro_rules! create_modifier {
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> Result<$return: ty> $b: block) => {
         #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
+        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<Value> {
             use $crate::{modifier::error::Error, prelude::*};
 
             let $first_name: $first_t = create_modifier!(try_into value: $first_t);
@@ -86,86 +89,82 @@ macro_rules! create_modifier {
 
 pub type Modifier = dyn Fn(&Value, Vec<&Value>) -> Result<Value>;
 
-#[cfg(feature = "default_modifiers")]
-pub mod default {
-    use regex::Regex;
+create_modifier!(
+    fn slice_modifier(input: String, start: usize, length: usize) -> String {
+        let chars = input.chars().skip(start);
+        chars.take(length).collect::<String>()
+    }
+);
 
-    create_modifier!(
-        fn slice_modifier(input: String, start: usize, length: usize) -> String {
-            let chars = input.chars().skip(start);
-            chars.take(length).collect::<String>()
+create_modifier!(fn match_modifier(input: String, regex: String, group: usize = 0) -> Result<String> {
+    let regex = match Regex::new(&regex) {
+        Ok(r) => r,
+        Err(r) => {
+            error!("{}", r.to_string());
+            return Err(r.to_string())
         }
-    );
-    
-    create_modifier!(fn match_modifier(input: String, regex: String, group: usize = 0) -> Result<String> {
-        let regex = match Regex::new(&regex) {
-            Ok(r) => r,
-            Err(r) => {
-                error!("{}", r.to_string());
-                return Err(r.to_string())
-            }
-        };
-        let c = match regex.captures(&input[..]) {
-            Some(c) => match c.get(group) {
-                Some(c) => c.as_str(),
-                None => ""
-            },
+    };
+    let c = match regex.captures(&input[..]) {
+        Some(c) => match c.get(group) {
+            Some(c) => c.as_str(),
             None => ""
-        };
-    
-        Ok(c.to_owned())
-    });
-    
-    create_modifier!(fn replace_modifier(input: String, from: String, to: String, count: usize = 0) -> String {
-        if count == 0 {
-            input.replace(&from[..], &to[..])
-        } else {
-            input.replacen(&from[..], &to[..], count)
+        },
+        None => ""
+    };
+
+    Ok(c.to_owned())
+});
+
+create_modifier!(fn replace_modifier(input: String, from: String, to: String, count: usize = 0) -> String {
+    if count == 0 {
+        input.replace(&from[..], &to[..])
+    } else {
+        input.replacen(&from[..], &to[..], count)
+    }
+});
+
+create_modifier!(fn replace_regex_modifier(input: String, regex: String, to: String, count: usize = 0) -> Result<String> {
+    let regex = match Regex::new(&regex) {
+        Ok(r) => r,
+        Err(r) => {
+            error!("{}", r.to_string());
+            Err(r.to_string())?
         }
-    });
-    
-    create_modifier!(fn replace_regex_modifier(input: String, regex: String, to: String, count: usize = 0) -> Result<String> {
-        let regex = match Regex::new(&regex) {
-            Ok(r) => r,
-            Err(r) => {
-                error!("{}", r.to_string());
-                Err(r.to_string())?
-            }
-        };
-    
-        Ok(regex.replacen(&input, count, to).to_string())
-    });
-    
-    create_modifier!(fn upper(input: &str) -> String => str::to_uppercase);
-    
-    create_modifier!(fn lower(input: &str) -> String => str::to_lowercase);
-    
-    create_modifier!(
-        fn add(a: f64, b: f64) -> f64 {
-            a + b
-        }
-    );
-    
-    create_modifier!(
-        fn sub(a: f64, b: f64) -> f64 {
-            a - b
-        }
-    );
-    
-    create_modifier!(
-        fn mul(a: f64, b: f64) -> f64 {
-            a * b
-        }
-    );
-    
-    create_modifier!(
-        fn div(a: f64, b: f64) -> f64 {
-            a / b
-        }
-    );
-    
-    create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
-}
+    };
+
+    Ok(regex.replacen(&input, count, to).to_string())
+});
+
+create_modifier!(fn upper(input: &str) -> String => str::to_uppercase);
+
+create_modifier!(fn lower(input: &str) -> String => str::to_lowercase);
+
+create_modifier!(
+    fn add(a: f64, b: f64) -> f64 {
+        a + b
+    }
+);
+
+create_modifier!(
+    fn sub(a: f64, b: f64) -> f64 {
+        a - b
+    }
+);
+
+create_modifier!(
+    fn mul(a: f64, b: f64) -> f64 {
+        a * b
+    }
+);
+
+create_modifier!(
+    fn div(a: f64, b: f64) -> f64 {
+        a / b
+    }
+);
+
+create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
+
 pub mod error {
     use std::fmt::Display;
 
@@ -203,9 +202,9 @@ pub mod error {
 #[cfg(test)]
 mod tests {
 
-    use crate::{value::{TypeError, Value}, modifier::Error};
+    use crate::value::TypeError;
 
-    use super::default;
+    use super::*;
 
     #[test]
     fn match_modifier() {
@@ -216,20 +215,20 @@ mod tests {
         let group = Value::Number(1.0);
         let args = vec![&regex, &full_match];
 
-        let result = default::match_modifier(&input, args);
+        let result = super::match_modifier(&input, args);
         assert_eq!(result, Ok(Value::String(String::from("2test2 string"))));
 
         let args = vec![&regex];
 
-        let result = default::match_modifier(&input, args);
+        let result = super::match_modifier(&input, args);
         assert_eq!(result, Ok(Value::String(String::from("2test2 string"))));
 
         let args = vec![&regex, &group];
-        let result = default::match_modifier(&input, args);
+        let result = super::match_modifier(&input, args);
         assert_eq!(result, Ok(Value::String(String::from("2test2"))));
 
         let args = vec![&invalid_regex, &full_match];
-        let result = default::match_modifier(&input, args);
+        let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
             Err(Error::ModifierError(
@@ -248,12 +247,12 @@ mod tests {
 
         let args = vec![&start_in, &length_5];
 
-        let result = default::slice_modifier(&input, args);
+        let result = super::slice_modifier(&input, args);
         assert_eq!(result, Ok(Value::String(String::from("World"))));
 
         let args = vec![&start_out, &length_5];
 
-        let result = default::slice_modifier(&input, args);
+        let result = super::slice_modifier(&input, args);
         assert_eq!(result, Ok(Value::String(String::from(""))))
     }
 
@@ -262,7 +261,7 @@ mod tests {
         let input = Value::String(String::from("My test string"));
         let args = vec![];
 
-        let result = default::match_modifier(&input, args);
+        let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
             Err(Error::MissingArgument {
@@ -280,7 +279,7 @@ mod tests {
 
         let args = vec![&regex, &number];
 
-        let result = default::match_modifier(&input, args);
+        let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
             Err(Error::TypeError {
@@ -296,7 +295,7 @@ mod tests {
     #[test]
     fn lower_modifier() {
         let input = Value::String(String::from("Hello World!"));
-        let output = default::lower(&input, vec![]);
+        let output = lower(&input, vec![]);
 
         assert_eq!(output, Ok(Value::String(String::from("hello world!"))));
     }
@@ -304,7 +303,7 @@ mod tests {
     #[test]
     fn upper_modifier() {
         let input = Value::String(String::from("Hello World!"));
-        let output = default::upper(&input, vec![]);
+        let output = upper(&input, vec![]);
 
         assert_eq!(output, Ok(Value::String(String::from("HELLO WORLD!"))));
     }

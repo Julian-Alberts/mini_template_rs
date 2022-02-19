@@ -12,10 +12,6 @@ regex = "1.4.5"
 pest = "2.0"
 pest_derive = "2.0"
 
-[features]
-default_modifiers = [  ]
-default = [ "default_modifiers" ]
-
 [dev-dependencies]
 criterion = "0.3"
 
