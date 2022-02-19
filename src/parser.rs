@@ -43,7 +43,7 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
 
 fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
     match item.as_rule() {
-        Rule::literal => Some(Statement::Literal(item.as_str())),
+        Rule::text => Some(Statement::Literal(item.as_str())),
         Rule::calculated => Some(parse_calculated(item)),
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
@@ -51,35 +51,44 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
 }
 
 fn parse_calculated(calculated: Pair<Rule>) -> Statement {
+    assert_eq!(calculated.as_rule(), Rule::calculated);
     let mut inner = calculated.into_inner();
-    let value = parse_argument(inner.next().unwrap());
+    let value = parse_value(inner.next().unwrap());
     let modifiers = inner.into_iter().map(parse_modifier).collect::<Vec<_>>();
     Statement::Calculated { value, modifiers }
 }
 
 fn parse_modifier(item: Pair<Rule>) -> (*const str, Vec<StorageMethod>) {
+    assert_eq!(item.as_rule(), Rule::modifier);
     let mut items = item.into_inner();
     let name = items.next().unwrap().as_str();
     (name, items.map(parse_argument).collect())
 }
 
-fn parse_argument(item: Pair<Rule>) -> StorageMethod {
-    let item = item.into_inner().next().unwrap();
-    match item.as_rule() {
-        Rule::identifyer => StorageMethod::Variable(item.as_str()),
-        Rule::number => StorageMethod::Const(Value::Number(item.as_str().parse().unwrap())),
+fn parse_argument(argument: Pair<Rule>) -> StorageMethod {
+    assert_eq!(argument.as_rule(), Rule::argument);
+    let value = argument.into_inner().next().unwrap();
+    parse_value(value)
+}
+
+fn parse_value(value: Pair<Rule>) -> StorageMethod {
+    assert_eq!(value.as_rule(), Rule::value);
+    let value = value.into_inner().next().unwrap();
+    match value.as_rule() {
+        Rule::identifyer => StorageMethod::Variable(value.as_str()),
+        Rule::number => StorageMethod::Const(Value::Number(value.as_str().parse().unwrap())),
         Rule::string => StorageMethod::Const(Value::String(
-            item.into_inner().next().unwrap().as_str().to_owned(),
+            value.into_inner().next().unwrap().as_str().to_owned(),
         )),
         Rule::boolean => {
-            let value = match item.as_str() {
+            let value = match value.as_str() {
                 "true" => true,
                 "false" => false,
-                _ => panic!(),
+                _ => unreachable!("boolean must be true or false"),
             };
             StorageMethod::Const(Value::Bool(value))
         }
-        _ => panic!(),
+        _ => unreachable!("Unexpected value {:#?}", value),
     }
 }
 
@@ -98,7 +107,7 @@ mod tests {
     #[test]
     fn parse_template_item_literal() {
         let template = String::from("test literal");
-        let item = TemplateParser::parse(Rule::literal, &template);
+        let item = TemplateParser::parse(Rule::text, &template);
         assert!(item.is_ok());
         let item = item.unwrap().next();
         assert!(item.is_some());

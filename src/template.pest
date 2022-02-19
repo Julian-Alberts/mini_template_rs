@@ -1,17 +1,17 @@
 WHITESPACE = _{" "|"\n"}
 modifier = {"|" ~ identifyer ~ argument*}
-argument = { ":" ~ (boolean|identifyer|number|string) }
-output_value = { boolean|identifyer|number|string }
-calculated = {!"\\" ~ "{" ~ output_value ~ modifier* ~ "}"}
+argument = { ":" ~ value }
+calculated = {!"\\" ~ "{" ~ value ~ modifier* ~ "}"}
 identifyer = @{'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
-literal = {(!"{" ~ ("\\{" | ANY))+}
+text = {(!"{" ~ ("\\{" | ANY))+}
 
 // Template
 tempalte = ${SOI ~ template_content ~ EOI}
-template_content = { (calculated|literal)* }
+template_content = { (calculated|text)* }
 
-// Literal values
+// Values
 string = { "\"" ~ inner_string ~ "\"" }
 inner_string = {(!"\"" ~ ( "\\\""| ANY))*}
 number = { ("+"|"-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 boolean = {"true"|"false"}
+value = { boolean|identifyer|number|string }
