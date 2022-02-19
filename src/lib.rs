@@ -1,11 +1,11 @@
 #![deny(clippy::undocumented_unsafe_blocks)]
 
-mod compiler;
 mod error;
 mod modifier;
 mod parser;
 mod prelude;
 mod renderer;
+mod template;
 pub mod value;
 
 #[macro_use]
@@ -16,6 +16,7 @@ extern crate log;
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::render;
+use template::Template;
 use std::{collections::HashMap, fmt::Display, hash::Hash};
 use value::Value;
 
@@ -66,40 +67,5 @@ impl<K: Eq + Hash + Display> MiniTemplate<K> {
             None => return Err(error::Error::UnknownTemplate),
         };
         render(tpl, &self.modifier, data)
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Template {
-    tpl_str: String,
-    tpl: Vec<Statement>,
-}
-
-#[derive(Debug)]
-enum Statement {
-    Literal(*const str),
-    Calculated {
-        value: StorageMethod,
-        modifiers: Vec<(*const str, Vec<StorageMethod>)>,
-    },
-}
-
-#[derive(Debug)]
-enum StorageMethod {
-    Const(Value),
-    Variable(*const str),
-}
-
-impl PartialEq for StorageMethod {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (StorageMethod::Const(s), StorageMethod::Const(o)) => s == o,
-            (StorageMethod::Variable(s), StorageMethod::Variable(o)) => 
-            // Safety: Both variable names point to positions in the original template string.
-            unsafe {
-                s.as_ref() == o.as_ref()
-            },
-            _ => false,
-        }
     }
 }

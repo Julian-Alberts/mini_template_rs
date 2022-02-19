@@ -1,4 +1,13 @@
-use super::Statement;
+use super::storage_method::StorageMethod;
+
+#[derive(Debug)]
+pub enum Statement {
+    Literal(*const str),
+    Calculated {
+        value: StorageMethod,
+        modifiers: Vec<(*const str, Vec<StorageMethod>)>,
+    },
+}
 
 impl PartialEq for Statement {
     fn eq(&self, other: &Statement) -> bool {

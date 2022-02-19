@@ -1,6 +1,6 @@
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
-use crate::{value::Value, Statement, StorageMethod, Template};
+use crate::{value::Value, Template, template::{Statement, StorageMethod}};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Parser)]

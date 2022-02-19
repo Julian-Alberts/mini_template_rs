@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
+use crate::template::{Statement, StorageMethod};
+
 use super::error::{Error, Result};
 use log::error;
 
-use super::{modifier::Modifier, value::Value, Statement, StorageMethod, Template};
+use super::{modifier::Modifier, value::Value, Template};
 
 pub fn render<'a, 't>(
     tpl: &'t Template,
