@@ -272,6 +272,34 @@ mod tests {
             }
         )
     }
+
+    #[test]
+    fn parse_template_multi_line() {
+        let template = String::from("{var|modifier}\n{10|modifier:-32.09}");
+        let template = parse(template);
+        assert!(template.is_ok());
+        let template = template.unwrap();
+        assert_eq!(
+            template,
+            Template {
+                tpl_str: String::from("{var|modifier}\n{10|modifier:-32.09}"),
+                tpl: vec![
+                    Statement::Calculated {
+                        value: StorageMethod::Variable("var"),
+                        modifiers: vec![("modifier", vec![])]
+                    },
+                    Statement::Literal("\n"),
+                    Statement::Calculated {
+                        value: StorageMethod::Const(Value::Number(10.0)),
+                        modifiers: vec![(
+                            "modifier",
+                            vec![StorageMethod::Const(Value::Number(-32.09))]
+                        )]
+                    }
+                ]
+            }
+        )
+    }
 }
 
 #[cfg(test)]

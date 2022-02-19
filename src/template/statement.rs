@@ -42,3 +42,60 @@ impl PartialEq for Statement {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::template::StorageMethod;
+
+    use super::Statement;
+
+
+    #[test]
+    fn two_literals_eq() {
+        let str1 = "my literal value in a text";
+        let str2 = "same literal value in an other text";
+        let literal1 = Statement::Literal(&str1[3..16]);
+        let literal2 = Statement::Literal(&str2[5..18]);
+        assert_eq!(literal1, literal2);
+    }
+
+    #[test]
+    fn two_literals_not_eq() {
+        let str1 = "my literal value in a text";
+        let str2 = "other LITERAL value in an other text";
+        let literal1 = Statement::Literal(&str1[3..16]);
+        let literal2 = Statement::Literal(&str2[5..18]);
+        assert_ne!(literal1, literal2);
+    }
+
+    #[test]
+    fn two_calclated_values_eq() {
+        let str1 = "my var in a text";
+        let str2 = "same var in an other text";
+        let calculated1 = Statement::Calculated{
+            value: StorageMethod::Variable(&str1[3..6]),
+            modifiers: vec![]
+        };
+        let calculated2 = Statement::Calculated{
+            value: StorageMethod::Variable(&str2[5..8]),
+            modifiers: vec![]
+        };
+        assert_eq!(calculated1, calculated2);
+    }
+
+    #[test]
+    fn two_calclated_values_not_eq() {
+        let str1 = "my var in a text";
+        let str2 = "other VAR in an other text";
+        let calculated1 = Statement::Calculated{
+            value: StorageMethod::Variable(&str1[3..6]),
+            modifiers: vec![]
+        };
+        let calculated2 = Statement::Calculated{
+            value: StorageMethod::Variable(&str2[5..8]),
+            modifiers: vec![]
+        };
+        assert_ne!(calculated1, calculated2);
+    }
+
+}
