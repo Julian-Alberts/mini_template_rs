@@ -23,7 +23,7 @@ pub fn render<'a, 't>(
                 let mut var = match value {
                     StorageMethod::Const(var) => var.to_owned(),
                     StorageMethod::Variable(var_name) => {
-                        // var_name points to tpl.tpl_str and should never be null
+                        // Safety: var_name points to tpl.tpl_str and should never be null
                         let var_name = unsafe { var_name.as_ref().unwrap() };
                         let var = variables.get(var_name);
                         var.ok_or(Error::UnknownVariable(var_name))?.to_owned()
@@ -31,7 +31,7 @@ pub fn render<'a, 't>(
                 };
 
                 for (modifier_name, args) in modifiers {
-                    // modifier_name points to tpl.tpl_str and should never be null
+                    // Safety: modifier_name points to tpl.tpl_str and should never be null
                     let modifier_name = unsafe { modifier_name.as_ref().unwrap() };
                     let modifier = modifier
                         .get(modifier_name)
@@ -66,8 +66,9 @@ fn storage_methods_to_values<'a, 't>(
     for arg in args {
         let arg = match arg {
             StorageMethod::Const(value) => value,
-            StorageMethod::Variable(var) => unsafe {
-                // var points to tpl.tpl_str and should never be null
+            StorageMethod::Variable(var) => 
+            //Safety: var points to tpl.tpl_str and should never be null            
+            unsafe {
                 let var = var.as_ref().unwrap();
                 variables.get(var).ok_or(Error::UnknownVariable(var))?
             },

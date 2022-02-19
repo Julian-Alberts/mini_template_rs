@@ -20,9 +20,15 @@ impl PartialEq for Statement {
                 s_modifiers
                     .iter()
                     .zip(o_modifiers)
-                    .all(|(s, o)| unsafe { s.0.as_ref() == o.0.as_ref() && s.1 == o.1 })
+                    .all(|(s, o)| 
+                    // Safety: Both modifier names point to positions in the original template string.
+                    unsafe { s.0.as_ref() == o.0.as_ref() && s.1 == o.1 }
+                )
             }
-            (Statement::Literal(s), &Statement::Literal(o)) => unsafe { s.as_ref() == o.as_ref() },
+            (Statement::Literal(s), &Statement::Literal(o)) => 
+                // Safety: Both literals point to positions in the original template string.
+                unsafe { s.as_ref() == o.as_ref() 
+            },
             _ => false,
         }
     }
