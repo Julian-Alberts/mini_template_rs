@@ -68,8 +68,8 @@ fn storage_methods_to_values<'a, 't>(
     for arg in args {
         let arg = match arg {
             StorageMethod::Const(value) => value,
-            StorageMethod::Variable(var) => 
-            //Safety: var points to tpl.tpl_str and should never be null            
+            StorageMethod::Variable(var) =>
+            //Safety: var points to tpl.tpl_str and should never be null
             unsafe {
                 let var = var.as_ref().unwrap();
                 variables.get(var).ok_or(Error::UnknownVariable(var))?

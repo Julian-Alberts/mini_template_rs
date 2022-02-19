@@ -10,10 +10,9 @@ pub enum Error<'t> {
     UnknownTemplate,
 }
 
-impl <'t> std::error::Error for Error<'t> {}
+impl<'t> std::error::Error for Error<'t> {}
 
-impl <'t> Display for Error<'t> {
-
+impl<'t> Display for Error<'t> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ModifierError(e) => e.fmt(f),
@@ -22,5 +21,4 @@ impl <'t> Display for Error<'t> {
             Self::UnknownTemplate => write!(f, "unknown template"),
         }
     }
-
 }

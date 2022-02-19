@@ -26,18 +26,13 @@ impl PartialEq for Statement {
                     return false;
                 }
 
-                s_modifiers
-                    .iter()
-                    .zip(o_modifiers)
-                    .all(|(s, o)| 
+                s_modifiers.iter().zip(o_modifiers).all(|(s, o)|
                     // Safety: Both modifier names point to positions in the original template string.
-                    unsafe { s.0.as_ref() == o.0.as_ref() && s.1 == o.1 }
-                )
+                    unsafe { s.0.as_ref() == o.0.as_ref() && s.1 == o.1 })
             }
-            (Statement::Literal(s), &Statement::Literal(o)) => 
-                // Safety: Both literals point to positions in the original template string.
-                unsafe { s.as_ref() == o.as_ref() 
-            },
+            (Statement::Literal(s), &Statement::Literal(o)) =>
+            // Safety: Both literals point to positions in the original template string.
+            unsafe { s.as_ref() == o.as_ref() },
             _ => false,
         }
     }
@@ -48,7 +43,6 @@ mod tests {
     use crate::template::StorageMethod;
 
     use super::Statement;
-
 
     #[test]
     fn two_literals_eq() {
@@ -72,13 +66,13 @@ mod tests {
     fn two_calclated_values_eq() {
         let str1 = "my var in a text";
         let str2 = "same var in an other text";
-        let calculated1 = Statement::Calculated{
+        let calculated1 = Statement::Calculated {
             value: StorageMethod::Variable(&str1[3..6]),
-            modifiers: vec![]
+            modifiers: vec![],
         };
-        let calculated2 = Statement::Calculated{
+        let calculated2 = Statement::Calculated {
             value: StorageMethod::Variable(&str2[5..8]),
-            modifiers: vec![]
+            modifiers: vec![],
         };
         assert_eq!(calculated1, calculated2);
     }
@@ -87,15 +81,14 @@ mod tests {
     fn two_calclated_values_not_eq() {
         let str1 = "my var in a text";
         let str2 = "other VAR in an other text";
-        let calculated1 = Statement::Calculated{
+        let calculated1 = Statement::Calculated {
             value: StorageMethod::Variable(&str1[3..6]),
-            modifiers: vec![]
+            modifiers: vec![],
         };
-        let calculated2 = Statement::Calculated{
+        let calculated2 = Statement::Calculated {
             value: StorageMethod::Variable(&str2[5..8]),
-            modifiers: vec![]
+            modifiers: vec![],
         };
         assert_ne!(calculated1, calculated2);
     }
-
 }

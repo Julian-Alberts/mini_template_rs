@@ -16,8 +16,8 @@ extern crate log;
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::render;
-use template::Template;
 use std::{collections::HashMap, fmt::Display, hash::Hash};
+use template::Template;
 use value::Value;
 
 #[derive(Default)]

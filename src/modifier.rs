@@ -189,7 +189,8 @@ pub mod error {
                 Self::MissingArgument { argument_name } => {
                     write!(f, "Missing argument \"{}\"", argument_name)
                 }
-                Self::TypeError { value, type_error } => write!(f,
+                Self::TypeError { value, type_error } => write!(
+                    f,
                     "Can not convert {} to type {} value of type {} found",
                     value, type_error.expected_type, type_error.storage_type
                 ),
