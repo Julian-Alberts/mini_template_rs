@@ -33,17 +33,20 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
     .unwrap();
     compiled_template.tpl = template
         .into_inner()
-        .filter_map(parse_template_item)
+        .next()
+        .unwrap()
+        .into_inner()
+        .filter_map(parse_template_content)
         .collect::<Vec<_>>();
     Ok(compiled_template)
 }
 
-fn parse_template_item(item: Pair<Rule>) -> Option<Statement> {
+fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
     match item.as_rule() {
         Rule::literal => Some(Statement::Literal(item.as_str())),
         Rule::calculated => Some(parse_calculated(item)),
         Rule::EOI => None,
-        _ => unreachable!(),
+        _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
 }
 
@@ -100,7 +103,7 @@ mod tests {
         let item = item.unwrap().next();
         assert!(item.is_some());
         let item = item.unwrap();
-        let statement = parse_template_item(item).unwrap();
+        let statement = parse_template_content(item).unwrap();
         assert_eq!(statement, Statement::Literal("test literal"))
     }
 
