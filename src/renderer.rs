@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::error::{ErrorKind, Result};
+use super::error::{Error, Result};
 use log::error;
 
 use super::{modifier::Modifier, value::Value, Statement, StorageMethod, Template};
@@ -26,7 +26,7 @@ pub fn render<'a, 't>(
                         // var_name points to tpl.tpl_str and should never be null
                         let var_name = unsafe { var_name.as_ref().unwrap() };
                         let var = variables.get(var_name);
-                        var.ok_or(ErrorKind::UnknownVariable(var_name))?.to_owned()
+                        var.ok_or(Error::UnknownVariable(var_name))?.to_owned()
                     }
                 };
 
@@ -35,7 +35,7 @@ pub fn render<'a, 't>(
                     let modifier_name = unsafe { modifier_name.as_ref().unwrap() };
                     let modifier = modifier
                         .get(modifier_name)
-                        .ok_or(ErrorKind::UnknownModifier(modifier_name))?;
+                        .ok_or(Error::UnknownModifier(modifier_name))?;
 
                     let args = storage_methods_to_values(args, variables)?;
 
@@ -44,7 +44,7 @@ pub fn render<'a, 't>(
                         Err(e) => {
                             let error = e.to_string();
                             error!("{}", error);
-                            return Err(ErrorKind::ModifierError(e));
+                            return Err(Error::ModifierError(e));
                         }
                     };
                 }
@@ -69,7 +69,7 @@ fn storage_methods_to_values<'a, 't>(
             StorageMethod::Variable(var) => unsafe {
                 // var points to tpl.tpl_str and should never be null
                 let var = var.as_ref().unwrap();
-                variables.get(var).ok_or(ErrorKind::UnknownVariable(var))?
+                variables.get(var).ok_or(Error::UnknownVariable(var))?
             },
         };
         real_args.push(arg);

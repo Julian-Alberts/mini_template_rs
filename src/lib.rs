@@ -1,3 +1,5 @@
+#![deny(clippy::undocumented_unsafe_blocks)]
+
 mod compiler;
 mod error;
 mod modifier;
@@ -61,7 +63,7 @@ impl<K: Eq + Hash + Display> MiniTemplate<K> {
     pub fn render(&self, key: &K, data: &HashMap<String, Value>) -> error::Result<String> {
         let tpl = match self.template.get(key) {
             Some(t) => t,
-            None => return Err(error::ErrorKind::UnknownTemplate),
+            None => return Err(error::Error::UnknownTemplate),
         };
         render(tpl, &self.modifier, data)
     }

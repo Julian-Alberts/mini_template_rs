@@ -9,7 +9,7 @@ macro_rules! create_modifier {
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> Result<$return: ty> $b: block) => {
         #[allow(unused_variables)]
         pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<Value> {
-            use $crate::{modifier::error::ErrorKind, prelude::*};
+            use $crate::{modifier::error::Error, prelude::*};
 
             let $first_name: $first_t = create_modifier!(try_into value: $first_t);
 
@@ -25,14 +25,14 @@ macro_rules! create_modifier {
 
             fn inner($first_name: $first_t $($(,$name: $t)+)?) -> std::result::Result<$return, String> $b
 
-            let result = inner($first_name $($(,$name)+)?).or_else(|e| Err(ErrorKind::ModifierError(e)))?;
+            let result = inner($first_name $($(,$name)+)?).or_else(|e| Err(Error::ModifierError(e)))?;
             Ok(result.into())
         }
     };
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty $b: block) => {
         #[allow(unused_variables)]
         pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<crate::value::Value> {
-            use $crate::{modifier::error::ErrorKind, prelude::*};
+            use $crate::{modifier::error::Error, prelude::*};
 
             let $first_name: $first_t = create_modifier!(try_into value: $first_t);
 
@@ -55,7 +55,7 @@ macro_rules! create_modifier {
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty => $func: path) => {
         #[allow(unused_variables)]
         pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<crate::value::Value> {
-            use $crate::{modifier::error::ErrorKind, prelude::*};
+            use $crate::{modifier::error::Error, prelude::*};
 
             let $first_name: $first_t = create_modifier!(try_into value: $first_t);
 
@@ -74,7 +74,7 @@ macro_rules! create_modifier {
         }
     };
     (default_value $arg_name: ident) => {
-        return Err(ErrorKind::MissingArgument{argument_name: stringify!($arg_name)})
+        return Err(Error::MissingArgument{argument_name: stringify!($arg_name)})
     };
     (default_value $arg_name: ident $default: tt) => {
         $default
@@ -82,7 +82,7 @@ macro_rules! create_modifier {
     (try_into $value: ident: $type: ty) => {
         match $value.try_into() {
             Ok(inner) => inner,
-            Err(e) => return Err(ErrorKind::TypeError{value: $value.to_string(), type_error: e})
+            Err(e) => return Err(Error::TypeError{value: $value.to_string(), type_error: e})
         }
     }
 }
@@ -166,11 +166,13 @@ create_modifier!(
 create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
 
 pub mod error {
+    use std::fmt::Display;
+
     use crate::value::TypeError;
 
-    pub type Result<T> = std::result::Result<T, ErrorKind>;
+    pub type Result<T> = std::result::Result<T, Error>;
     #[derive(Debug, PartialEq)]
-    pub enum ErrorKind {
+    pub enum Error {
         MissingArgument {
             argument_name: &'static str,
         },
@@ -181,17 +183,17 @@ pub mod error {
         ModifierError(String),
     }
 
-    impl ToString for ErrorKind {
-        fn to_string(&self) -> String {
+    impl Display for Error {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
                 Self::MissingArgument { argument_name } => {
-                    format!("Missing argument \"{}\"", argument_name)
+                    write!(f, "Missing argument \"{}\"", argument_name)
                 }
-                Self::TypeError { value, type_error } => format!(
+                Self::TypeError { value, type_error } => write!(f,
                     "Can not convert {} to type {} value of type {} found",
                     value, type_error.expected_type, type_error.storage_type
                 ),
-                Self::ModifierError(e) => e.to_owned(),
+                Self::ModifierError(e) => write!(f, "{}", e.to_owned()),
             }
         }
     }
@@ -229,7 +231,7 @@ mod tests {
         let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
-            Err(ErrorKind::ModifierError(
+            Err(Error::ModifierError(
                 "regex parse error:\n    (\\d[a-z]+\\d string\n    ^\nerror: unclosed group"
                     .to_owned()
             ))
@@ -262,7 +264,7 @@ mod tests {
         let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
-            Err(ErrorKind::MissingArgument {
+            Err(Error::MissingArgument {
                 argument_name: "regex"
             })
         );
@@ -280,7 +282,7 @@ mod tests {
         let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
-            Err(ErrorKind::TypeError {
+            Err(Error::TypeError {
                 type_error: TypeError {
                     expected_type: "usize",
                     storage_type: "Number"
