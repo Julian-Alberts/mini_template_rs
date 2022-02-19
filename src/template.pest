@@ -1,7 +1,8 @@
 WHITESPACE = _{" "|"\n"}
 modifier = {"|" ~ identifyer ~ argument*}
 argument = { ":" ~ value }
-calculated = {!"\\" ~ "{" ~ value ~ modifier* ~ "}"}
+calculated = {!"\\" ~ "{" ~ calculated_value ~ "}"}
+calculated_value = { value ~ modifier* }
 identifyer = @{'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
 text = {(!"{" ~ ("\\{" | ANY))+}
 

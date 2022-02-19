@@ -1,7 +1,7 @@
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 use crate::{
-    template::{Statement, StorageMethod},
+    template::{Statement, StorageMethod, CalcualtedValue},
     value::Value,
     Template,
 };
@@ -52,10 +52,16 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
 
 fn parse_calculated(calculated: Pair<Rule>) -> Statement {
     assert_eq!(calculated.as_rule(), Rule::calculated);
-    let mut inner = calculated.into_inner();
+    let inner = calculated.into_inner().next().unwrap();
+    Statement::Calculated(parse_calculated_value(inner))
+}
+
+fn parse_calculated_value(calculated_value: Pair<Rule>) -> CalcualtedValue {
+    assert_eq!(calculated_value.as_rule(), Rule::calculated_value);
+    let mut inner = calculated_value.into_inner();
     let value = parse_value(inner.next().unwrap());
     let modifiers = inner.into_iter().map(parse_modifier).collect::<Vec<_>>();
-    Statement::Calculated { value, modifiers }
+    CalcualtedValue { value, modifiers }
 }
 
 fn parse_modifier(item: Pair<Rule>) -> (*const str, Vec<StorageMethod>) {
@@ -142,10 +148,10 @@ mod tests {
         let statement = parse_calculated(item);
         assert_eq!(
             statement,
-            Statement::Calculated {
+            Statement::Calculated(CalcualtedValue {
                 modifiers: Vec::new(),
                 value: StorageMethod::Variable("var"),
-            }
+            })
         )
     }
 
@@ -158,10 +164,10 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl: vec![Statement::Calculated {
+                tpl: vec![Statement::Calculated(CalcualtedValue {
                     modifiers: vec![],
                     value: StorageMethod::Variable("var"),
-                }],
+                })],
                 tpl_str: String::from("{var}")
             }
         );
@@ -177,10 +183,10 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier}"),
-                tpl: vec![Statement::Calculated {
+                tpl: vec![Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![("modifier", vec![])]
-                }]
+                })]
             }
         )
     }
@@ -195,10 +201,10 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier1|modifier2}"),
-                tpl: vec![Statement::Calculated {
+                tpl: vec![Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![("modifier1", vec![]), ("modifier2", vec![])]
-                }]
+                })]
             }
         )
     }
@@ -213,10 +219,10 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier:var2}"),
-                tpl: vec![Statement::Calculated {
+                tpl: vec![Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![("modifier", vec![StorageMethod::Variable("var2")])]
-                }]
+                })]
             }
         )
     }
@@ -231,13 +237,13 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09}"#),
-                tpl: vec![Statement::Calculated {
+                tpl: vec![Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![(
                         "modifier",
                         vec![StorageMethod::Const(Value::Number(-32.09))]
                     )]
-                }]
+                })]
             }
         )
     }
@@ -252,13 +258,13 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{10|modifier:-32.09}"#),
-                tpl: vec![Statement::Calculated {
+                tpl: vec![Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Const(Value::Number(10.0)),
                     modifiers: vec![(
                         "modifier",
                         vec![StorageMethod::Const(Value::Number(-32.09))]
                     )]
-                }]
+                })]
             }
         )
     }
@@ -273,7 +279,7 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#),
-                tpl: vec![Statement::Calculated {
+                tpl: vec![Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![(
                         "modifier",
@@ -284,7 +290,7 @@ mod tests {
                             StorageMethod::Const(Value::Bool(true))
                         ]
                     )]
-                }]
+                })]
             }
         )
     }
@@ -300,18 +306,18 @@ mod tests {
             Template {
                 tpl_str: String::from("{var|modifier}\n{10|modifier:-32.09}"),
                 tpl: vec![
-                    Statement::Calculated {
+                    Statement::Calculated(CalcualtedValue {
                         value: StorageMethod::Variable("var"),
                         modifiers: vec![("modifier", vec![])]
-                    },
+                    }),
                     Statement::Literal("\n"),
-                    Statement::Calculated {
+                    Statement::Calculated(CalcualtedValue {
                         value: StorageMethod::Const(Value::Number(10.0)),
                         modifiers: vec![(
                             "modifier",
                             vec![StorageMethod::Const(Value::Number(-32.09))]
                         )]
-                    }
+                    })
                 ]
             }
         )
@@ -411,15 +417,15 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple more " as *const _),
-                Statement::Calculated {
+                Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![]
-                },
+                }),
                 Statement::Literal(" template " as *const _),
-                Statement::Calculated {
+                Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("foo"),
                     modifiers: vec![]
-                }
+                })
             ],
             tpl.tpl
         )
@@ -431,10 +437,10 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated {
+                Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![("test" as *const _, vec![])]
-                },
+                }),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl
@@ -447,7 +453,7 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated {
+                Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![(
                         "test" as *const _,
@@ -455,7 +461,7 @@ mod legacy_tests {
                             "test value".to_string()
                         ))]
                     )]
-                },
+                }),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl
@@ -468,13 +474,13 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated {
+                Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![(
                         "test" as *const _,
                         vec![StorageMethod::Const(Value::Number(42_f64))]
                     )]
-                },
+                }),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl
@@ -487,10 +493,10 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated {
+                Statement::Calculated(CalcualtedValue {
                     value: StorageMethod::Variable("var"),
                     modifiers: vec![("test" as *const _, vec![StorageMethod::Variable("foobar")])]
-                },
+                }),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl

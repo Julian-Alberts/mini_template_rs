@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::template::{Statement, StorageMethod};
+use crate::template::{Statement, StorageMethod, CalcualtedValue};
 
 use super::error::{Error, Result};
 use log::error;
@@ -21,7 +21,7 @@ pub fn render<'a, 't>(
                 // literal points to tpl.tpl_str and should never be null
                 tpl_string.push_str(literal.as_ref().unwrap())
             },
-            Statement::Calculated { value, modifiers } => {
+            Statement::Calculated(CalcualtedValue { value, modifiers }) => {
                 let mut var = match value {
                     StorageMethod::Const(var) => var.to_owned(),
                     StorageMethod::Variable(var_name) => {
