@@ -12,7 +12,10 @@ impl PartialEq for StorageMethod {
             (StorageMethod::Const(s), StorageMethod::Const(o)) => s == o,
             (StorageMethod::Variable(s), StorageMethod::Variable(o)) =>
             // Safety: Both variable names point to positions in the original template string.
-            unsafe { s.as_ref() == o.as_ref() },
+            unsafe { 
+                println!("StorageMethod: {} == {} = {}) ", s.as_ref().unwrap(), o.as_ref().unwrap(), s.as_ref() == o.as_ref() );
+                s.as_ref() == o.as_ref() 
+            },
             _ => false,
         }
     }

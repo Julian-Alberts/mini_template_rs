@@ -52,7 +52,8 @@ pub fn render<'a, 't>(
                 }
 
                 tpl_string.push_str(&var.to_string()[..])
-            }
+            },
+            Statement::Condition(_) => todo!()
         }
     }
 

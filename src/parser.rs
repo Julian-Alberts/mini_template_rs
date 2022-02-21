@@ -1,7 +1,7 @@
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 use crate::{
-    template::{Statement, StorageMethod, CalcualtedValue},
+    template::{Statement, StorageMethod, CalcualtedValue, Conditional, Condition, CompareOperator, CompareCondition},
     value::Value,
     Template,
 };
@@ -45,15 +45,76 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
     match item.as_rule() {
         Rule::text => Some(Statement::Literal(item.as_str())),
         Rule::calculated => Some(parse_calculated(item)),
+        Rule::conditional => Some(parse_conditional(item)),
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
+}
+
+fn parse_conditional(conditional: Pair<Rule>) -> Statement {
+    assert_eq!(conditional.as_rule(), Rule::conditional);
+    let mut conditional = conditional.into_inner();
+    
+    let condition = conditional.next().unwrap();
+    let condition = parse_condition(condition);
+    let then_case = conditional.next().unwrap().into_inner().filter_map(parse_template_content).collect::<Vec<_>>();
+    let else_case = conditional.next().map(|else_case| else_case.into_inner().filter_map(parse_template_content).collect());
+
+    Statement::Condition(
+        Conditional {
+            condition,
+            then_case,
+            else_case
+        }
+    )
+}
+
+fn parse_condition(condition: Pair<Rule>) -> Condition {
+    assert_eq!(condition.as_rule(), Rule::condition);
+    let mut inner = condition.into_inner();
+    let calcualted_value_left = inner.next().unwrap();
+    if calcualted_value_left.as_rule() == Rule::condition {
+        return parse_condition(calcualted_value_left);
+    }
+    let calcualted_value_left = parse_calculated_value(calcualted_value_left);
+    
+    let operator = if let Some(o) = inner.next() {
+        parse_compare_operator(o)
+    } else {
+        return Condition::Simple(calcualted_value_left)
+    };
+    let calcualted_value_right = inner.next().unwrap();
+    let calcualted_value_right = parse_calculated_value(calcualted_value_right);
+ 
+    
+    Condition::Compare(
+        CompareCondition {
+            left: calcualted_value_left,
+            operator,
+            right: calcualted_value_right
+        }
+    )
 }
 
 fn parse_calculated(calculated: Pair<Rule>) -> Statement {
     assert_eq!(calculated.as_rule(), Rule::calculated);
     let inner = calculated.into_inner().next().unwrap();
     Statement::Calculated(parse_calculated_value(inner))
+}
+
+fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
+    assert_eq!(compare_operator.as_rule(), Rule::compare_operator);
+    let inner = compare_operator.into_inner().next().unwrap();
+    match inner.as_rule() {
+        Rule::eq_operator => CompareOperator::EQ,
+        Rule::ne_operator => CompareOperator::NE,
+        Rule::lt_operator => CompareOperator::LT,
+        Rule::le_operator => CompareOperator::LE,
+        Rule::gt_operator => CompareOperator::GT,
+        Rule::ge_operator => CompareOperator::GE,
+        _ => unreachable!("Unknown compare operator: {}", inner.as_str())
+    }
+   
 }
 
 fn parse_calculated_value(calculated_value: Pair<Rule>) -> CalcualtedValue {
@@ -107,6 +168,8 @@ pub enum ParseError {
 #[cfg(test)]
 mod tests {
     use std::vec;
+
+    use crate::template::{Condition, CompareCondition, CompareOperator};
 
     use super::*;
 
@@ -322,6 +385,188 @@ mod tests {
             }
         )
     }
+
+    #[test]
+    fn parse_conditional_simple() {
+        let template = "{if i < 10}HI{endif}";
+        let conditional = TemplateParser::parse(Rule::conditional, template).unwrap().next().unwrap();
+        let conditional_statement = parse_conditional(conditional);
+        if let Statement::Condition(conditional) = conditional_statement {
+            assert_eq!(
+                conditional,
+                Conditional {
+                    condition: Condition::Compare(
+                        CompareCondition {
+                            left: CalcualtedValue {
+                                value: StorageMethod::Variable("i"),
+                                modifiers: vec![]
+                            },
+                            operator: CompareOperator::LT,
+                            right: CalcualtedValue {
+                                value: StorageMethod::Const(
+                                    Value::Number(10.)
+                                ),
+                                modifiers: vec![]
+                            }
+                        }
+                    ),
+                    then_case: vec![
+                        Statement::Literal("HI")
+                    ],
+                    else_case: None
+                }
+            )
+        } else {
+            panic!("Unexpected statement")
+        }
+    }
+
+    #[test]
+    fn parse_conditional_else() {
+        let template = "{if i < 10}HI{else}TEST{endif}";
+        let conditional = TemplateParser::parse(Rule::conditional, template).unwrap().next().unwrap();
+        let conditional_statement = parse_conditional(conditional);
+        if let Statement::Condition(conditional) = conditional_statement {
+            assert_eq!(
+                conditional,
+                Conditional {
+                    condition: Condition::Compare(
+                        CompareCondition {
+                            left: CalcualtedValue {
+                                value: StorageMethod::Variable("i"),
+                                modifiers: vec![]
+                            },
+                            operator: CompareOperator::LT,
+                            right: CalcualtedValue {
+                                value: StorageMethod::Const(
+                                    Value::Number(10.)
+                                ),
+                                modifiers: vec![]
+                            }
+                        }
+                    ),
+                    then_case: vec![
+                        Statement::Literal("HI")
+                    ],
+                    else_case: Some(vec![
+                        Statement::Literal("TEST")
+                    ])
+                }
+            )
+        } else {
+            panic!("Unexpected statement")
+        }
+    }
+
+    #[test]
+    fn parse_conditional_mutiple() {
+        let template = "{if i < 10}HI{else}{if n == \"TEST\"}HI2{else}TEST{endif}{endif}";
+        let conditional = TemplateParser::parse(Rule::conditional, template).unwrap().next().unwrap();
+        let conditional_statement = parse_conditional(conditional);
+        if let Statement::Condition(conditional) = conditional_statement {
+            assert_eq!(
+                conditional,
+                Conditional {
+                    condition: Condition::Compare(
+                        CompareCondition {
+                            left: CalcualtedValue {
+                                value: StorageMethod::Variable("i"),
+                                modifiers: vec![]
+                            },
+                            operator: CompareOperator::LT,
+                            right: CalcualtedValue {
+                                value: StorageMethod::Const(
+                                    Value::Number(10.)
+                                ),
+                                modifiers: vec![]
+                            }
+                        }
+                    ),
+                    then_case: vec![
+                        Statement::Literal("HI")
+                    ],
+                    else_case: Some(vec![
+                        Statement::Condition(
+                            Conditional {
+                                condition: Condition::Compare(
+                                    CompareCondition {
+                                        left: CalcualtedValue {
+                                            value: StorageMethod::Variable("n"),
+                                            modifiers: vec![]
+                                        },
+                                        operator: CompareOperator::EQ,
+                                        right: CalcualtedValue {
+                                            value: StorageMethod::Const(
+                                                Value::String("TEST".to_owned())
+                                            ),
+                                            modifiers: vec![]
+                                        }
+                                    }
+                                ),
+                                then_case: vec![
+                                    Statement::Literal("HI2")
+                                ],
+                                else_case: Some(
+                                    vec![
+                                        Statement::Literal("TEST")
+                                    ]
+                                )
+                            }
+                        )
+                    ])
+                }
+            )
+        } else {
+            panic!("Unexpected statement")
+        }
+    }
+
+    #[test]
+    fn parse_condition() {
+        let template = "bar";
+        let condition = TemplateParser::parse(Rule::condition, template).unwrap().next().unwrap();
+        let condition = super::parse_condition(condition);
+        assert_eq!(condition, Condition::Simple(
+            CalcualtedValue {
+                value: StorageMethod::Variable("bar"),
+                modifiers: vec![]
+            }
+        ));
+    }
+
+    #[test]
+    fn parse_condition_eq() {
+        let template = "bar == 10";
+        let condition = TemplateParser::parse(Rule::condition, template).unwrap().next().unwrap();
+        let condition = super::parse_condition(condition);
+        assert_eq!(condition, Condition::Compare(CompareCondition {
+            left: CalcualtedValue {
+                value: StorageMethod::Variable("bar"),
+                modifiers: vec![]
+            },
+            operator: CompareOperator::EQ,
+            right: CalcualtedValue { value: StorageMethod::Const(
+                Value::Number(10.)
+            ), modifiers: vec![] }
+        }));
+    }
+
+    #[test]
+    fn parse_condition_2() {
+        let template = "(bar == 10)";
+        let condition = TemplateParser::parse(Rule::condition, template).unwrap().next().unwrap();
+        let condition = super::parse_condition(condition);
+        assert_eq!(condition, Condition::Compare(CompareCondition {
+            left: CalcualtedValue {
+                value: StorageMethod::Variable("bar"),
+                modifiers: vec![]
+            },
+            operator: CompareOperator::EQ,
+            right: CalcualtedValue { value: StorageMethod::Const(
+                Value::Number(10.)
+            ), modifiers: vec![] }
+        }));
+    }
 }
 
 #[cfg(test)]
@@ -385,16 +630,43 @@ mod pest_tests {
         test_cases(&[r#"{"test"|modifier:arg}"#], Rule::calculated)
     }
 
+    #[test]
+    fn test_condition() {
+        test_cases(
+            &[
+                "bar",
+                "(bar)",
+                "var1 == var2",
+                "(var1 == var2)",
+                "var1 == var2 || var5 == var5",
+                "var1 == var2 || (var5 == var5)",
+                "var1 == var2 || var5 == var5 && var1 == \"foo\"",
+                "var1 == var2 || (var5 == var5 && var1 == \"foo\")",
+            ],
+            Rule::condition
+        );
+    }
+
+    #[test]
+    fn test_conditional() {
+        test_cases(&[
+            "{if i < 10}HI{endif}",
+            "{if i < 10}HI{else}TEST{endif}",
+            "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}"
+        ], Rule::conditional);
+    }
+
     fn test_cases(cases: &[&str], rule: Rule) {
         cases.iter().for_each(|input| {
             let parsed = TemplateParser::parse(rule, input);
-            assert!(parsed.is_ok(), "{:#?}", parsed);
+            assert!(parsed.is_ok(), "Failed to parse \"{input}\"\n{parsed:#?}");
             let parsed = parsed.unwrap().next();
             assert!(parsed.is_some(), "{:#?}", parsed);
             let identifyer = parsed.unwrap();
             assert_eq!(identifyer.as_str(), *input);
         })
     }
+
 }
 
 #[cfg(test)]
