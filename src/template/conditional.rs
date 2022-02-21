@@ -1,6 +1,6 @@
 use std::{str::FromStr, collections::HashMap};
 
-use crate::{value::Value, modifier::Modifier};
+use crate::{value::Value, modifier::Modifier, renderer::RenderContext};
 
 use super::{Statement, CalcualtedValue};
 
@@ -19,7 +19,7 @@ pub enum Condition {
 
 impl Condition {
 
-    pub fn eval(&self, modifier: &HashMap<&'static str, &Modifier>, variables: &HashMap<String, Value>) -> bool {
+    pub fn eval(&self, context: RenderContext) -> bool {
         match self {
             Self::Simple(s) => unimplemented!(),
             Self::Compare(c) => unimplemented!()
@@ -49,7 +49,7 @@ pub enum CompareOperator {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{template::{CalcualtedValue, StorageMethod}, value::Value};
+    use crate::{template::{CalcualtedValue, StorageMethod}, value::Value, renderer::RenderContext};
 
     use super::Condition;
 
@@ -64,7 +64,7 @@ mod tests {
             ),
             modifiers: vec![]
         });
-        assert!(!condition.eval(&HashMap::new(), &vars));
+        assert!(!condition.eval(RenderContext::new(&HashMap::new(), &vars)));
 
 
     }
