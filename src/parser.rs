@@ -1,7 +1,10 @@
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 use crate::{
-    template::{Statement, StorageMethod, CalcualtedValue, Conditional, Condition, CompareOperator, CompareCondition},
+    template::{
+        CalcualtedValue, CompareCondition, CompareOperator, Condition, Conditional, Statement,
+        StorageMethod,
+    },
     value::Value,
     Template,
 };
@@ -54,52 +57,58 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
 fn parse_conditional(conditional: Pair<Rule>) -> Statement {
     assert_eq!(conditional.as_rule(), Rule::conditional);
     let mut conditional = conditional.into_inner();
-    
+
     let condition = conditional.next().unwrap();
     let condition = parse_condition(condition);
-    let then_case = conditional.next().unwrap().into_inner().filter_map(parse_template_content).collect::<Vec<_>>();
-    let else_case = conditional.next().map(|else_case| else_case.into_inner().filter_map(parse_template_content).collect());
+    let then_case = conditional
+        .next()
+        .unwrap()
+        .into_inner()
+        .filter_map(parse_template_content)
+        .collect::<Vec<_>>();
+    let else_case = conditional.next().map(|else_case| {
+        else_case
+            .into_inner()
+            .filter_map(parse_template_content)
+            .collect()
+    });
 
-    Statement::Condition(
-        Conditional {
-            condition,
-            then_case,
-            else_case
-        }
-    )
+    Statement::Condition(Conditional {
+        condition,
+        then_case,
+        else_case,
+    })
 }
 
 fn parse_condition(condition: Pair<Rule>) -> Condition {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
-    let calcualted_value_left = inner.next().unwrap();
-    if calcualted_value_left.as_rule() == Rule::condition {
-        return parse_condition(calcualted_value_left);
+    let first_value = inner.next().unwrap();
+    match first_value.as_rule() {
+        Rule::condition => parse_condition(first_value),
+        Rule::compare_condition => Condition::Compare(
+            parse_compare_condition(first_value)
+        ),
+        Rule::calculated_value => Condition::Simple(
+            parse_calculated_value(first_value)
+        ),
+        _ => unreachable!()
     }
-    let calcualted_value_left = parse_calculated_value(calcualted_value_left);
-    
-    let operator = if let Some(o) = inner.next() {
-        parse_compare_operator(o)
-    } else {
-        return Condition::Simple(calcualted_value_left)
-    };
-    let calcualted_value_right = inner.next().unwrap();
-    let calcualted_value_right = parse_calculated_value(calcualted_value_right);
- 
-    
-    Condition::Compare(
-        CompareCondition {
-            left: calcualted_value_left,
-            operator,
-            right: calcualted_value_right
-        }
-    )
 }
 
 fn parse_calculated(calculated: Pair<Rule>) -> Statement {
     assert_eq!(calculated.as_rule(), Rule::calculated);
     let inner = calculated.into_inner().next().unwrap();
     Statement::Calculated(parse_calculated_value(inner))
+}
+
+fn parse_compare_condition(compare_condition: Pair<Rule>) -> CompareCondition {
+    assert_eq!(compare_condition.as_rule(), Rule::compare_condition);
+    let mut inner = compare_condition.into_inner();
+    let calc_val_l = parse_calculated_value(inner.next().unwrap());
+    let operator = parse_compare_operator(inner.next().unwrap());
+    let calc_val_r = parse_calculated_value(inner.next().unwrap());
+    CompareCondition { left: calc_val_l, operator, right: calc_val_r }
 }
 
 fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
@@ -112,9 +121,8 @@ fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
         Rule::le_operator => CompareOperator::LE,
         Rule::gt_operator => CompareOperator::GT,
         Rule::ge_operator => CompareOperator::GE,
-        _ => unreachable!("Unknown compare operator: {}", inner.as_str())
+        _ => unreachable!("Unknown compare operator: {}", inner.as_str()),
     }
-   
 }
 
 fn parse_calculated_value(calculated_value: Pair<Rule>) -> CalcualtedValue {
@@ -122,7 +130,7 @@ fn parse_calculated_value(calculated_value: Pair<Rule>) -> CalcualtedValue {
     let mut inner = calculated_value.into_inner();
     let value = parse_value(inner.next().unwrap());
     let modifiers = inner.into_iter().map(parse_modifier).collect::<Vec<_>>();
-    CalcualtedValue { value, modifiers }
+    CalcualtedValue::new(value, modifiers)
 }
 
 fn parse_modifier(item: Pair<Rule>) -> (*const str, Vec<StorageMethod>) {
@@ -169,7 +177,7 @@ pub enum ParseError {
 mod tests {
     use std::vec;
 
-    use crate::template::{Condition, CompareCondition, CompareOperator};
+    use crate::template::{CompareCondition, CompareOperator, Condition};
 
     use super::*;
 
@@ -211,10 +219,10 @@ mod tests {
         let statement = parse_calculated(item);
         assert_eq!(
             statement,
-            Statement::Calculated(CalcualtedValue {
-                modifiers: Vec::new(),
-                value: StorageMethod::Variable("var"),
-            })
+            Statement::Calculated(CalcualtedValue::new(
+                StorageMethod::Variable("var"),
+                Vec::new()
+            ))
         )
     }
 
@@ -227,10 +235,10 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl: vec![Statement::Calculated(CalcualtedValue {
-                    modifiers: vec![],
-                    value: StorageMethod::Variable("var"),
-                })],
+                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![],
+                ))],
                 tpl_str: String::from("{var}")
             }
         );
@@ -246,10 +254,10 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier}"),
-                tpl: vec![Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![("modifier", vec![])]
-                })]
+                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![("modifier", vec![])]
+                ))]
             }
         )
     }
@@ -264,10 +272,10 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier1|modifier2}"),
-                tpl: vec![Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![("modifier1", vec![]), ("modifier2", vec![])]
-                })]
+                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![("modifier1", vec![]), ("modifier2", vec![])]
+                ))]
             }
         )
     }
@@ -282,10 +290,10 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier:var2}"),
-                tpl: vec![Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![("modifier", vec![StorageMethod::Variable("var2")])]
-                })]
+                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![("modifier", vec![StorageMethod::Variable("var2")])]
+                ))]
             }
         )
     }
@@ -300,13 +308,13 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09}"#),
-                tpl: vec![Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![(
+                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![(
                         "modifier",
                         vec![StorageMethod::Const(Value::Number(-32.09))]
                     )]
-                })]
+                ))]
             }
         )
     }
@@ -321,13 +329,13 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{10|modifier:-32.09}"#),
-                tpl: vec![Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Const(Value::Number(10.0)),
-                    modifiers: vec![(
+                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Const(Value::Number(10.0)),
+                    vec![(
                         "modifier",
                         vec![StorageMethod::Const(Value::Number(-32.09))]
                     )]
-                })]
+                ))]
             }
         )
     }
@@ -342,9 +350,9 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#),
-                tpl: vec![Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![(
+                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![(
                         "modifier",
                         vec![
                             StorageMethod::Const(Value::Number(-32.09)),
@@ -353,7 +361,7 @@ mod tests {
                             StorageMethod::Const(Value::Bool(true))
                         ]
                     )]
-                })]
+                ))]
             }
         )
     }
@@ -369,203 +377,177 @@ mod tests {
             Template {
                 tpl_str: String::from("{var|modifier}\n{10|modifier:-32.09}"),
                 tpl: vec![
-                    Statement::Calculated(CalcualtedValue {
-                        value: StorageMethod::Variable("var"),
-                        modifiers: vec![("modifier", vec![])]
-                    }),
+                    Statement::Calculated(CalcualtedValue::new(
+                        StorageMethod::Variable("var"),
+                        vec![("modifier", vec![])]
+                    )),
                     Statement::Literal("\n"),
-                    Statement::Calculated(CalcualtedValue {
-                        value: StorageMethod::Const(Value::Number(10.0)),
-                        modifiers: vec![(
+                    Statement::Calculated(CalcualtedValue::new(
+                        StorageMethod::Const(Value::Number(10.0)),
+                        vec![(
                             "modifier",
                             vec![StorageMethod::Const(Value::Number(-32.09))]
                         )]
-                    })
+                    ))
                 ]
             }
         )
     }
 
-    #[test]
-    fn parse_conditional_simple() {
-        let template = "{if i < 10}HI{endif}";
-        let conditional = TemplateParser::parse(Rule::conditional, template).unwrap().next().unwrap();
-        let conditional_statement = parse_conditional(conditional);
-        if let Statement::Condition(conditional) = conditional_statement {
-            assert_eq!(
-                conditional,
-                Conditional {
-                    condition: Condition::Compare(
-                        CompareCondition {
-                            left: CalcualtedValue {
-                                value: StorageMethod::Variable("i"),
-                                modifiers: vec![]
-                            },
-                            operator: CompareOperator::LT,
-                            right: CalcualtedValue {
-                                value: StorageMethod::Const(
-                                    Value::Number(10.)
-                                ),
-                                modifiers: vec![]
-                            }
-                        }
-                    ),
-                    then_case: vec![
-                        Statement::Literal("HI")
-                    ],
-                    else_case: None
-                }
-            )
-        } else {
-            panic!("Unexpected statement")
-        }
-    }
+    mod conditional {
+        use super::*;
 
-    #[test]
-    fn parse_conditional_else() {
-        let template = "{if i < 10}HI{else}TEST{endif}";
-        let conditional = TemplateParser::parse(Rule::conditional, template).unwrap().next().unwrap();
-        let conditional_statement = parse_conditional(conditional);
-        if let Statement::Condition(conditional) = conditional_statement {
-            assert_eq!(
-                conditional,
-                Conditional {
-                    condition: Condition::Compare(
-                        CompareCondition {
-                            left: CalcualtedValue {
-                                value: StorageMethod::Variable("i"),
-                                modifiers: vec![]
-                            },
+        #[test]
+        fn parse_simple() {
+            let template = "{if i < 10}HI{endif}";
+            let conditional = TemplateParser::parse(Rule::conditional, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let conditional_statement = parse_conditional(conditional);
+            if let Statement::Condition(conditional) = conditional_statement {
+                assert_eq!(
+                    conditional,
+                    Conditional {
+                        condition: Condition::Compare(CompareCondition {
+                            left: CalcualtedValue::new(StorageMethod::Variable("i"), vec![]),
                             operator: CompareOperator::LT,
-                            right: CalcualtedValue {
-                                value: StorageMethod::Const(
-                                    Value::Number(10.)
-                                ),
-                                modifiers: vec![]
-                            }
-                        }
-                    ),
-                    then_case: vec![
-                        Statement::Literal("HI")
-                    ],
-                    else_case: Some(vec![
-                        Statement::Literal("TEST")
-                    ])
-                }
-            )
-        } else {
-            panic!("Unexpected statement")
-        }
-    }
-
-    #[test]
-    fn parse_conditional_mutiple() {
-        let template = "{if i < 10}HI{else}{if n == \"TEST\"}HI2{else}TEST{endif}{endif}";
-        let conditional = TemplateParser::parse(Rule::conditional, template).unwrap().next().unwrap();
-        let conditional_statement = parse_conditional(conditional);
-        if let Statement::Condition(conditional) = conditional_statement {
-            assert_eq!(
-                conditional,
-                Conditional {
-                    condition: Condition::Compare(
-                        CompareCondition {
-                            left: CalcualtedValue {
-                                value: StorageMethod::Variable("i"),
-                                modifiers: vec![]
-                            },
-                            operator: CompareOperator::LT,
-                            right: CalcualtedValue {
-                                value: StorageMethod::Const(
-                                    Value::Number(10.)
-                                ),
-                                modifiers: vec![]
-                            }
-                        }
-                    ),
-                    then_case: vec![
-                        Statement::Literal("HI")
-                    ],
-                    else_case: Some(vec![
-                        Statement::Condition(
-                            Conditional {
-                                condition: Condition::Compare(
-                                    CompareCondition {
-                                        left: CalcualtedValue {
-                                            value: StorageMethod::Variable("n"),
-                                            modifiers: vec![]
-                                        },
-                                        operator: CompareOperator::EQ,
-                                        right: CalcualtedValue {
-                                            value: StorageMethod::Const(
-                                                Value::String("TEST".to_owned())
-                                            ),
-                                            modifiers: vec![]
-                                        }
-                                    }
-                                ),
-                                then_case: vec![
-                                    Statement::Literal("HI2")
-                                ],
-                                else_case: Some(
-                                    vec![
-                                        Statement::Literal("TEST")
-                                    ]
-                                )
-                            }
-                        )
-                    ])
-                }
-            )
-        } else {
-            panic!("Unexpected statement")
-        }
-    }
-
-    #[test]
-    fn parse_condition() {
-        let template = "bar";
-        let condition = TemplateParser::parse(Rule::condition, template).unwrap().next().unwrap();
-        let condition = super::parse_condition(condition);
-        assert_eq!(condition, Condition::Simple(
-            CalcualtedValue {
-                value: StorageMethod::Variable("bar"),
-                modifiers: vec![]
+                            right: CalcualtedValue::new(
+                                StorageMethod::Const(Value::Number(10.)),
+                                vec![]
+                            )
+                        }),
+                        then_case: vec![Statement::Literal("HI")],
+                        else_case: None
+                    }
+                )
+            } else {
+                panic!("Unexpected statement")
             }
-        ));
+        }
+
+        #[test]
+        fn parse_else() {
+            let template = "{if i < 10}HI{else}TEST{endif}";
+            let conditional = TemplateParser::parse(Rule::conditional, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let conditional_statement = parse_conditional(conditional);
+            if let Statement::Condition(conditional) = conditional_statement {
+                assert_eq!(
+                    conditional,
+                    Conditional {
+                        condition: Condition::Compare(CompareCondition {
+                            left: CalcualtedValue::new(StorageMethod::Variable("i"), vec![]),
+                            operator: CompareOperator::LT,
+                            right: CalcualtedValue::new(
+                                StorageMethod::Const(Value::Number(10.)),
+                                vec![]
+                            )
+                        }),
+                        then_case: vec![Statement::Literal("HI")],
+                        else_case: Some(vec![Statement::Literal("TEST")])
+                    }
+                )
+            } else {
+                panic!("Unexpected statement")
+            }
+        }
+
+        #[test]
+        fn parse_mutiple() {
+            let template = "{if i < 10}HI{else}{if n == \"TEST\"}HI2{else}TEST{endif}{endif}";
+            let conditional = TemplateParser::parse(Rule::conditional, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let conditional_statement = parse_conditional(conditional);
+            if let Statement::Condition(conditional) = conditional_statement {
+                assert_eq!(
+                    conditional,
+                    Conditional {
+                        condition: Condition::Compare(CompareCondition {
+                            left: CalcualtedValue::new(StorageMethod::Variable("i"), vec![]),
+                            operator: CompareOperator::LT,
+                            right: CalcualtedValue::new(
+                                StorageMethod::Const(Value::Number(10.)),
+                                vec![]
+                            )
+                        }),
+                        then_case: vec![Statement::Literal("HI")],
+                        else_case: Some(vec![Statement::Condition(Conditional {
+                            condition: Condition::Compare(CompareCondition {
+                                left: CalcualtedValue::new(StorageMethod::Variable("n"), vec![]),
+                                operator: CompareOperator::EQ,
+                                right: CalcualtedValue::new(
+                                    StorageMethod::Const(Value::String("TEST".to_owned())),
+                                    vec![]
+                                )
+                            }),
+                            then_case: vec![Statement::Literal("HI2")],
+                            else_case: Some(vec![Statement::Literal("TEST")])
+                        })])
+                    }
+                )
+            } else {
+                panic!("Unexpected statement")
+            }
+        }
     }
 
-    #[test]
-    fn parse_condition_eq() {
-        let template = "bar == 10";
-        let condition = TemplateParser::parse(Rule::condition, template).unwrap().next().unwrap();
-        let condition = super::parse_condition(condition);
-        assert_eq!(condition, Condition::Compare(CompareCondition {
-            left: CalcualtedValue {
-                value: StorageMethod::Variable("bar"),
-                modifiers: vec![]
-            },
-            operator: CompareOperator::EQ,
-            right: CalcualtedValue { value: StorageMethod::Const(
-                Value::Number(10.)
-            ), modifiers: vec![] }
-        }));
-    }
+    mod condition {
+        use super::*;
 
-    #[test]
-    fn parse_condition_2() {
-        let template = "(bar == 10)";
-        let condition = TemplateParser::parse(Rule::condition, template).unwrap().next().unwrap();
-        let condition = super::parse_condition(condition);
-        assert_eq!(condition, Condition::Compare(CompareCondition {
-            left: CalcualtedValue {
-                value: StorageMethod::Variable("bar"),
-                modifiers: vec![]
-            },
-            operator: CompareOperator::EQ,
-            right: CalcualtedValue { value: StorageMethod::Const(
-                Value::Number(10.)
-            ), modifiers: vec![] }
-        }));
+        #[test]
+        fn parse() {
+            let template = "bar";
+            let condition = TemplateParser::parse(Rule::condition, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition,
+                Condition::Simple(CalcualtedValue::new(StorageMethod::Variable("bar"), vec![]))
+            );
+        }
+
+        #[test]
+        fn parse_eq() {
+            let template = "bar == 10";
+            let condition = TemplateParser::parse(Rule::condition, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition,
+                Condition::Compare(CompareCondition {
+                    left: CalcualtedValue::new(StorageMethod::Variable("bar"), vec![]),
+                    operator: CompareOperator::EQ,
+                    right: CalcualtedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                })
+            );
+        }
+
+        #[test]
+        fn parse_2() {
+            let template = "(bar == 10)";
+            let condition = TemplateParser::parse(Rule::condition, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition,
+                Condition::Compare(CompareCondition {
+                    left: CalcualtedValue::new(StorageMethod::Variable("bar"), vec![]),
+                    operator: CompareOperator::EQ,
+                    right: CalcualtedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                })
+            );
+        }
     }
 }
 
@@ -643,17 +625,20 @@ mod pest_tests {
                 "var1 == var2 || var5 == var5 && var1 == \"foo\"",
                 "var1 == var2 || (var5 == var5 && var1 == \"foo\")",
             ],
-            Rule::condition
+            Rule::condition,
         );
     }
 
     #[test]
     fn test_conditional() {
-        test_cases(&[
-            "{if i < 10}HI{endif}",
-            "{if i < 10}HI{else}TEST{endif}",
-            "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}"
-        ], Rule::conditional);
+        test_cases(
+            &[
+                "{if i < 10}HI{endif}",
+                "{if i < 10}HI{else}TEST{endif}",
+                "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
+            ],
+            Rule::conditional,
+        );
     }
 
     fn test_cases(cases: &[&str], rule: Rule) {
@@ -666,7 +651,6 @@ mod pest_tests {
             assert_eq!(identifyer.as_str(), *input);
         })
     }
-
 }
 
 #[cfg(test)]
@@ -689,15 +673,9 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple more " as *const _),
-                Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![]
-                }),
+                Statement::Calculated(CalcualtedValue::new(StorageMethod::Variable("var"), vec![])),
                 Statement::Literal(" template " as *const _),
-                Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("foo"),
-                    modifiers: vec![]
-                })
+                Statement::Calculated(CalcualtedValue::new(StorageMethod::Variable("foo"), vec![]))
             ],
             tpl.tpl
         )
@@ -709,10 +687,10 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![("test" as *const _, vec![])]
-                }),
+                Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![("test" as *const _, vec![])]
+                )),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl
@@ -725,15 +703,15 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![(
+                Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![(
                         "test" as *const _,
                         vec![StorageMethod::Const(Value::String(
                             "test value".to_string()
                         ))]
                     )]
-                }),
+                )),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl
@@ -746,13 +724,13 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![(
+                Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![(
                         "test" as *const _,
                         vec![StorageMethod::Const(Value::Number(42_f64))]
                     )]
-                }),
+                )),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl
@@ -765,10 +743,10 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue {
-                    value: StorageMethod::Variable("var"),
-                    modifiers: vec![("test" as *const _, vec![StorageMethod::Variable("foobar")])]
-                }),
+                Statement::Calculated(CalcualtedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![("test" as *const _, vec![StorageMethod::Variable("foobar")])]
+                )),
                 Statement::Literal(" template" as *const _)
             ],
             tpl.tpl

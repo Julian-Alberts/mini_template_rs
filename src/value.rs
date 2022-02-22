@@ -7,6 +7,16 @@ pub enum Value {
     Bool(bool),
 }
 
+impl Value {
+    pub fn as_bool(&self) -> bool {
+        match self {
+            Self::Bool(b) => *b,
+            Self::Number(n) => *n != 0.,
+            Self::String(s) => !s.is_empty(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct TypeError {
     pub storage_type: &'static str,

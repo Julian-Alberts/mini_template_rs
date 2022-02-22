@@ -4,22 +4,17 @@ use super::{CalcualtedValue, Conditional};
 pub enum Statement {
     Literal(*const str),
     Calculated(CalcualtedValue),
-    Condition(Conditional)
+    Condition(Conditional),
 }
 
 impl PartialEq for Statement {
     fn eq(&self, other: &Statement) -> bool {
         match (self, other) {
-            (
-                Statement::Calculated (s),
-                Statement::Calculated (o),
-            ) => s == o,
+            (Statement::Calculated(s), Statement::Calculated(o)) => s == o,
             (Statement::Literal(s), &Statement::Literal(o)) =>
             // Safety: Both literals point to positions in the original template string.
             unsafe { s.as_ref() == o.as_ref() },
-            (Statement::Condition(s), Statement::Condition(o)) => {
-                s == o
-            }
+            (Statement::Condition(s), Statement::Condition(o)) => s == o,
             _ => false,
         }
     }
@@ -27,7 +22,7 @@ impl PartialEq for Statement {
 
 #[cfg(test)]
 mod tests {
-    use crate::template::{StorageMethod, CalcualtedValue};
+    use crate::template::{CalcualtedValue, StorageMethod};
 
     use super::Statement;
 
@@ -53,14 +48,14 @@ mod tests {
     fn two_calclated_values_eq() {
         let str1 = "my var in a text";
         let str2 = "same var in an other text";
-        let calculated1 = Statement::Calculated(CalcualtedValue {
-            value: StorageMethod::Variable(&str1[3..6]),
-            modifiers: vec![],
-        });
-        let calculated2 = Statement::Calculated(CalcualtedValue {
-            value: StorageMethod::Variable(&str2[5..8]),
-            modifiers: vec![],
-        });
+        let calculated1 = Statement::Calculated(CalcualtedValue::new(
+            StorageMethod::Variable(&str1[3..6]),
+            vec![],
+        ));
+        let calculated2 = Statement::Calculated(CalcualtedValue::new(
+            StorageMethod::Variable(&str2[5..8]),
+            vec![],
+        ));
         assert_eq!(calculated1, calculated2);
     }
 
@@ -68,14 +63,14 @@ mod tests {
     fn two_calclated_values_not_eq() {
         let str1 = "my var in a text";
         let str2 = "other VAR in an other text";
-        let calculated1 = Statement::Calculated(CalcualtedValue {
-            value: StorageMethod::Variable(&str1[3..6]),
-            modifiers: vec![],
-        });
-        let calculated2 = Statement::Calculated(CalcualtedValue {
-            value: StorageMethod::Variable(&str2[5..8]),
-            modifiers: vec![],
-        });
+        let calculated1 = Statement::Calculated(CalcualtedValue::new(
+            StorageMethod::Variable(&str1[3..6]),
+            vec![],
+        ));
+        let calculated2 = Statement::Calculated(CalcualtedValue::new(
+            StorageMethod::Variable(&str2[5..8]),
+            vec![],
+        ));
         assert_ne!(calculated1, calculated2);
     }
 }

@@ -6,16 +6,19 @@ use super::StorageMethod;
 
 #[derive(Debug)]
 pub struct CalcualtedValue {
-    pub value: StorageMethod,
-    pub modifiers: Vec<(*const str, Vec<StorageMethod>)>,
+    value: StorageMethod,
+    modifiers: Vec<(*const str, Vec<StorageMethod>)>,
 }
 
 impl CalcualtedValue {
+    pub fn new(value: StorageMethod, modifiers: Vec<(*const str, Vec<StorageMethod>)>) -> Self {
+        Self { value, modifiers }
+    }
 
     pub fn calc<'t>(&self, context: &RenderContext) -> crate::error::Result<Value> {
         let RenderContext {
             modifier: defined_modifiers,
-            variables
+            variables,
         } = *context;
 
         let mut var = match &self.value {
@@ -24,7 +27,8 @@ impl CalcualtedValue {
                 // Safety: var_name points to tpl.tpl_str and should never be null
                 let var_name = unsafe { var_name.as_ref().unwrap() };
                 let var = variables.get(var_name);
-                var.ok_or(crate::error::Error::UnknownVariable(var_name))?.to_owned()
+                var.ok_or(crate::error::Error::UnknownVariable(var_name))?
+                    .to_owned()
             }
         };
 
@@ -49,7 +53,6 @@ impl CalcualtedValue {
 
         Ok(var)
     }
-
 }
 
 fn storage_methods_to_values<'a, 't>(
@@ -65,7 +68,9 @@ fn storage_methods_to_values<'a, 't>(
             //Safety: var points to tpl.tpl_str and should never be null
             unsafe {
                 let var = var.as_ref().unwrap();
-                variables.get(var).ok_or(crate::error::Error::UnknownVariable(var))?
+                variables
+                    .get(var)
+                    .ok_or(crate::error::Error::UnknownVariable(var))?
             },
         };
         real_args.push(arg);
@@ -74,7 +79,6 @@ fn storage_methods_to_values<'a, 't>(
 }
 
 impl PartialEq for CalcualtedValue {
-
     fn eq(&self, other: &Self) -> bool {
         if self.value != other.value {
             return false;
@@ -87,5 +91,4 @@ impl PartialEq for CalcualtedValue {
                 s.0.as_ref() == o.0.as_ref() && s.1 == o.1 
             })
     }
-
 }

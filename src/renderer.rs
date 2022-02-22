@@ -1,35 +1,29 @@
 use std::collections::HashMap;
 
-use crate::template::{Statement, StorageMethod};
+use crate::template::Statement;
 
-use super::error::{Error, Result};
+use super::error::Result;
 
 use super::{modifier::Modifier, value::Value, Template};
 
 pub struct RenderContext<'a> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
-    pub variables: &'a HashMap<String, Value>
+    pub variables: &'a HashMap<String, Value>,
 }
 
-impl <'a> RenderContext<'a> {
-
-
+impl<'a> RenderContext<'a> {
     pub fn new(
         modifier: &'a HashMap<&'static str, &'a Modifier>,
-        variables: &'a HashMap<String, Value>
+        variables: &'a HashMap<String, Value>,
     ) -> Self {
         Self {
             modifier,
-            variables
+            variables,
         }
     }
-
 }
 
-pub fn render<'a, 't>(
-    tpl: &'t Template,
-    context: &RenderContext<'a>
-) -> Result<'t, String> {
+pub fn render<'a, 't>(tpl: &'t Template, context: &RenderContext<'a>) -> Result<'t, String> {
     let tpl = &tpl.tpl;
     let mut tpl_string = String::new();
 
@@ -42,40 +36,21 @@ pub fn render<'a, 't>(
             Statement::Calculated(cv) => {
                 let var = cv.calc(context)?;
                 tpl_string.push_str(&var.to_string()[..])
-            },
-            Statement::Condition(_) => todo!()
+            }
+            Statement::Condition(_) => todo!(),
         }
     }
 
     Ok(tpl_string)
 }
 
-fn storage_methods_to_values<'a, 't>(
-    args: &'a [StorageMethod],
-    variables: &'a HashMap<String, Value>,
-) -> Result<'t, Vec<&'a Value>> {
-    let mut real_args = Vec::with_capacity(args.len());
-
-    for arg in args {
-        let arg = match arg {
-            StorageMethod::Const(value) => value,
-            StorageMethod::Variable(var) =>
-            //Safety: var points to tpl.tpl_str and should never be null
-            unsafe {
-                let var = var.as_ref().unwrap();
-                variables.get(var).ok_or(Error::UnknownVariable(var))?
-            },
-        };
-        real_args.push(arg);
-    }
-    Ok(real_args)
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{create_modifier, modifier::Modifier, parser::parse, value::Value, renderer::RenderContext};
+    use crate::{
+        create_modifier, modifier::Modifier, parser::parse, renderer::RenderContext, value::Value,
+    };
 
     use super::render;
 
