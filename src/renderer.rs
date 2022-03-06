@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::template::Statement;
+use crate::template::{ConditionEval, Statement};
 
 use super::error::Result;
 
@@ -36,7 +36,13 @@ pub fn render<'a, 't>(tpl: &'t [Statement], context: &RenderContext<'a>) -> Resu
                 let var = cv.calc(context)?;
                 tpl_string.push_str(&var.to_string()[..])
             }
-            Statement::Condition(_) => todo!(),
+            Statement::Condition(c) => {
+                if c.condition.eval(context)? {
+                    tpl_string.push_str(&render(&c.then_case, context)?)
+                } else if let Some(else_case) = &c.else_case {
+                    tpl_string.push_str(&render(else_case, context)?)
+                }
+            }
         }
     }
 
@@ -143,5 +149,55 @@ mod tests {
             rendered,
             String::from("Simple MY TEST VALUE=bar=42 template string")
         );
+    }
+
+    #[test]
+    fn condition1() {
+        let tpl = String::from(
+            r#"Foo
+{if var1}Bar {endif}
+Baz"#,
+        );
+        let tpl = parse(tpl).unwrap();
+
+        let mut variables = HashMap::new();
+        variables.insert("var1".to_owned(), Value::Bool(true));
+
+        let modifiers: HashMap<&str, &Modifier> = HashMap::new();
+
+        let rendered = render(&tpl.tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
+        assert_eq!(rendered, String::from("Foo\nBar Baz"));
+    }
+
+    #[test]
+    fn condition2() {
+        let tpl = String::from("Foo\n{if var1}\nBar\n{endif}\nBaz");
+        let tpl = parse(tpl).unwrap();
+
+        let mut variables = HashMap::new();
+        variables.insert("var1".to_owned(), Value::Bool(true));
+
+        let modifiers: HashMap<&str, &Modifier> = HashMap::new();
+
+        let rendered = render(&tpl.tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
+        assert_eq!(rendered, String::from("Foo\nBar\nBaz"));
+    }
+
+    #[test]
+    fn condition3() {
+        let tpl = String::from("Foo{if var1}Bar{else}Fizz{endif}Baz");
+        let tpl = parse(tpl).unwrap();
+
+        let mut variables = HashMap::new();
+        variables.insert("var1".to_owned(), Value::Bool(true));
+
+        let modifiers: HashMap<&str, &Modifier> = HashMap::new();
+
+        let rendered = render(&tpl.tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
+        assert_eq!(rendered, String::from("FooBarBaz"));
+
+        variables.insert("var1".to_owned(), Value::Bool(false));
+        let rendered = render(&tpl.tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
+        assert_eq!(rendered, String::from("FooFizzBaz"));
     }
 }

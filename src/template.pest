@@ -7,8 +7,8 @@ identifyer = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
 text = {(!"{" ~ ("\\{" | ANY))+}
 
 // Template
-tempalte = ${SOI ~ template_content ~ EOI}
-template_content = { (calculated|text|conditional)* }
+tempalte = {SOI ~ template_content ~ EOI}
+template_content = ${ (calculated|text|conditional)* }
 
 // Values
 string = { "\"" ~ inner_string ~ "\"" }
@@ -18,14 +18,14 @@ boolean = {true_key_word|false_key_word}
 value = { boolean|identifyer|number|string }
 
 // Blocks
-conditional = { 
+conditional = !{ 
     "{" ~ if_key_word ~ condition ~ "}" ~
         template_content ~
     (
         "{" ~ else_key_word ~ "}" ~
             template_content
     )? ~
-    "{" ~ endif_key_word ~ "}"
+    "{" ~ endif_key_word ~ "}" ~ "\n"?
 }
 
 // Condition

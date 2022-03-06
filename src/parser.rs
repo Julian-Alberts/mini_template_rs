@@ -23,11 +23,9 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
         Ok(t) => t,
         Err(e) => match e.line_col {
             LineColLocation::Pos(pos) => {
-                error!("parse error {:?}", pos);
                 return Err(ParseError::Pos(pos));
             }
             LineColLocation::Span(start, end) => {
-                error!("parse error {:?} => {:?}", start, end);
                 return Err(ParseError::Span(start, end));
             }
         },
@@ -855,9 +853,40 @@ mod pest_tests {
                 "{if i < 10}HI{endif}",
                 "{if i < 10}HI{else}TEST{endif}",
                 "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
+                "{if i}HI{endif}",
             ],
             Rule::conditional,
         );
+    }
+
+    #[test]
+    fn test_template() {
+        test_cases(
+            &[
+                "Hello world",
+                r#"{"test"|modifier:arg}"#,
+                "{if i < 10} HI {endif}",
+                "{if i < 10}HI{else}TEST{endif}",
+                "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
+                "{if i}HI{endif}",
+            ],
+            Rule::tempalte,
+        );
+    }
+
+    #[test]
+    fn test_template_content() {
+        test_cases(
+            &[
+                "Hello world",
+                r#"{"test"|modifier:arg}"#,
+                "{if i < 10} HI {endif}",
+                "{if i < 10}HI{else}TEST{endif}",
+                "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
+                "{if i}HI{endif}",
+            ],
+            Rule::template_content,
+        )
     }
 
     fn test_cases(cases: &[&str], rule: Rule) {
