@@ -4,20 +4,11 @@ use crate::renderer::RenderContext;
 
 use super::{CalcualtedValue, Statement};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Conditional {
     pub(crate) condition: Condition,
     pub(crate) then_case: Vec<Statement>,
     pub(crate) else_case: Option<Vec<Statement>>,
-}
-
-impl PartialEq for Conditional {
-
-    fn eq(&self, other: &Self) -> bool {
-        self.then_case == other.then_case &&
-        self.else_case == other.else_case
-    }
-
 }
 
 #[derive(Debug, PartialEq)]
@@ -114,23 +105,6 @@ impl ConditionEval for AndCondition {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ConditionKind {
-    Compare(CompareCondition),
-    Simple(CalcualtedValue),
-}
-
-impl ConditionEval for ConditionKind {
-    fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
-        let b = match self {
-            Self::Simple(s) => s.calc(context)?.as_bool(),
-            Self::Compare(c) => unimplemented!(),
-        };
-
-        Ok(b)
-    }
-}
-
-#[derive(Debug, PartialEq)]
 pub struct CompareCondition {
     pub(crate) left: CalcualtedValue,
     pub(crate) operator: CompareOperator,
@@ -171,7 +145,7 @@ mod tests {
 
     use crate::{
         renderer::RenderContext,
-        template::{CalcualtedValue, StorageMethod, ConditionKind, AndCondition, OrCondition, Condition},
+        template::{CalcualtedValue, StorageMethod, AndCondition, OrCondition, Condition},
         value::Value,
     };
 
@@ -179,7 +153,7 @@ mod tests {
 
     #[test]
     fn eval_condition() {
-        let condition = ConditionKind::Simple(
+        let condition = Condition::CalculatedValue(
                 CalcualtedValue::new(StorageMethod::Const(Value::Bool(true)),vec![])
         );
         assert!(condition.eval(&RenderContext::new(&HashMap::new(), &HashMap::new())).unwrap())
@@ -241,7 +215,7 @@ mod tests {
     fn eval_simple_bool_true() {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Bool(true));
-        let condition = ConditionKind::Simple(CalcualtedValue::new(
+        let condition = Condition::CalculatedValue(CalcualtedValue::new(
             StorageMethod::Variable("my_var"),
             vec![],
         ));
@@ -254,7 +228,7 @@ mod tests {
     fn eval_simple_bool_false() {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Bool(false));
-        let condition = ConditionKind::Simple(CalcualtedValue::new(
+        let condition = Condition::CalculatedValue(CalcualtedValue::new(
             StorageMethod::Variable("my_var"),
             vec![],
         ));
@@ -267,7 +241,7 @@ mod tests {
     fn eval_simple_int_false() {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Number(0.));
-        let condition = ConditionKind::Simple(CalcualtedValue::new(
+        let condition = Condition::CalculatedValue(CalcualtedValue::new(
             StorageMethod::Variable("my_var"),
             vec![],
         ));
@@ -280,7 +254,7 @@ mod tests {
     fn eval_simple_int_true_1_0() {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Number(1.));
-        let condition = ConditionKind::Simple(CalcualtedValue::new(
+        let condition = Condition::CalculatedValue(CalcualtedValue::new(
             StorageMethod::Variable("my_var"),
             vec![],
         ));
@@ -293,12 +267,64 @@ mod tests {
     fn eval_simple_int_true_10() {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Number(10.));
-        let condition = ConditionKind::Simple(CalcualtedValue::new(
+        let condition = Condition::CalculatedValue(CalcualtedValue::new(
             StorageMethod::Variable("my_var"),
             vec![],
         ));
         assert!(condition
             .eval(&RenderContext::new(&HashMap::new(), &vars))
             .unwrap());
+    }
+
+    #[test]
+    fn eval_complex_rule() {
+        //(var1 || var2) && var3
+        let condition = Condition::and(vec![
+            Condition::or(vec![
+                Condition::CalculatedValue(CalcualtedValue::new(
+                    StorageMethod::Variable("var1"), vec![]
+                )),
+                Condition::CalculatedValue(CalcualtedValue::new(
+                    StorageMethod::Variable("var2"), vec![]
+                ))
+            ]),
+            Condition::CalculatedValue(CalcualtedValue::new(
+                StorageMethod::Variable("var3"), vec![]
+            ))
+        ]);
+        let mods = HashMap::default();
+        let mut vars = HashMap::new();
+        vars.insert("var1".to_owned(), Value::Bool(false)); 
+        vars.insert("var2".to_owned(), Value::Bool(false));
+        vars.insert("var3".to_owned(), Value::Bool(false));
+        assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var2".to_owned(), Value::Bool(false));
+        vars.insert("var3".to_owned(), Value::Bool(false));
+        assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(false)); 
+        vars.insert("var2".to_owned(), Value::Bool(true));
+        vars.insert("var3".to_owned(), Value::Bool(false));
+        assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var2".to_owned(), Value::Bool(true));
+        vars.insert("var3".to_owned(), Value::Bool(false));
+        assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(false)); 
+        vars.insert("var2".to_owned(), Value::Bool(false));
+        vars.insert("var3".to_owned(), Value::Bool(true));
+        assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var2".to_owned(), Value::Bool(false));
+        vars.insert("var3".to_owned(), Value::Bool(true));
+        assert!(condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(false)); 
+        vars.insert("var2".to_owned(), Value::Bool(true));
+        vars.insert("var3".to_owned(), Value::Bool(true));
+        assert!(condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var2".to_owned(), Value::Bool(true));
+        vars.insert("var3".to_owned(), Value::Bool(true));
+        assert!(condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
     }
 }
