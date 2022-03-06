@@ -26,13 +26,12 @@ impl PartialEq for Value {
             (Self::Bool(s), o) => *s == o.as_bool(),
             (s, Self::Bool(o)) => s.as_bool() == *o,
             (Self::String(s), Self::Number(o)) => s == &o.to_string(),
-            (Self::Number(s), Self::String(o)) => &s.to_string() == o
+            (Self::Number(s), Self::String(o)) => &s.to_string() == o,
         }
     }
 }
 
 impl PartialOrd for Value {
-    
     fn lt(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::String(s), Self::String(o)) => s < o,
@@ -41,8 +40,8 @@ impl PartialOrd for Value {
             (Self::Bool(s), o) => *s < o.as_bool(),
             (s, Self::Bool(o)) => s.as_bool() < *o,
             (Self::String(s), Self::Number(o)) => s < &o.to_string(),
-            (Self::Number(s), Self::String(o)) => &s.to_string() < o
-        }    
+            (Self::Number(s), Self::String(o)) => &s.to_string() < o,
+        }
     }
 
     fn ge(&self, other: &Self) -> bool {
@@ -53,7 +52,7 @@ impl PartialOrd for Value {
             (Self::Bool(s), o) => *s == o.as_bool(),
             (s, Self::Bool(o)) => s.as_bool() >= *o,
             (Self::String(s), Self::Number(o)) => s >= &o.to_string(),
-            (Self::Number(s), Self::String(o)) => &s.to_string() >= o
+            (Self::Number(s), Self::String(o)) => &s.to_string() >= o,
         }
     }
 
@@ -65,7 +64,7 @@ impl PartialOrd for Value {
             (Self::Bool(s), o) => *s > o.as_bool(),
             (s, Self::Bool(o)) => s.as_bool() > *o,
             (Self::String(s), Self::Number(o)) => s > &o.to_string(),
-            (Self::Number(s), Self::String(o)) => &s.to_string() > o
+            (Self::Number(s), Self::String(o)) => &s.to_string() > o,
         }
     }
 
@@ -77,7 +76,7 @@ impl PartialOrd for Value {
             (Self::Bool(s), o) => *s <= o.as_bool(),
             (s, Self::Bool(o)) => s.as_bool() <= *o,
             (Self::String(s), Self::Number(o)) => s <= &o.to_string(),
-            (Self::Number(s), Self::String(o)) => &s.to_string() <= o
+            (Self::Number(s), Self::String(o)) => &s.to_string() <= o,
         }
     }
 
@@ -90,7 +89,6 @@ impl PartialOrd for Value {
             Some(std::cmp::Ordering::Greater)
         }
     }
-
 }
 
 #[derive(Debug, PartialEq)]

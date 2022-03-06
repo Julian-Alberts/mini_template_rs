@@ -16,12 +16,11 @@ pub enum Condition {
     Or(OrCondition),
     And(AndCondition),
     CalculatedValue(CalcualtedValue),
-    Compare(CompareCondition)
+    Compare(CompareCondition),
 }
 
 #[cfg(test)]
 impl Condition {
-
     pub fn and(and: Vec<Condition>) -> Condition {
         Condition::And(AndCondition::new(and))
     }
@@ -29,20 +28,17 @@ impl Condition {
     pub fn or(and: Vec<Condition>) -> Condition {
         Condition::Or(OrCondition::new(and))
     }
-
 }
 
 impl ConditionEval for Condition {
-
     fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         match self {
             Self::Or(c) => c.eval(context),
             Self::And(c) => c.eval(context),
             Self::Compare(c) => c.eval(context),
-            Self::CalculatedValue(c) => Ok(c.calc(context)?.as_bool())
+            Self::CalculatedValue(c) => Ok(c.calc(context)?.as_bool()),
         }
     }
-
 }
 
 pub trait ConditionEval {
@@ -51,58 +47,46 @@ pub trait ConditionEval {
 
 #[derive(Debug, PartialEq)]
 pub struct OrCondition {
-    conditions: Vec<Condition>
+    conditions: Vec<Condition>,
 }
 
 impl OrCondition {
-
     pub fn new(conditions: Vec<Condition>) -> Self {
-        Self {
-            conditions
-        }
+        Self { conditions }
     }
-
 }
 
 impl ConditionEval for OrCondition {
-
     fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         for condition in &self.conditions {
             if condition.eval(context)? {
-                return Ok(true)
+                return Ok(true);
             }
         }
         Ok(false)
     }
-
 }
 
 #[derive(Debug, PartialEq)]
 pub struct AndCondition {
-    conditions: Vec<Condition>
+    conditions: Vec<Condition>,
 }
 
 impl AndCondition {
-
     pub fn new(conditions: Vec<Condition>) -> Self {
-        Self {
-            conditions
-        }
+        Self { conditions }
     }
-
 }
 
 impl ConditionEval for AndCondition {
-
     fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         for condition in &self.conditions {
             if !condition.eval(context)? {
-                return Ok(false)
+                return Ok(false);
             }
         }
         Ok(true)
     }
-
 }
 
 #[derive(Debug, PartialEq)]
@@ -113,7 +97,6 @@ pub struct CompareCondition {
 }
 
 impl ConditionEval for CompareCondition {
-
     fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         let left = self.left.calc(context)?;
         let right = self.right.calc(context)?;
@@ -127,7 +110,6 @@ impl ConditionEval for CompareCondition {
         };
         Ok(r)
     }
-
 }
 
 #[derive(Debug, PartialEq)]
@@ -146,7 +128,7 @@ mod tests {
 
     use crate::{
         renderer::RenderContext,
-        template::{CalcualtedValue, StorageMethod, AndCondition, OrCondition, Condition},
+        template::{AndCondition, CalcualtedValue, Condition, OrCondition, StorageMethod},
         value::Value,
     };
 
@@ -154,62 +136,71 @@ mod tests {
 
     #[test]
     fn eval_condition() {
-        let condition = Condition::CalculatedValue(
-                CalcualtedValue::new(StorageMethod::Const(Value::Bool(true)),vec![])
-        );
-        assert!(condition.eval(&RenderContext::new(&HashMap::new(), &HashMap::new())).unwrap())
+        let condition = Condition::CalculatedValue(CalcualtedValue::new(
+            StorageMethod::Const(Value::Bool(true)),
+            vec![],
+        ));
+        assert!(condition
+            .eval(&RenderContext::new(&HashMap::new(), &HashMap::new()))
+            .unwrap())
     }
 
     #[test]
     fn eval_condition_and() {
         let condition = AndCondition::new(vec![
-                Condition::CalculatedValue(
-                    CalcualtedValue::new(StorageMethod::Variable("a"),vec![])
-                ),
-                Condition::CalculatedValue(
-                        CalcualtedValue::new(StorageMethod::Variable("b"),vec![])
-                )
-            ]
-        );
+            Condition::CalculatedValue(CalcualtedValue::new(StorageMethod::Variable("a"), vec![])),
+            Condition::CalculatedValue(CalcualtedValue::new(StorageMethod::Variable("b"), vec![])),
+        ]);
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(true));
-        assert!(condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(false));
-        assert!(!condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(!condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(true));
-        assert!(!condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(!condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(false));
-        assert!(!condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(!condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
     }
 
     #[test]
     fn eval_condition_or() {
         let condition = OrCondition::new(vec![
-            Condition::CalculatedValue(
-                CalcualtedValue::new(StorageMethod::Variable("a"),vec![])
-            ),
-            Condition::CalculatedValue(
-                CalcualtedValue::new(StorageMethod::Variable("b"),vec![])
-            )
-        ]
-    );
+            Condition::CalculatedValue(CalcualtedValue::new(StorageMethod::Variable("a"), vec![])),
+            Condition::CalculatedValue(CalcualtedValue::new(StorageMethod::Variable("b"), vec![])),
+        ]);
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(true));
-        assert!(condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(false));
-        assert!(condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(true));
-        assert!(condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(false));
-        assert!(!condition.eval(&RenderContext::new(&HashMap::new(), &vars)).unwrap());
+        assert!(!condition
+            .eval(&RenderContext::new(&HashMap::new(), &vars))
+            .unwrap());
     }
 
     #[test]
@@ -283,47 +274,50 @@ mod tests {
         let condition = Condition::and(vec![
             Condition::or(vec![
                 Condition::CalculatedValue(CalcualtedValue::new(
-                    StorageMethod::Variable("var1"), vec![]
+                    StorageMethod::Variable("var1"),
+                    vec![],
                 )),
                 Condition::CalculatedValue(CalcualtedValue::new(
-                    StorageMethod::Variable("var2"), vec![]
-                ))
+                    StorageMethod::Variable("var2"),
+                    vec![],
+                )),
             ]),
             Condition::CalculatedValue(CalcualtedValue::new(
-                StorageMethod::Variable("var3"), vec![]
-            ))
+                StorageMethod::Variable("var3"),
+                vec![],
+            )),
         ]);
         let mods = HashMap::default();
         let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(false)); 
+        vars.insert("var1".to_owned(), Value::Bool(false));
         vars.insert("var2".to_owned(), Value::Bool(false));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
-        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(false));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
-        vars.insert("var1".to_owned(), Value::Bool(false)); 
+        vars.insert("var1".to_owned(), Value::Bool(false));
         vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
-        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
-        vars.insert("var1".to_owned(), Value::Bool(false)); 
+        vars.insert("var1".to_owned(), Value::Bool(false));
         vars.insert("var2".to_owned(), Value::Bool(false));
         vars.insert("var3".to_owned(), Value::Bool(true));
         assert!(!condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
-        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(false));
-        vars.insert("var3".to_owned(), Value::Bool(true));
-        assert!(condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
-        vars.insert("var1".to_owned(), Value::Bool(false)); 
-        vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(true));
         assert!(condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
-        vars.insert("var1".to_owned(), Value::Bool(true)); 
+        vars.insert("var1".to_owned(), Value::Bool(false));
+        vars.insert("var2".to_owned(), Value::Bool(true));
+        vars.insert("var3".to_owned(), Value::Bool(true));
+        assert!(condition.eval(&RenderContext::new(&mods, &vars)).unwrap());
+        vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(true));
         assert!(condition.eval(&RenderContext::new(&mods, &vars)).unwrap());

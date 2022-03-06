@@ -2,8 +2,8 @@ use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 use crate::{
     template::{
-        CalcualtedValue, CompareCondition, CompareOperator, Conditional, Statement,
-        StorageMethod, Condition, OrCondition, AndCondition,
+        AndCondition, CalcualtedValue, CompareCondition, CompareOperator, Condition, Conditional,
+        OrCondition, Statement, StorageMethod,
     },
     value::Value,
     Template,
@@ -83,7 +83,7 @@ fn parse_conditional(conditional: Pair<Rule>) -> Statement {
 fn parse_condition(condition: Pair<Rule>) -> Condition {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
-    
+
     let mut current_and = None;
     let mut current_or = Vec::new();
     let mut prev_operator = None;
@@ -94,7 +94,7 @@ fn parse_condition(condition: Pair<Rule>) -> Condition {
             Rule::condition => parse_condition(c),
             Rule::compare_condition => Condition::Compare(parse_compare_condition(c)),
             Rule::calculated_value => Condition::CalculatedValue(parse_calculated_value(c)),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         if let Some(operator) = inner.next() {
@@ -103,35 +103,31 @@ fn parse_condition(condition: Pair<Rule>) -> Condition {
                 (Rule::or_operator, Some(Rule::and_operator)) => {
                     current_and.get_or_insert(Vec::default()).push(c);
                     current_or.push(Condition::And(AndCondition::new(
-                        current_and.take().unwrap()
+                        current_and.take().unwrap(),
                     )))
-                },
-                (Rule::or_operator, _) => {
-                    current_or.push(c)
-                },
-                _ => unreachable!()
+                }
+                (Rule::or_operator, _) => current_or.push(c),
+                _ => unreachable!(),
             }
             prev_operator = Some(operator.as_rule());
         } else {
             match prev_operator {
                 Some(Rule::and_operator) => {
                     current_and.get_or_insert(Vec::default()).push(c);
-                    let and = Condition::And(AndCondition::new(
-                        current_and.take().unwrap()
-                    ));
+                    let and = Condition::And(AndCondition::new(current_and.take().unwrap()));
                     return if current_or.len() > 0 {
                         current_or.push(and);
                         Condition::Or(OrCondition::new(current_or))
                     } else {
                         and
-                    }
-                },
+                    };
+                }
                 Some(Rule::or_operator) => {
                     current_or.push(c);
                     return Condition::Or(OrCondition::new(current_or));
-                },
+                }
                 None => return c,
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
     }
@@ -150,7 +146,11 @@ fn parse_compare_condition(compare_condition: Pair<Rule>) -> CompareCondition {
     let calc_val_l = parse_calculated_value(inner.next().unwrap());
     let operator = parse_compare_operator(inner.next().unwrap());
     let calc_val_r = parse_calculated_value(inner.next().unwrap());
-    CompareCondition { left: calc_val_l, operator, right: calc_val_r }
+    CompareCondition {
+        left: calc_val_l,
+        operator,
+        right: calc_val_r,
+    }
 }
 
 fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
@@ -481,14 +481,17 @@ mod tests {
                         condition: Condition::and(vec![
                             Condition::or(vec![
                                 Condition::CalculatedValue(CalcualtedValue::new(
-                                    StorageMethod::Variable("var1"), vec![]
+                                    StorageMethod::Variable("var1"),
+                                    vec![]
                                 )),
                                 Condition::CalculatedValue(CalcualtedValue::new(
-                                    StorageMethod::Variable("var2"), vec![]
+                                    StorageMethod::Variable("var2"),
+                                    vec![]
                                 ))
                             ]),
                             Condition::CalculatedValue(CalcualtedValue::new(
-                                StorageMethod::Variable("var3"), vec![]
+                                StorageMethod::Variable("var3"),
+                                vec![]
                             ))
                         ]),
                         then_case: vec![Statement::Literal("HI")],
@@ -585,7 +588,10 @@ mod tests {
             let condition = super::parse_condition(condition);
             assert_eq!(
                 condition,
-                Condition::CalculatedValue(CalcualtedValue::new(StorageMethod::Variable("bar"), vec![])),
+                Condition::CalculatedValue(CalcualtedValue::new(
+                    StorageMethod::Variable("bar"),
+                    vec![]
+                )),
             );
         }
 
@@ -634,21 +640,22 @@ mod tests {
                 .unwrap();
             let condition = super::parse_condition(condition);
             assert_eq!(
-                condition, 
+                condition,
                 Condition::Or(OrCondition::new(vec![
                     Condition::CalculatedValue(CalcualtedValue::new(
-                        StorageMethod::Variable("var1"), vec![]
+                        StorageMethod::Variable("var1"),
+                        vec![]
                     )),
-                    Condition::And(
-                        AndCondition::new(vec![
-                            Condition::CalculatedValue(CalcualtedValue::new(
-                                StorageMethod::Variable("var2"), vec![]
-                            )),
-                            Condition::CalculatedValue(CalcualtedValue::new(
-                                StorageMethod::Variable("var3"), vec![]
-                            ))
-                        ])
-                    )
+                    Condition::And(AndCondition::new(vec![
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var2"),
+                            vec![]
+                        )),
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var3"),
+                            vec![]
+                        ))
+                    ]))
                 ]))
             )
         }
@@ -663,17 +670,17 @@ mod tests {
 
             let condition = super::parse_condition(condition);
             assert_eq!(
-                condition, 
-                Condition::Or(
-                    OrCondition::new(vec![
-                        Condition::CalculatedValue(CalcualtedValue::new(
-                            StorageMethod::Variable("var1"), vec![]
-                        )),
-                        Condition::CalculatedValue(CalcualtedValue::new(
-                            StorageMethod::Variable("var2"), vec![]
-                        ))
-                    ])
-                ),
+                condition,
+                Condition::Or(OrCondition::new(vec![
+                    Condition::CalculatedValue(CalcualtedValue::new(
+                        StorageMethod::Variable("var1"),
+                        vec![]
+                    )),
+                    Condition::CalculatedValue(CalcualtedValue::new(
+                        StorageMethod::Variable("var2"),
+                        vec![]
+                    ))
+                ])),
             )
         }
 
@@ -687,17 +694,17 @@ mod tests {
 
             let condition = super::parse_condition(condition);
             assert_eq!(
-                condition, 
-                Condition::And(
-                    AndCondition::new(vec![
-                        Condition::CalculatedValue(CalcualtedValue::new(
-                            StorageMethod::Variable("var1"), vec![]
-                        )),
-                        Condition::CalculatedValue(CalcualtedValue::new(
-                            StorageMethod::Variable("var2"), vec![]
-                        ))
-                    ])
-                ),
+                condition,
+                Condition::And(AndCondition::new(vec![
+                    Condition::CalculatedValue(CalcualtedValue::new(
+                        StorageMethod::Variable("var1"),
+                        vec![]
+                    )),
+                    Condition::CalculatedValue(CalcualtedValue::new(
+                        StorageMethod::Variable("var2"),
+                        vec![]
+                    ))
+                ])),
             )
         }
 
@@ -708,24 +715,25 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-                println!("{:#?}", condition);
+            println!("{:#?}", condition);
 
             let condition = super::parse_condition(condition);
             assert_eq!(
-                condition, 
+                condition,
                 Condition::And(AndCondition::new(vec![
-                    Condition::Or(
-                        OrCondition::new(vec![
-                            Condition::CalculatedValue(CalcualtedValue::new(
-                                StorageMethod::Variable("var1"), vec![]
-                            )),
-                            Condition::CalculatedValue(CalcualtedValue::new(
-                                StorageMethod::Variable("var2"), vec![]
-                            ))
-                        ])
-                    ),
+                    Condition::Or(OrCondition::new(vec![
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var1"),
+                            vec![]
+                        )),
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var2"),
+                            vec![]
+                        ))
+                    ])),
                     Condition::CalculatedValue(CalcualtedValue::new(
-                        StorageMethod::Variable("var3"), vec![]
+                        StorageMethod::Variable("var3"),
+                        vec![]
                     ))
                 ]))
             )
@@ -738,21 +746,24 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-                println!("{:#?}", condition);
+            println!("{:#?}", condition);
 
             let condition = super::parse_condition(condition);
             assert_eq!(
-                condition, 
+                condition,
                 Condition::or(vec![
                     Condition::CalculatedValue(CalcualtedValue::new(
-                        StorageMethod::Variable("var1"), vec![]
+                        StorageMethod::Variable("var1"),
+                        vec![]
                     )),
                     Condition::and(vec![
                         Condition::CalculatedValue(CalcualtedValue::new(
-                            StorageMethod::Variable("var2"), vec![]
+                            StorageMethod::Variable("var2"),
+                            vec![]
                         )),
                         Condition::CalculatedValue(CalcualtedValue::new(
-                            StorageMethod::Variable("var3"), vec![]
+                            StorageMethod::Variable("var3"),
+                            vec![]
                         ))
                     ])
                 ])

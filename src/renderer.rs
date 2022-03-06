@@ -69,7 +69,11 @@ mod tests {
     fn literal() {
         let tpl = String::from("Simple template string");
         let tpl = parse(tpl).unwrap();
-        let rendered = render(&tpl.tpl, &RenderContext::new(&HashMap::new(), &HashMap::new())).unwrap();
+        let rendered = render(
+            &tpl.tpl,
+            &RenderContext::new(&HashMap::new(), &HashMap::new()),
+        )
+        .unwrap();
         assert_eq!(rendered, tpl.tpl_str);
     }
 

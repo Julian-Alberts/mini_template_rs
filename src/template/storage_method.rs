@@ -28,14 +28,12 @@ impl PartialEq for StorageMethod {
 }
 
 impl Debug for StorageMethod {
-
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Const(c) => write!(f, "Const({c:#?})"),
             Self::Variable(v) => unsafe {
                 write!(f, "Variable({:#?} \"{}\")", v, v.as_ref().unwrap())
-            }
+            },
         }
     }
-
 }
