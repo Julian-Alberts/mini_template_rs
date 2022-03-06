@@ -715,7 +715,6 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            println!("{:#?}", condition);
 
             let condition = super::parse_condition(condition);
             assert_eq!(
@@ -746,7 +745,6 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            println!("{:#?}", condition);
 
             let condition = super::parse_condition(condition);
             assert_eq!(

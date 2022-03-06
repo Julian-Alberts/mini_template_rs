@@ -87,7 +87,6 @@ impl PartialEq for CalcualtedValue {
         self.modifiers.iter().zip(&other.modifiers).all(|(s, o)|
             // Safety: Both modifier names point to positions in the original template string.
             unsafe {
-                println!("CalcualtedValue: {:#?} == {:#?} = {}", s.0.as_ref(), o.0.as_ref() ,s.0.as_ref() == o.0.as_ref() );
                 s.0.as_ref() == o.0.as_ref() && s.1 == o.1
             })
     }
