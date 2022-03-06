@@ -2,8 +2,8 @@ use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 use crate::{
     template::{
-        CalcualtedValue, CompareCondition, CompareOperator, Condition, Conditional, Statement,
-        StorageMethod,
+        CalcualtedValue, CompareCondition, CompareOperator, Conditional, Statement,
+        StorageMethod, Condition, OrCondition, AndCondition,
     },
     value::Value,
     Template,
@@ -83,17 +83,59 @@ fn parse_conditional(conditional: Pair<Rule>) -> Statement {
 fn parse_condition(condition: Pair<Rule>) -> Condition {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
-    let first_value = inner.next().unwrap();
-    match first_value.as_rule() {
-        Rule::condition => parse_condition(first_value),
-        Rule::compare_condition => Condition::Compare(
-            parse_compare_condition(first_value)
-        ),
-        Rule::calculated_value => Condition::Simple(
-            parse_calculated_value(first_value)
-        ),
-        _ => unreachable!()
+    
+    let mut current_and = None;
+    let mut current_or = Vec::new();
+    let mut prev_operator = None;
+
+    // At some point no more operators will be found and the function returns
+    while let Some(c) = inner.next() {
+        let c = match c.as_rule() {
+            Rule::condition => parse_condition(c),
+            Rule::compare_condition => Condition::Compare(parse_compare_condition(c)),
+            Rule::calculated_value => Condition::CalculatedValue(parse_calculated_value(c)),
+            _ => unreachable!()
+        };
+
+        if let Some(operator) = inner.next() {
+            match (operator.as_rule(), prev_operator) {
+                (Rule::and_operator, _) => current_and.get_or_insert(Vec::default()).push(c),
+                (Rule::or_operator, Some(Rule::and_operator)) => {
+                    current_and.get_or_insert(Vec::default()).push(c);
+                    current_or.push(Condition::And(AndCondition::new(
+                        current_and.take().unwrap()
+                    )))
+                },
+                (Rule::or_operator, _) => {
+                    current_or.push(c)
+                },
+                _ => unreachable!()
+            }
+            prev_operator = Some(operator.as_rule());
+        } else {
+            match prev_operator {
+                Some(Rule::and_operator) => {
+                    current_and.get_or_insert(Vec::default()).push(c);
+                    let and = Condition::And(AndCondition::new(
+                        current_and.take().unwrap()
+                    ));
+                    return if current_or.len() > 0 {
+                        current_or.push(and);
+                        Condition::Or(OrCondition::new(current_or))
+                    } else {
+                        and
+                    }
+                },
+                Some(Rule::or_operator) => {
+                    current_or.push(c);
+                    return Condition::Or(OrCondition::new(current_or));
+                },
+                None => return c,
+                _ => unreachable!()
+            }
+        }
     }
+    unreachable!()
 }
 
 fn parse_calculated(calculated: Pair<Rule>) -> Statement {
@@ -176,8 +218,6 @@ pub enum ParseError {
 #[cfg(test)]
 mod tests {
     use std::vec;
-
-    use crate::template::{CompareCondition, CompareOperator, Condition};
 
     use super::*;
 
@@ -427,6 +467,40 @@ mod tests {
         }
 
         #[test]
+        fn parse_complex_condition() {
+            let template = "{if (var1 || var2) && var3}HI{endif}";
+            let conditional = TemplateParser::parse(Rule::conditional, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let conditional_statement = parse_conditional(conditional);
+            if let Statement::Condition(conditional) = conditional_statement {
+                assert_eq!(
+                    conditional,
+                    Conditional {
+                        condition: Condition::and(vec![
+                            Condition::or(vec![
+                                Condition::CalculatedValue(CalcualtedValue::new(
+                                    StorageMethod::Variable("var1"), vec![]
+                                )),
+                                Condition::CalculatedValue(CalcualtedValue::new(
+                                    StorageMethod::Variable("var2"), vec![]
+                                ))
+                            ]),
+                            Condition::CalculatedValue(CalcualtedValue::new(
+                                StorageMethod::Variable("var3"), vec![]
+                            ))
+                        ]),
+                        then_case: vec![Statement::Literal("HI")],
+                        else_case: None
+                    }
+                )
+            } else {
+                panic!("Unexpected statement")
+            }
+        }
+
+        #[test]
         fn parse_else() {
             let template = "{if i < 10}HI{else}TEST{endif}";
             let conditional = TemplateParser::parse(Rule::conditional, template)
@@ -497,6 +571,8 @@ mod tests {
     }
 
     mod condition {
+        use crate::template::AndCondition;
+
         use super::*;
 
         #[test]
@@ -509,7 +585,7 @@ mod tests {
             let condition = super::parse_condition(condition);
             assert_eq!(
                 condition,
-                Condition::Simple(CalcualtedValue::new(StorageMethod::Variable("bar"), vec![]))
+                Condition::CalculatedValue(CalcualtedValue::new(StorageMethod::Variable("bar"), vec![])),
             );
         }
 
@@ -547,6 +623,140 @@ mod tests {
                     right: CalcualtedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
                 })
             );
+        }
+
+        #[test]
+        fn parse_complex() {
+            let tpl = "var1 || var2 && var3";
+            let condition = TemplateParser::parse(Rule::condition, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition, 
+                Condition::Or(OrCondition::new(vec![
+                    Condition::CalculatedValue(CalcualtedValue::new(
+                        StorageMethod::Variable("var1"), vec![]
+                    )),
+                    Condition::And(
+                        AndCondition::new(vec![
+                            Condition::CalculatedValue(CalcualtedValue::new(
+                                StorageMethod::Variable("var2"), vec![]
+                            )),
+                            Condition::CalculatedValue(CalcualtedValue::new(
+                                StorageMethod::Variable("var3"), vec![]
+                            ))
+                        ])
+                    )
+                ]))
+            )
+        }
+
+        #[test]
+        fn parse_complex2() {
+            let tpl = "(var1 || var2)";
+            let condition = TemplateParser::parse(Rule::condition, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition, 
+                Condition::Or(
+                    OrCondition::new(vec![
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var1"), vec![]
+                        )),
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var2"), vec![]
+                        ))
+                    ])
+                ),
+            )
+        }
+
+        #[test]
+        fn parse_complex3() {
+            let tpl = "(var1 && var2)";
+            let condition = TemplateParser::parse(Rule::condition, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition, 
+                Condition::And(
+                    AndCondition::new(vec![
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var1"), vec![]
+                        )),
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var2"), vec![]
+                        ))
+                    ])
+                ),
+            )
+        }
+
+        #[test]
+        fn parse_complex4() {
+            let tpl = "((var1 || var2) && var3)";
+            let condition = TemplateParser::parse(Rule::condition, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+                println!("{:#?}", condition);
+
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition, 
+                Condition::And(AndCondition::new(vec![
+                    Condition::Or(
+                        OrCondition::new(vec![
+                            Condition::CalculatedValue(CalcualtedValue::new(
+                                StorageMethod::Variable("var1"), vec![]
+                            )),
+                            Condition::CalculatedValue(CalcualtedValue::new(
+                                StorageMethod::Variable("var2"), vec![]
+                            ))
+                        ])
+                    ),
+                    Condition::CalculatedValue(CalcualtedValue::new(
+                        StorageMethod::Variable("var3"), vec![]
+                    ))
+                ]))
+            )
+        }
+
+        #[test]
+        fn parse_complex5() {
+            let tpl = "(var1 || (var2 && var3))";
+            let condition = TemplateParser::parse(Rule::condition, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+                println!("{:#?}", condition);
+
+            let condition = super::parse_condition(condition);
+            assert_eq!(
+                condition, 
+                Condition::or(vec![
+                    Condition::CalculatedValue(CalcualtedValue::new(
+                        StorageMethod::Variable("var1"), vec![]
+                    )),
+                    Condition::and(vec![
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var2"), vec![]
+                        )),
+                        Condition::CalculatedValue(CalcualtedValue::new(
+                            StorageMethod::Variable("var3"), vec![]
+                        ))
+                    ])
+                ])
+            )
         }
     }
 }

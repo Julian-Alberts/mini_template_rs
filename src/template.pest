@@ -30,17 +30,15 @@ conditional = {
 
 // Condition
 condition = {
-    ("(" ~ (condition) ~ ")") |
     (
-        (
-            compare_condition |
-            calculated_value
-        ) ~ 
-        (
-            (and_operator|or_operator) ~
-            condition
-        )*
-    )
+        ("(" ~ condition ~ ")") | 
+        compare_condition | 
+        calculated_value
+    )~ 
+    (
+        (and_operator|or_operator) ~ 
+        (compare_condition | calculated_value | condition)
+    )*
 }
 
 compare_condition = { calculated_value ~ compare_operator ~ calculated_value }

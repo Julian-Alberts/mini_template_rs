@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum Value {
     String(String),
     Number(f64),
@@ -15,6 +15,82 @@ impl Value {
             Self::String(s) => !s.is_empty(),
         }
     }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::String(s), Self::String(o)) => s == o,
+            (Self::Number(s), Self::Number(o)) => s == o,
+            (Self::Bool(s), Self::Bool(o)) => s == o,
+            (Self::Bool(s), o) => *s == o.as_bool(),
+            (s, Self::Bool(o)) => s.as_bool() == *o,
+            (Self::String(s), Self::Number(o)) => s == &o.to_string(),
+            (Self::Number(s), Self::String(o)) => &s.to_string() == o
+        }
+    }
+}
+
+impl PartialOrd for Value {
+    
+    fn lt(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::String(s), Self::String(o)) => s < o,
+            (Self::Number(s), Self::Number(o)) => s < o,
+            (Self::Bool(s), Self::Bool(o)) => s < o,
+            (Self::Bool(s), o) => *s < o.as_bool(),
+            (s, Self::Bool(o)) => s.as_bool() < *o,
+            (Self::String(s), Self::Number(o)) => s < &o.to_string(),
+            (Self::Number(s), Self::String(o)) => &s.to_string() < o
+        }    
+    }
+
+    fn ge(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::String(s), Self::String(o)) => s >= o,
+            (Self::Number(s), Self::Number(o)) => s >= o,
+            (Self::Bool(s), Self::Bool(o)) => s >= o,
+            (Self::Bool(s), o) => *s == o.as_bool(),
+            (s, Self::Bool(o)) => s.as_bool() >= *o,
+            (Self::String(s), Self::Number(o)) => s >= &o.to_string(),
+            (Self::Number(s), Self::String(o)) => &s.to_string() >= o
+        }
+    }
+
+    fn gt(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::String(s), Self::String(o)) => s > o,
+            (Self::Number(s), Self::Number(o)) => s > o,
+            (Self::Bool(s), Self::Bool(o)) => s > o,
+            (Self::Bool(s), o) => *s > o.as_bool(),
+            (s, Self::Bool(o)) => s.as_bool() > *o,
+            (Self::String(s), Self::Number(o)) => s > &o.to_string(),
+            (Self::Number(s), Self::String(o)) => &s.to_string() > o
+        }
+    }
+
+    fn le(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::String(s), Self::String(o)) => s <= o,
+            (Self::Number(s), Self::Number(o)) => s <= o,
+            (Self::Bool(s), Self::Bool(o)) => s <= o,
+            (Self::Bool(s), o) => *s <= o.as_bool(),
+            (s, Self::Bool(o)) => s.as_bool() <= *o,
+            (Self::String(s), Self::Number(o)) => s <= &o.to_string(),
+            (Self::Number(s), Self::String(o)) => &s.to_string() <= o
+        }
+    }
+
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self == other {
+            Some(std::cmp::Ordering::Equal)
+        } else if self < other {
+            Some(std::cmp::Ordering::Less)
+        } else {
+            Some(std::cmp::Ordering::Greater)
+        }
+    }
+
 }
 
 #[derive(Debug, PartialEq)]
