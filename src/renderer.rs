@@ -4,7 +4,7 @@ use crate::template::Statement;
 
 use super::error::Result;
 
-use super::{modifier::Modifier, value::Value, Template};
+use super::{modifier::Modifier, value::Value};
 
 pub struct RenderContext<'a> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
@@ -23,8 +23,7 @@ impl<'a> RenderContext<'a> {
     }
 }
 
-pub fn render<'a, 't>(tpl: &'t Template, context: &RenderContext<'a>) -> Result<'t, String> {
-    let tpl = &tpl.tpl;
+pub fn render<'a, 't>(tpl: &'t [Statement], context: &RenderContext<'a>) -> Result<'t, String> {
     let mut tpl_string = String::new();
 
     for statement in tpl {
@@ -70,7 +69,7 @@ mod tests {
     fn literal() {
         let tpl = String::from("Simple template string");
         let tpl = parse(tpl).unwrap();
-        let rendered = render(&tpl, &RenderContext::new(&HashMap::new(), &HashMap::new())).unwrap();
+        let rendered = render(&tpl.tpl, &RenderContext::new(&HashMap::new(), &HashMap::new())).unwrap();
         assert_eq!(rendered, tpl.tpl_str);
     }
 
@@ -80,7 +79,7 @@ mod tests {
         let tpl = parse(tpl).unwrap();
         let mut variables = HashMap::new();
         variables.insert("foo".to_owned(), Value::String("my test value".to_owned()));
-        let rendered = render(&tpl, &RenderContext::new(&HashMap::new(), &variables)).unwrap();
+        let rendered = render(&tpl.tpl, &RenderContext::new(&HashMap::new(), &variables)).unwrap();
         assert_eq!(
             rendered,
             String::from("Simple my test value template string")
@@ -98,7 +97,7 @@ mod tests {
         let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
         modifiers.insert("upper", &upper_case_modifier);
 
-        let rendered = render(&tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
+        let rendered = render(&tpl.tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
         assert_eq!(
             rendered,
             String::from("Simple MY TEST VALUE template string")
@@ -116,7 +115,7 @@ mod tests {
         let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
         modifiers.insert("args", &args_modifier);
 
-        let rendered = render(&tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
+        let rendered = render(&tpl.tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
         assert_eq!(
             rendered,
             String::from("Simple my test value=BAR=42 template string")
@@ -135,7 +134,7 @@ mod tests {
         modifiers.insert("args", &args_modifier);
         modifiers.insert("upper", &upper_case_modifier);
 
-        let rendered = render(&tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
+        let rendered = render(&tpl.tpl, &RenderContext::new(&modifiers, &variables)).unwrap();
         assert_eq!(
             rendered,
             String::from("Simple MY TEST VALUE=bar=42 template string")

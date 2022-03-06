@@ -67,6 +67,6 @@ impl<K: Eq + Hash + Display> MiniTemplate<K> {
             None => return Err(error::Error::UnknownTemplate),
         };
         let context = RenderContext::new(&self.modifier, data);
-        render(tpl, &context)
+        render(&tpl.tpl, &context)
     }
 }
