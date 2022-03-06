@@ -19,6 +19,7 @@ pub enum Condition {
     Compare(CompareCondition)
 }
 
+#[cfg(test)]
 impl Condition {
 
     pub fn and(and: Vec<Condition>) -> Condition {
