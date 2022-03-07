@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, borrow::Cow};
 
 use crate::{renderer::RenderContext, value::Value};
 
@@ -22,13 +22,12 @@ impl CalcualtedValue {
         } = *context;
 
         let mut var = match &self.value {
-            StorageMethod::Const(var) => var.to_owned(),
+            StorageMethod::Const(var) => Cow::Borrowed(var),
             StorageMethod::Variable(var_name) => {
                 // Safety: var_name points to tpl.tpl_str and should never be null
                 let var_name = unsafe { var_name.as_ref().unwrap() };
                 let var = variables.get(var_name);
-                var.ok_or(crate::error::Error::UnknownVariable(var_name))?
-                    .to_owned()
+                Cow::Borrowed(var.ok_or(crate::error::Error::UnknownVariable(var_name))?)
             }
         };
 
@@ -42,7 +41,7 @@ impl CalcualtedValue {
             let args = storage_methods_to_values(args, variables)?;
 
             var = match modifier(&var, args) {
-                Ok(v) => v,
+                Ok(v) => Cow::Owned(v),
                 Err(e) => {
                     let error = e.to_string();
                     error!("{}", error);
@@ -51,7 +50,7 @@ impl CalcualtedValue {
             };
         }
 
-        Ok(var)
+        Ok(var.into_owned())
     }
 }
 

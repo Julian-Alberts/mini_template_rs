@@ -19,6 +19,7 @@ use renderer::{render, RenderContext};
 use std::{collections::HashMap, hash::Hash};
 use template::Template;
 use value::Value;
+pub use modifier::regex_cache_clear;
 
 #[derive(Default)]
 pub struct MiniTemplate<K: Eq + Hash> {

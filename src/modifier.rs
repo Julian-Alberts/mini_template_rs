@@ -1,8 +1,12 @@
-use log::error;
+use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::RwLock};
+
+use once_cell::sync::OnceCell;
 use regex::Regex;
 
 use super::value::Value;
 pub use error::*;
+
+static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 
 #[macro_export]
 macro_rules! create_modifier {
@@ -97,22 +101,15 @@ create_modifier!(
 );
 
 create_modifier!(fn match_modifier(input: String, regex: String, group: usize = 0) -> Result<String> {
-    let regex = match Regex::new(&regex) {
-        Ok(r) => r,
-        Err(r) => {
-            error!("{}", r.to_string());
-            return Err(r.to_string())
-        }
-    };
-    let c = match regex.captures(&input[..]) {
-        Some(c) => match c.get(group) {
-            Some(c) => c.as_str(),
+    with_regex_from_cache(regex, |regex| {
+        match regex.captures(&input[..]) {
+            Some(c) => match c.get(group) {
+                Some(c) => c.as_str(),
+                None => ""
+            },
             None => ""
-        },
-        None => ""
-    };
-
-    Ok(c.to_owned())
+        }.to_owned()
+    })
 });
 
 create_modifier!(fn replace_modifier(input: String, from: String, to: String, count: usize = 0) -> String {
@@ -124,15 +121,9 @@ create_modifier!(fn replace_modifier(input: String, from: String, to: String, co
 });
 
 create_modifier!(fn replace_regex_modifier(input: String, regex: String, to: String, count: usize = 0) -> Result<String> {
-    let regex = match Regex::new(&regex) {
-        Ok(r) => r,
-        Err(r) => {
-            error!("{}", r.to_string());
-            return Err(r.to_string())
-        }
-    };
-
-    Ok(regex.replacen(&input, count, to).to_string())
+    with_regex_from_cache(regex, |regex| {
+        regex.replacen(&input, count, to).to_string()
+    })
 });
 
 create_modifier!(fn upper(input: &str) -> String => str::to_uppercase);
@@ -164,6 +155,39 @@ create_modifier!(
 );
 
 create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
+
+fn with_regex_from_cache<F, T>(regex: String, f: F) -> std::result::Result<T, String> 
+    where F: FnOnce(&Regex) -> T
+{
+    use std::hash::Hash;
+    let mut hasher = DefaultHasher::new();
+    regex.hash(&mut hasher);
+    let cache_key = hasher.finish();
+    drop(hasher);
+
+    let cache = REGEX_CACHE.get_or_init(Default::default);
+    let cache_r = cache.read().unwrap();
+    let result = match cache_r.get(&cache_key) {
+        Some(r) => (f)(r),
+        None => {
+            drop(cache_r);
+            let regex = match Regex::new(&regex) {
+                Ok(r) => r,
+                Err(r) => return Err(r.to_string())
+            };
+            let result = f(&regex);
+            let mut cache_w = cache.write().unwrap();
+            cache_w.insert(cache_key, regex);
+            result
+        }
+    };
+
+    Ok(result)
+}
+
+pub fn regex_cache_clear() {
+    REGEX_CACHE.set(RwLock::default()).unwrap();
+}
 
 pub mod error {
     use std::fmt::Display;

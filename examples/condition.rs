@@ -19,4 +19,9 @@ fn main() {
     let render = mini_template.render(&0, &variables);
     println!("{}", render.unwrap());
 
+    variables.insert("var2".to_owned(), Value::Number(20.));
+    let render = mini_template.render(&0, &variables);
+    println!("{}", render.unwrap());
+
+
 }

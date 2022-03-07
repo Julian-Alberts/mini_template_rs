@@ -1,2 +1,5 @@
 /target
 .vscode
+callgrind.*
+perf.*
+/*.svg
