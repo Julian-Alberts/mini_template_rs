@@ -15,7 +15,7 @@ impl CalcualtedValue {
         Self { value, modifiers }
     }
 
-    pub fn calc<'t>(&self, context: &RenderContext) -> crate::error::Result<Value> {
+    pub fn calc(&self, context: &RenderContext) -> crate::error::Result<Value> {
         let RenderContext {
             modifier: defined_modifiers,
             variables,
@@ -46,7 +46,7 @@ impl CalcualtedValue {
                 Err(e) => {
                     let error = e.to_string();
                     error!("{}", error);
-                    return Err(crate::error::Error::ModifierError(e));
+                    return Err(crate::error::Error::Modifier(e));
                 }
             };
         }

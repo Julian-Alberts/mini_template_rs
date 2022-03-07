@@ -1,4 +1,4 @@
-#![deny(clippy::undocumented_unsafe_blocks)]
+//#![deny(clippy::undocumented_unsafe_blocks)]
 
 mod error;
 mod modifier;
@@ -16,17 +16,17 @@ extern crate log;
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::{render, RenderContext};
-use std::{collections::HashMap, fmt::Display, hash::Hash};
+use std::{collections::HashMap, hash::Hash};
 use template::Template;
 use value::Value;
 
 #[derive(Default)]
-pub struct MiniTemplate<K: Eq + Hash + Display> {
+pub struct MiniTemplate<K: Eq + Hash> {
     modifier: HashMap<&'static str, &'static Modifier>,
     template: HashMap<K, Template>,
 }
 
-impl<K: Eq + Hash + Display> MiniTemplate<K> {
+impl<K: Eq + Hash> MiniTemplate<K> {
     #[deprecated]
     pub fn new() -> Self {
         MiniTemplate {

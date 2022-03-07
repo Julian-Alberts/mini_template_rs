@@ -28,10 +28,9 @@ pub fn render<'a, 't>(tpl: &'t [Statement], context: &RenderContext<'a>) -> Resu
 
     for statement in tpl {
         match statement {
-            Statement::Literal(literal) => unsafe {
-                // literal points to tpl.tpl_str and should never be null
-                tpl_string.push_str(literal.as_ref().unwrap())
-            },
+            Statement::Literal(literal) =>
+            // Safety: literal points to tpl.tpl_str and should never be null
+            unsafe { tpl_string.push_str(literal.as_ref().unwrap()) },
             Statement::Calculated(cv) => {
                 let var = cv.calc(context)?;
                 tpl_string.push_str(&var.to_string()[..])

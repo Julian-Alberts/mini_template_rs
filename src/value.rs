@@ -31,6 +31,7 @@ impl PartialEq for Value {
     }
 }
 
+#[allow(clippy::bool_comparison)]
 impl PartialOrd for Value {
     fn lt(&self, other: &Self) -> bool {
         match (self, other) {

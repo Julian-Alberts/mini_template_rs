@@ -113,7 +113,7 @@ fn parse_condition(condition: Pair<Rule>) -> Condition {
                 Some(Rule::and_operator) => {
                     current_and.get_or_insert(Vec::default()).push(c);
                     let and = Condition::And(AndCondition::new(current_and.take().unwrap()));
-                    return if current_or.len() > 0 {
+                    return if !current_or.is_empty() {
                         current_or.push(and);
                         Condition::Or(OrCondition::new(current_or))
                     } else {

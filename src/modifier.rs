@@ -25,7 +25,7 @@ macro_rules! create_modifier {
 
             fn inner($first_name: $first_t $($(,$name: $t)+)?) -> std::result::Result<$return, String> $b
 
-            let result = inner($first_name $($(,$name)+)?).or_else(|e| Err(Error::ModifierError(e)))?;
+            let result = inner($first_name $($(,$name)+)?).or_else(|e| Err(Error::Modifier(e)))?;
             Ok(result.into())
         }
     };
@@ -82,7 +82,7 @@ macro_rules! create_modifier {
     (try_into $value: ident: $type: ty) => {
         match $value.try_into() {
             Ok(inner) => inner,
-            Err(e) => return Err(Error::TypeError{value: $value.to_string(), type_error: e})
+            Err(e) => return Err(Error::Type{value: $value.to_string(), type_error: e})
         }
     }
 }
@@ -128,7 +128,7 @@ create_modifier!(fn replace_regex_modifier(input: String, regex: String, to: Str
         Ok(r) => r,
         Err(r) => {
             error!("{}", r.to_string());
-            Err(r.to_string())?
+            return Err(r.to_string())
         }
     };
 
@@ -176,11 +176,11 @@ pub mod error {
         MissingArgument {
             argument_name: &'static str,
         },
-        TypeError {
+        Type {
             value: String,
             type_error: TypeError,
         },
-        ModifierError(String),
+        Modifier(String),
     }
 
     impl Display for Error {
@@ -189,12 +189,12 @@ pub mod error {
                 Self::MissingArgument { argument_name } => {
                     write!(f, "Missing argument \"{}\"", argument_name)
                 }
-                Self::TypeError { value, type_error } => write!(
+                Self::Type { value, type_error } => write!(
                     f,
                     "Can not convert {} to type {} value of type {} found",
                     value, type_error.expected_type, type_error.storage_type
                 ),
-                Self::ModifierError(e) => write!(f, "{}", e.to_owned()),
+                Self::Modifier(e) => write!(f, "{}", e.to_owned()),
             }
         }
     }
@@ -232,7 +232,7 @@ mod tests {
         let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
-            Err(Error::ModifierError(
+            Err(Error::Modifier(
                 "regex parse error:\n    (\\d[a-z]+\\d string\n    ^\nerror: unclosed group"
                     .to_owned()
             ))
@@ -283,7 +283,7 @@ mod tests {
         let result = super::match_modifier(&input, args);
         assert_eq!(
             result,
-            Err(Error::TypeError {
+            Err(Error::Type {
                 type_error: TypeError {
                     expected_type: "usize",
                     storage_type: "Number"
