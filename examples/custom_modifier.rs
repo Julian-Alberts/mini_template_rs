@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use mini_template::{MiniTemplate, value::Value};
+use mini_template::{value::Value, MiniTemplate};
 
 #[macro_use]
 extern crate mini_template;
@@ -17,10 +17,13 @@ fn main() {
     mini_template.add_modifier("nth_lower", &modifiers::nth_lower);
 
     mini_template.add_template(0, TEMPLATE.to_owned()).unwrap();
-    let render = mini_template.render(&0, &HashMap::from_iter([
-        (String::from("even"), Value::Number(4.)),
-        (String::from("zeros"), Value::Number(4.)),
-    ]));
+    let render = mini_template.render(
+        &0,
+        &HashMap::from_iter([
+            (String::from("even"), Value::Number(4.)),
+            (String::from("zeros"), Value::Number(4.)),
+        ]),
+    );
 
     println!("{}", render.unwrap())
 }
@@ -41,9 +44,9 @@ mod modifiers {
         fn parse_as_usize(input: String) -> Result<usize> {
             match input.parse::<usize>() {
                 Ok(o) => Ok(o),
-                Err(e) => Err(format!("Can not parse \"{input}\" as usize"))
+                Err(e) => Err(format!("Can not parse \"{input}\" as usize")),
             }
-        } 
+        }
     );
 
     mini_template::create_modifier!(
@@ -60,17 +63,33 @@ mod modifiers {
         }
     );
 
-    pub fn nth_lower(input: &mini_template::value::Value, args: Vec<&mini_template::value::Value>) -> mini_template::modifier::Result<mini_template::value::Value> {
+    pub fn nth_lower(
+        input: &mini_template::value::Value,
+        args: Vec<&mini_template::value::Value>,
+    ) -> mini_template::modifier::Result<mini_template::value::Value> {
         let input: String = match input.try_into() {
             Ok(inner) => inner,
-            Err(e) => return Err(mini_template::modifier::Error::Type{value: input.to_string(), type_error: e})
+            Err(e) => {
+                return Err(mini_template::modifier::Error::Type {
+                    value: input.to_string(),
+                    type_error: e,
+                })
+            }
         };
 
-        let n: usize = match (*args.get(0).unwrap_or(&&mini_template::value::Value::Number(2.))).try_into() {
+        let n: usize = match (*args
+            .get(0)
+            .unwrap_or(&&mini_template::value::Value::Number(2.)))
+        .try_into()
+        {
             Ok(inner) => inner,
-            Err(e) => return Err(mini_template::modifier::Error::Type{value: input.to_string(), type_error: e})
+            Err(e) => {
+                return Err(mini_template::modifier::Error::Type {
+                    value: input.to_string(),
+                    type_error: e,
+                })
+            }
         };
-
 
         let mut buf = String::new();
         for (i, c) in input.chars().enumerate() {
@@ -82,6 +101,4 @@ mod modifiers {
         }
         Ok(mini_template::value::Value::String(buf))
     }
-
 }
-

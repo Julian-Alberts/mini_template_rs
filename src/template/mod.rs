@@ -8,7 +8,7 @@ pub use conditional::*;
 pub use statement::Statement;
 pub use storage_method::StorageMethod;
 
-use crate::{renderer::RenderContext, error::Result};
+use crate::{error::Result, renderer::RenderContext};
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
@@ -17,21 +17,16 @@ pub struct Template {
 }
 
 impl Render for Template {
-
     fn render(&self, context: &RenderContext, buf: &mut String) -> Result<()> {
         self.tpl.render(context, buf)
     }
-
 }
 
 pub trait Render {
-
-    fn render(&self, context: &RenderContext, buf: &mut String) -> Result<()>; 
-
+    fn render(&self, context: &RenderContext, buf: &mut String) -> Result<()>;
 }
 
 impl Render for Vec<Statement> {
-
     fn render(&self, context: &RenderContext, buf: &mut String) -> Result<()> {
         for statement in self {
             match statement {
@@ -42,11 +37,10 @@ impl Render for Vec<Statement> {
                     let var = cv.calc(context)?;
                     buf.push_str(&var.to_string()[..])
                 }
-                Statement::Condition(c) => c.render(context, buf)?
+                Statement::Condition(c) => c.render(context, buf)?,
             }
         }
 
         Ok(())
     }
-
 }

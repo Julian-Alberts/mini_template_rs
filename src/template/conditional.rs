@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::renderer::RenderContext;
 
-use super::{CalcualtedValue, Statement, Render};
+use super::{CalcualtedValue, Render, Statement};
 
 #[derive(Debug, PartialEq)]
 pub struct Conditional {
@@ -12,7 +12,6 @@ pub struct Conditional {
 }
 
 impl Render for Conditional {
-
     fn render(&self, context: &RenderContext, buf: &mut String) -> crate::error::Result<()> {
         if self.condition.eval(context)? {
             self.then_case.render(context, buf)
@@ -24,7 +23,6 @@ impl Render for Conditional {
             }
         }
     }
-
 }
 
 #[derive(Debug, PartialEq)]

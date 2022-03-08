@@ -1,4 +1,4 @@
-use std::{collections::HashMap, borrow::Cow};
+use std::{borrow::Cow, collections::HashMap};
 
 use crate::{renderer::RenderContext, value::Value};
 

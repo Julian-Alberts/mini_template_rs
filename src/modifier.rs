@@ -1,4 +1,8 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::RwLock};
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    hash::Hasher,
+    sync::RwLock,
+};
 
 use once_cell::sync::OnceCell;
 use regex::Regex;
@@ -157,8 +161,9 @@ create_modifier!(
 
 create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
 
-fn with_regex_from_cache<F, T>(regex: String, f: F) -> std::result::Result<T, String> 
-    where F: FnOnce(&Regex) -> T
+fn with_regex_from_cache<F, T>(regex: String, f: F) -> std::result::Result<T, String>
+where
+    F: FnOnce(&Regex) -> T,
 {
     use std::hash::Hash;
     let mut hasher = DefaultHasher::new();
@@ -174,7 +179,7 @@ fn with_regex_from_cache<F, T>(regex: String, f: F) -> std::result::Result<T, St
             drop(cache_r);
             let regex = match Regex::new(&regex) {
                 Ok(r) => r,
-                Err(r) => return Err(r.to_string())
+                Err(r) => return Err(r.to_string()),
             };
             let result = f(&regex);
             let mut cache_w = cache.write().unwrap();

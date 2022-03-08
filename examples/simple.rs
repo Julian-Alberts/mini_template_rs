@@ -9,5 +9,4 @@ fn main() {
     mini_template.add_template(0, TEMPLATE.to_owned()).unwrap();
     let render = mini_template.render(&0, &HashMap::default());
     println!("{}", render.unwrap())
-
 }

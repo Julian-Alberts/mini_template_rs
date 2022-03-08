@@ -24,7 +24,8 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::{
-        create_modifier, modifier::Modifier, parser::parse, renderer::RenderContext, value::Value, template::Render,
+        create_modifier, modifier::Modifier, parser::parse, renderer::RenderContext,
+        template::Render, value::Value,
     };
 
     create_modifier!(
@@ -46,7 +47,7 @@ mod tests {
         let mut rendered = String::new();
         tpl.render(
             &RenderContext::new(&HashMap::new(), &HashMap::new()),
-            &mut rendered
+            &mut rendered,
         )
         .unwrap();
         assert_eq!(rendered, tpl.tpl_str);
@@ -60,7 +61,11 @@ mod tests {
         variables.insert("foo".to_owned(), Value::String("my test value".to_owned()));
         let mut rendered = String::new();
 
-        tpl.render(&RenderContext::new(&HashMap::new(), &variables), &mut rendered).unwrap();
+        tpl.render(
+            &RenderContext::new(&HashMap::new(), &variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(
             rendered,
             String::from("Simple my test value template string")
@@ -79,7 +84,8 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
         let mut rendered = String::new();
 
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered).unwrap();
+        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+            .unwrap();
         assert_eq!(
             rendered,
             String::from("Simple MY TEST VALUE template string")
@@ -98,7 +104,8 @@ mod tests {
         modifiers.insert("args", &args_modifier);
         let mut rendered = String::new();
 
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered).unwrap();
+        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+            .unwrap();
         assert_eq!(
             rendered,
             String::from("Simple my test value=BAR=42 template string")
@@ -118,7 +125,8 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered).unwrap();
+        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+            .unwrap();
         assert_eq!(
             rendered,
             String::from("Simple MY TEST VALUE=bar=42 template string")
@@ -140,7 +148,8 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered).unwrap();
+        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+            .unwrap();
         assert_eq!(rendered, String::from("Foo\nBar Baz"));
     }
 
@@ -153,9 +162,10 @@ Baz"#,
         variables.insert("var1".to_owned(), Value::Bool(true));
 
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
-        
+
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered).unwrap();
+        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+            .unwrap();
         assert_eq!(rendered, String::from("Foo\nBar\nBaz"));
     }
 
@@ -170,12 +180,14 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render( &RenderContext::new(&modifiers, &variables), &mut rendered).unwrap();
+        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+            .unwrap();
         assert_eq!(rendered, String::from("FooBarBaz"));
 
         variables.insert("var1".to_owned(), Value::Bool(false));
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered).unwrap();
+        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+            .unwrap();
         assert_eq!(rendered, String::from("FooFizzBaz"));
     }
 }

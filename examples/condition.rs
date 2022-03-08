@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use mini_template::{MiniTemplate, value::Value};
+use mini_template::{value::Value, MiniTemplate};
 
 const TEMPLATE: &str = include_str!("./condition.tpl");
 
@@ -10,7 +10,10 @@ fn main() {
     mini_template.add_template(0, TEMPLATE.to_owned()).unwrap();
 
     let mut variables = HashMap::default();
-    variables.insert("var1".to_owned(), Value::String(String::from("HELLO world")));
+    variables.insert(
+        "var1".to_owned(),
+        Value::String(String::from("HELLO world")),
+    );
     variables.insert("var2".to_owned(), Value::Number(9.));
     let render = mini_template.render(&0, &variables);
     println!("{}", render.unwrap());
@@ -22,6 +25,4 @@ fn main() {
     variables.insert("var2".to_owned(), Value::Number(20.));
     let render = mini_template.render(&0, &variables);
     println!("{}", render.unwrap());
-
-
 }

@@ -16,7 +16,7 @@ use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::RenderContext;
 use std::{collections::HashMap, hash::Hash};
-use template::{Template, Render};
+use template::{Render, Template};
 use value::Value;
 
 #[derive(Default)]
