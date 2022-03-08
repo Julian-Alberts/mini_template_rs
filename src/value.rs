@@ -1,4 +1,4 @@
-use super::prelude::*;
+use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -179,4 +179,4 @@ macro_rules! value_impl {
 
 value_impl!(String => String);
 value_impl!(Bool => bool);
-value_impl!(Number => f64 as [isize, i32, usize]);
+value_impl!(Number => f64 as [isize, i32, usize, u32]);

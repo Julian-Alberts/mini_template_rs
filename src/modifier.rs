@@ -12,8 +12,9 @@ static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 macro_rules! create_modifier {
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> Result<$return: ty> $b: block) => {
         #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<Value> {
-            use $crate::{modifier::error::Error, prelude::*};
+        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
+            use $crate::modifier::error::Error;
+            use std::convert::TryInto;
 
             let $first_name: $first_t = create_modifier!(try_into value: $first_t);
 
@@ -35,8 +36,8 @@ macro_rules! create_modifier {
     };
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty $b: block) => {
         #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<crate::value::Value> {
-            use $crate::{modifier::error::Error, prelude::*};
+        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
+            use $crate::modifier::error::Error;
 
             let $first_name: $first_t = create_modifier!(try_into value: $first_t);
 
@@ -58,8 +59,8 @@ macro_rules! create_modifier {
     };
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty => $func: path) => {
         #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<crate::value::Value> {
-            use $crate::{modifier::error::Error, prelude::*};
+        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
+            use $crate::modifier::error::Error;
 
             let $first_name: $first_t = create_modifier!(try_into value: $first_t);
 

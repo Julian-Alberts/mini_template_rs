@@ -1,9 +1,8 @@
 //#![deny(clippy::undocumented_unsafe_blocks)]
 
 mod error;
-mod modifier;
+pub mod modifier;
 mod parser;
-mod prelude;
 mod renderer;
 mod template;
 pub mod value;
@@ -19,7 +18,6 @@ use renderer::RenderContext;
 use std::{collections::HashMap, hash::Hash};
 use template::{Template, Render};
 use value::Value;
-pub use modifier::regex_cache_clear;
 
 #[derive(Default)]
 pub struct MiniTemplate<K: Eq + Hash> {
