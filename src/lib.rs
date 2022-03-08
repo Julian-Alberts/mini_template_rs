@@ -15,9 +15,9 @@ extern crate log;
 
 use modifier::Modifier;
 use parser::{parse, ParseError};
-use renderer::{render, RenderContext};
+use renderer::RenderContext;
 use std::{collections::HashMap, hash::Hash};
-use template::Template;
+use template::{Template, Render};
 use value::Value;
 pub use modifier::regex_cache_clear;
 
@@ -68,6 +68,8 @@ impl<K: Eq + Hash> MiniTemplate<K> {
             None => return Err(error::Error::UnknownTemplate),
         };
         let context = RenderContext::new(&self.modifier, data);
-        render(&tpl.tpl, &context)
+        let mut buf = String::new();
+        tpl.render(&context, &mut buf)?;
+        Ok(buf)
     }
 }
