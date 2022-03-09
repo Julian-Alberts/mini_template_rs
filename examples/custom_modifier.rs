@@ -94,7 +94,7 @@ mod modifiers {
         let mut buf = String::new();
         for (i, c) in input.chars().enumerate() {
             if i % n == 0 {
-                buf.push(c.to_ascii_uppercase())
+                buf.push(c.to_ascii_lowercase())
             } else {
                 buf.push(c)
             }
