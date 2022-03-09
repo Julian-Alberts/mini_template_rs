@@ -19,6 +19,9 @@ use std::{collections::HashMap, hash::Hash};
 use template::{Render, Template};
 use value::Value;
 
+/// A Storage for Templates
+///
+/// A MiniTemplate instance is used to parse, save and render templates.
 #[derive(Default)]
 pub struct MiniTemplate<K: Eq + Hash> {
     modifier: HashMap<&'static str, &'static Modifier>,
@@ -26,6 +29,8 @@ pub struct MiniTemplate<K: Eq + Hash> {
 }
 
 impl<K: Eq + Hash> MiniTemplate<K> {
+    /// Creates a new instance.
+    /// Use [`MiniTemplate::default`] instead.
     #[deprecated]
     pub fn new() -> Self {
         MiniTemplate {
@@ -34,6 +39,9 @@ impl<K: Eq + Hash> MiniTemplate<K> {
         }
     }
 
+    /// Adds the following modifiers:
+    ///
+    /// slice, regex, match, replace, replace_regex, upper, lower, repeat, add, sub, mul, div
     pub fn add_default_modifiers(&mut self) {
         use modifier::*;
         self.add_modifier("slice", &slice_modifier);
@@ -51,15 +59,27 @@ impl<K: Eq + Hash> MiniTemplate<K> {
         self.add_modifier("div", &div);
     }
 
+    /// Register a new modifier
+    /// 
+    /// You can implement modifiers by hand. But that will result quite complex setup code. 
+    /// Preferably you should take a look at the [`mini_template::modifier::create_modifier`] macro.
     pub fn add_modifier(&mut self, key: &'static str, modifier: &'static Modifier) {
         self.modifier.insert(key, modifier);
     }
 
+    /// Register a new Template for a give key
     pub fn add_template(&mut self, key: K, tpl: String) -> Result<Option<Template>, ParseError> {
         let tpl = parse(tpl)?;
         Ok(self.template.insert(key, tpl))
     }
 
+    /// Render the template for a given key.
+    /// # Error
+    /// This function will return the following errors:
+    /// * Modifier: An unhandled error occurred inside a modifier
+    /// * UnknownTemplate: There is no template with the given key registered
+    /// * UnknownModifier: The template contains a unknown modifier
+    /// * UnknownVariable: The template contains a unknown variable
     pub fn render(&self, key: &K, data: &HashMap<String, Value>) -> error::Result<String> {
         let tpl = match self.template.get(key) {
             Some(t) => t,

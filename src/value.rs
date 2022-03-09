@@ -1,13 +1,18 @@
 use std::convert::TryFrom;
 
+/// Values are used as variables inside a template.
 #[derive(Debug, Clone)]
 pub enum Value {
+    /// Stores a string
     String(String),
+    /// Stores a number as f64
     Number(f64),
+    /// Stores a boolean
     Bool(bool),
 }
 
 impl Value {
+    /// Convert any given value into a boolean
     pub fn as_bool(&self) -> bool {
         match self {
             Self::Bool(b) => *b,
@@ -92,6 +97,9 @@ impl PartialOrd for Value {
     }
 }
 
+/// Error type for mismatched types.
+///
+/// This error type is used if the expected value type and the given value type do not match.
 #[derive(Debug, PartialEq)]
 pub struct TypeError {
     pub storage_type: &'static str,

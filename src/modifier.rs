@@ -12,6 +12,99 @@ pub use error::*;
 
 static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 
+/// Creates a new modifier based on a method.
+/// This macro is usually used to create new template modifiers. The method header of the resulting
+/// method will look different from the given header.
+///
+/// Possible parameter types are:
+///
+/// &str, String, bool, f64, isize, i32, usize, u32
+///
+/// # Example
+/// ## With body
+/// ```
+/// use mini_template::value::Value;
+/// use mini_template::create_modifier;
+///
+/// create_modifier!(
+///     fn fizz_buzz(n: usize) -> String {
+///         match (n % 3, n % 5) {
+///             (0, 0) => String::from("FIZZBUZZ"),
+///             (0, _) => String::from("FIZZ"),
+///             (_, 0) => String::from("BUZZ"),
+///             _ => n.to_string()
+///         }
+///     }
+/// );
+///
+/// assert_eq!(
+///     fizz_buzz(
+///         &Value::Number(1.),
+///         Vec::default()
+///     ),
+///     Ok(Value::String(String::from("1")))
+/// );
+/// assert_eq!(
+///     fizz_buzz(
+///         &Value::Number(3.),
+///         Vec::default()
+///     ),
+///     Ok(Value::String(String::from("FIZZ")))
+/// );
+/// assert_eq!(
+///     fizz_buzz(
+///         &Value::Number(5.),
+///         Vec::default()
+///     ),
+///     Ok(Value::String(String::from("BUZZ")))
+/// );
+///  assert_eq!(
+///     fizz_buzz(
+///         &Value::Number(15.),
+///         Vec::default()
+///     ),
+///     Ok(Value::String(String::from("FIZZBUZZ")))
+/// );
+/// ```
+/// ## Returns Error
+/// ```
+/// use mini_template::value::Value;
+/// use mini_template::create_modifier;
+///
+/// create_modifier!(
+///     fn as_usize(n: String) -> Result<usize> {
+///         match n.parse() {
+///             Ok(n) => Ok(n),
+///             Err(_) => Err(format!("Can not convert {n} to usize"))
+///         }
+///     }
+/// );
+/// 
+/// assert!(as_usize(&Value::String("17".to_owned()), Vec::default()).is_ok());
+/// assert!(as_usize(&Value::String("Foo".to_owned()), Vec::default()).is_err());
+/// ```
+/// ## From function
+/// ```
+/// use mini_template::value::Value;
+/// use mini_template::create_modifier;
+///
+/// fn repeat_n_times(s: &str, n: usize) -> String {
+///     let mut result = String::new();
+///     for _ in 0..n {
+///         result.push_str(s)
+///     }
+///     result
+/// }
+/// 
+/// create_modifier!(
+///     fn repeat_n_times_modifier(s: &str, n: usize) -> String => repeat_n_times
+/// );
+/// 
+/// assert_eq!(
+///     repeat_n_times_modifier(&Value::String("17".to_owned()), vec![&Value::Number(2.)]),
+///     Ok(Value::String("1717".to_owned()))
+/// );
+/// ```
 #[macro_export]
 macro_rules! create_modifier {
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> Result<$return: ty> $b: block) => {
