@@ -1,10 +1,13 @@
-use super::{assign::Assign, CalculatedValue, Conditional};
+#[cfg(not(feature = "disable_assign"))]
+use super::assign::Assign;
+use super::{CalculatedValue, Conditional};
 
 #[derive(Debug)]
 pub enum Statement {
     Literal(*const str),
     Calculated(CalculatedValue),
     Condition(Conditional),
+    #[cfg(not(feature = "disable_assign"))]
     Assign(Assign),
 }
 
@@ -16,6 +19,7 @@ impl PartialEq for Statement {
             // Safety: Both literals point to positions in the original template string.
             unsafe { s.as_ref() == o.as_ref() },
             (Statement::Condition(s), Statement::Condition(o)) => s == o,
+            #[cfg(not(feature = "disable_assign"))]
             (Statement::Assign(s), Statement::Assign(o)) => s == o,
             _ => false,
         }

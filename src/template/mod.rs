@@ -1,9 +1,11 @@
+#[cfg(not(feature = "disable_assign"))]
 mod assign;
 mod calculated_value;
 mod conditional;
 mod statement;
 mod storage_method;
 
+#[cfg(not(feature = "disable_assign"))]
 pub use assign::Assign;
 pub use calculated_value::CalculatedValue;
 pub use conditional::*;
@@ -52,6 +54,7 @@ impl Render for Vec<Statement> {
                     buf.push_str(&var.to_string()[..])
                 }
                 Statement::Condition(c) => c.render(context, buf)?,
+                #[cfg(not(feature = "disable_assign"))]
                 Statement::Assign(a) => a.assign(context)?,
             }
         }

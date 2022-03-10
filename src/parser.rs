@@ -1,9 +1,11 @@
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
+#[cfg(not(feature = "disable_assign"))]
+use crate::template::Assign;
 use crate::{
     template::{
         AndCondition, CalculatedValue, CompareCondition, CompareOperator, Condition, Conditional,
-        OrCondition, Statement, StorageMethod, Assign,
+        OrCondition, Statement, StorageMethod,
     },
     value::Value,
     Template,
@@ -38,22 +40,25 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
         .unwrap()
         .into_inner()
         .filter_map(parse_template_content)
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>,_>>()?;
     Ok(compiled_template)
 }
 
-fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
+fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseError>> {
     match item.as_rule() {
-        Rule::text => Some(Statement::Literal(item.as_str())),
-        Rule::calculated => Some(parse_calculated(item)),
+        Rule::text => Some(Ok(Statement::Literal(item.as_str()))),
+        Rule::calculated => Some(Ok(parse_calculated(item))),
         Rule::conditional => Some(parse_conditional(item)),
-        Rule::assign => Some(Statement::Assign(parse_assign(item))),
+        #[cfg(not(feature = "disable_assign"))]
+        Rule::assign => Some(Ok(Statement::Assign(parse_assign(item)))),
+        #[cfg(feature = "disable_assign")]
+        Rule::assign => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Assign))),
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
 }
 
-fn parse_conditional(conditional: Pair<Rule>) -> Statement {
+fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     assert_eq!(conditional.as_rule(), Rule::conditional);
     let mut conditional = conditional.into_inner();
 
@@ -64,19 +69,25 @@ fn parse_conditional(conditional: Pair<Rule>) -> Statement {
         .unwrap()
         .into_inner()
         .filter_map(parse_template_content)
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     let else_case = conditional.next().map(|else_case| {
         else_case
             .into_inner()
             .filter_map(parse_template_content)
-            .collect()
+            .collect::<Result<Vec<_>, _>>()
     });
 
-    Statement::Condition(Conditional {
+    let else_case = if let Some(e) = else_case {
+        Some(e?)    
+    } else {
+        None
+    };
+
+    Ok(Statement::Condition(Conditional {
         condition,
         then_case,
         else_case,
-    })
+    }))
 }
 
 fn parse_condition(condition: Pair<Rule>) -> Condition {
@@ -208,6 +219,7 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
     }
 }
 
+#[cfg(not(feature = "disable_assign"))]
 fn parse_assign(assign: Pair<Rule>) -> Assign {
     assert_eq!(assign.as_rule(), Rule::assign);
     let mut inner = assign.into_inner();
@@ -225,6 +237,13 @@ fn parse_assign(assign: Pair<Rule>) -> Assign {
 pub enum ParseError {
     Pos((usize, usize)),
     Span((usize, usize), (usize, usize)),
+    DisabledFeature(UnsupportedFeature)
+}
+
+#[derive(Debug)]
+pub enum UnsupportedFeature {
+    #[cfg(feature = "disable_assign")]
+    Assign
 }
 
 #[cfg(test)]
@@ -241,7 +260,7 @@ mod tests {
         let item = item.unwrap().next();
         assert!(item.is_some());
         let item = item.unwrap();
-        let statement = parse_template_content(item).unwrap();
+        let statement = parse_template_content(item).unwrap().unwrap();
         assert_eq!(statement, Statement::Literal("test literal"))
     }
 
@@ -446,6 +465,7 @@ mod tests {
         )
     }
 
+    #[cfg(not(feature = "disable_assign"))]
     #[test]
     fn parse_template_assign() {
         let template = String::from("{var = 10|modifier:-32.09}");
@@ -477,7 +497,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional);
+            let conditional_statement = parse_conditional(conditional).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -506,7 +526,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional);
+            let conditional_statement = parse_conditional(conditional).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -543,7 +563,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional);
+            let conditional_statement = parse_conditional(conditional).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -572,7 +592,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional);
+            let conditional_statement = parse_conditional(conditional).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -802,6 +822,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "disable_assign"))]
     mod assign {
         use crate::{parser::{TemplateParser, Rule, Parser, parse_assign}, template::{Assign, CalculatedValue, StorageMethod}, value::Value};
 
