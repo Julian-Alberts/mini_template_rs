@@ -10,7 +10,7 @@ assign = !{"{" ~ identifier ~ "=" ~ calculated_value ~ "}"}
 
 // Template
 template = {SOI ~ template_content ~ EOI}
-template_content = ${ (assign|calculated|text|conditional)* }
+template_content = ${ (while_loop|assign|calculated|text|conditional)* }
 
 // Values
 string = { "\"" ~ inner_string ~ "\"" }
@@ -28,6 +28,12 @@ conditional = !{
             template_content
     )? ~
     "{" ~ endif_key_word ~ "}" ~ "\n"?
+}
+
+while_loop = !{ 
+    "{" ~ while_key_word ~ condition ~ "}" ~
+        template_content ~
+    "{" ~ endwhile_key_word ~ "}" ~ "\n"?
 }
 
 // Condition
@@ -67,6 +73,8 @@ or_operator = {"||"}
 if_key_word = _{"if"}
 else_key_word = _{"else"}
 endif_key_word = _{"endif"}
+while_key_word = _{"while"}
+endwhile_key_word = _{"endwhile"}
 true_key_word = _{"true"}
 false_key_word = _{"false"}
-key_words = { if_key_word | else_key_word | endif_key_word | true_key_word | false_key_word }
+key_words = { if_key_word | else_key_word | endif_key_word | true_key_word | false_key_word | while_key_word | endwhile_key_word }

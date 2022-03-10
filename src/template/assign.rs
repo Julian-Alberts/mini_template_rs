@@ -26,13 +26,11 @@ impl Assign {
 }
 
 impl PartialEq for Assign {
-
     fn eq(&self, other: &Self) -> bool {
         // Safety: identifier points to the original template string
         let ident_eq = unsafe { self.identifier.as_ref() == other.identifier.as_ref() };
         ident_eq && self.calc == other.calc
     }
-
 }
 
 #[cfg(test)]
@@ -74,11 +72,10 @@ mod tests {
 
         let assign = Assign::new(
             "output",
-            CalculatedValue::new(StorageMethod::Variable("input"), vec![
-                ("add", vec![
-                    StorageMethod::Const(Value::Number(2.))
-                ])
-            ]),
+            CalculatedValue::new(
+                StorageMethod::Variable("input"),
+                vec![("add", vec![StorageMethod::Const(Value::Number(2.))])],
+            ),
         );
         assert!(assign.assign(&mut rc).is_ok());
         assert_eq!(rc.variables.get("output"), Some(&Value::Number(44.)))

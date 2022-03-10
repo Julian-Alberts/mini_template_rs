@@ -17,9 +17,11 @@ pest_derive = "2.0"
 criterion = "0.3"
 
 [features]
-disable_conditional = []
-disable_assign = []
-default = []
+condition = []
+conditional = [ "condition" ]
+assign = []
+loop = [ "condition", "assign" ]
+default = [ "loop", "assign", "conditional" ]
 
 [profile.release]
 debug = true

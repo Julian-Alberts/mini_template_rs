@@ -1,18 +1,17 @@
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
-#[cfg(not(feature = "disable_assign"))]
+#[cfg(feature = "assign")]
 use crate::template::Assign;
-#[cfg(not(feature = "disable_conditional"))]
-use crate::{
-    template::{
-        AndCondition, CompareCondition, CompareOperator, Condition, Conditional,
-        OrCondition
-    }
+#[cfg(feature = "conditional")]
+use crate::template::Conditional;
+#[cfg(feature = "condition")]
+use crate::template::condition::{
+    AndCondition, CompareCondition, CompareOperator, Condition, OrCondition,
 };
+#[cfg(feature = "loop")]
+use crate::template::Loop;
 use crate::{
-    template::{
-        CalculatedValue, Statement, StorageMethod
-    },
+    template::{CalculatedValue, Statement, StorageMethod},
     value::Value,
     Template,
 };
@@ -46,7 +45,7 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
         .unwrap()
         .into_inner()
         .filter_map(parse_template_content)
-        .collect::<Result<Vec<_>,_>>()?;
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(compiled_template)
 }
 
@@ -54,20 +53,29 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
     match item.as_rule() {
         Rule::text => Some(Ok(Statement::Literal(item.as_str()))),
         Rule::calculated => Some(Ok(parse_calculated(item))),
-        #[cfg(not(feature = "disable_conditional"))]
+        #[cfg(feature = "conditional")]
         Rule::conditional => Some(parse_conditional(item)),
-        #[cfg(feature = "disable_conditional")]
-        Rule::conditional => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Conditional))),
-        #[cfg(not(feature = "disable_assign"))]
+        #[cfg(not(feature = "conditional"))]
+        Rule::conditional => Some(Err(ParseError::DisabledFeature(
+            UnsupportedFeature::Conditional,
+        ))),
+        #[cfg(feature = "assign")]
         Rule::assign => Some(Ok(Statement::Assign(parse_assign(item)))),
-        #[cfg(feature = "disable_assign")]
+        #[cfg(not(feature = "assign"))]
         Rule::assign => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Assign))),
+        #[cfg(feature = "loop")]
+        Rule::while_loop => match parse_loop(item) {
+            Ok(l) => Some(Ok(Statement::Loop(l))),
+            Err(e) => Some(Err(e))
+        },
+        #[cfg(not(feature = "loop"))]
+        Rule::while_loop => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Loop))),
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
 }
 
-#[cfg(not(feature = "disable_conditional"))]
+#[cfg(feature = "conditional")]
 fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     assert_eq!(conditional.as_rule(), Rule::conditional);
     let mut conditional = conditional.into_inner();
@@ -88,7 +96,7 @@ fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     });
 
     let else_case = if let Some(e) = else_case {
-        Some(e?)    
+        Some(e?)
     } else {
         None
     };
@@ -100,7 +108,7 @@ fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     }))
 }
 
-#[cfg(not(feature = "disable_conditional"))]
+#[cfg(any(feature = "conditional", feature = "loop"))]
 fn parse_condition(condition: Pair<Rule>) -> Condition {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
@@ -161,7 +169,7 @@ fn parse_calculated(calculated: Pair<Rule>) -> Statement {
     Statement::Calculated(parse_calculated_value(inner))
 }
 
-#[cfg(not(feature = "disable_conditional"))]
+#[cfg(feature = "condition")]
 fn parse_compare_condition(compare_condition: Pair<Rule>) -> CompareCondition {
     assert_eq!(compare_condition.as_rule(), Rule::compare_condition);
     let mut inner = compare_condition.into_inner();
@@ -175,7 +183,7 @@ fn parse_compare_condition(compare_condition: Pair<Rule>) -> CompareCondition {
     }
 }
 
-#[cfg(not(feature = "disable_conditional"))]
+#[cfg(feature = "condition")]
 fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
     assert_eq!(compare_operator.as_rule(), Rule::compare_operator);
     let inner = compare_operator.into_inner().next().unwrap();
@@ -232,7 +240,7 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
     }
 }
 
-#[cfg(not(feature = "disable_assign"))]
+#[cfg(feature = "assign")]
 fn parse_assign(assign: Pair<Rule>) -> Assign {
     assert_eq!(assign.as_rule(), Rule::assign);
     let mut inner = assign.into_inner();
@@ -240,25 +248,38 @@ fn parse_assign(assign: Pair<Rule>) -> Assign {
     assert_eq!(ident.as_rule(), Rule::identifier);
     let ident = ident.as_str();
     let calc_val = parse_calculated_value(inner.next().unwrap());
-    Assign::new(
-        ident,
-        calc_val
-    )
+    Assign::new(ident, calc_val)
+}
+
+#[cfg(feature = "loop")]
+fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
+    assert_eq!(l.as_rule(), Rule::while_loop);
+    let mut inner = l.into_inner();
+    let condition = parse_condition(inner.next().unwrap());
+    let template = inner
+        .next()
+        .unwrap()
+        .into_inner()
+        .filter_map(parse_template_content)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(Loop::new(condition, template))
 }
 
 #[derive(Debug)]
 pub enum ParseError {
     Pos((usize, usize)),
     Span((usize, usize), (usize, usize)),
-    DisabledFeature(UnsupportedFeature)
+    DisabledFeature(UnsupportedFeature),
 }
 
 #[derive(Debug)]
 pub enum UnsupportedFeature {
-    #[cfg(feature = "disable_assign")]
+    #[cfg(not(feature = "assign"))]
     Assign,
-    #[cfg(not(feature = "disable_assign"))]
-    Conditional
+    #[cfg(not(feature = "conditional"))]
+    Conditional,
+    #[cfg(not(feature = "loop"))]
+    Loop
 }
 
 #[cfg(test)]
@@ -480,7 +501,7 @@ mod tests {
         )
     }
 
-    #[cfg(not(feature = "disable_assign"))]
+    #[cfg(feature = "assign")]
     #[test]
     fn parse_template_assign() {
         let template = String::from("{var = 10|modifier:-32.09}");
@@ -491,18 +512,21 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var = 10|modifier:-32.09}"),
-                tpl: vec![Statement::Assign(Assign::new("var", CalculatedValue::new(
-                    StorageMethod::Const(Value::Number(10.0)),
-                    vec![(
-                        "modifier",
-                        vec![StorageMethod::Const(Value::Number(-32.09))]
-                    )]
-                )))]
+                tpl: vec![Statement::Assign(Assign::new(
+                    "var",
+                    CalculatedValue::new(
+                        StorageMethod::Const(Value::Number(10.0)),
+                        vec![(
+                            "modifier",
+                            vec![StorageMethod::Const(Value::Number(-32.09))]
+                        )]
+                    )
+                ))]
             }
         )
     }
 
-    #[cfg(not(feature = "disable_conditional"))]
+    #[cfg(feature = "conditional")]
     mod conditional {
         use super::*;
 
@@ -642,9 +666,9 @@ mod tests {
         }
     }
 
-    #[cfg(not(feature = "disable_conditional"))]
+    #[cfg(feature = "conditional")]
     mod condition {
-        use crate::template::AndCondition;
+        use crate::template::condition::AndCondition;
 
         use super::*;
 
@@ -839,9 +863,13 @@ mod tests {
         }
     }
 
-    #[cfg(not(feature = "disable_assign"))]
+    #[cfg(feature = "assign")]
     mod assign {
-        use crate::{parser::{TemplateParser, Rule, Parser, parse_assign}, template::{Assign, CalculatedValue, StorageMethod}, value::Value};
+        use crate::{
+            parser::{parse_assign, Parser, Rule, TemplateParser},
+            template::{Assign, CalculatedValue, StorageMethod},
+            value::Value,
+        };
 
         //r#"{my_var = "test"|modifier:arg}"#,
 
@@ -853,14 +881,45 @@ mod tests {
                 .next()
                 .unwrap();
             let assign = parse_assign(assign);
-            assert_eq!(assign, Assign::new(
-                "my_var", CalculatedValue::new(
-                    StorageMethod::Const(Value::Number(12.)), 
-                    vec![]
+            assert_eq!(
+                assign,
+                Assign::new(
+                    "my_var",
+                    CalculatedValue::new(StorageMethod::Const(Value::Number(12.)), vec![])
                 )
-            ))
+            )
         }
+    }
 
+    #[cfg(feature = "loop")]
+    mod while_loop {
+        use crate::{
+            parser::{Parser, Rule, TemplateParser},
+            template::{Loop, Statement, StorageMethod, CalculatedValue, condition::{Condition, CompareCondition, CompareOperator}},
+            value::Value,
+        };
+
+        #[test]
+        fn parse_loop() {
+            let template = "{while var==0}Foo{endwhile}";
+
+            let l = TemplateParser::parse(Rule::while_loop, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let l = crate::parser::parse_loop(l).unwrap();
+            assert_eq!(
+                l,
+                Loop::new(
+                    Condition::Compare(CompareCondition {
+                        left: CalculatedValue::new(StorageMethod::Variable("var"), vec![]),
+                        operator: CompareOperator::EQ,
+                        right: CalculatedValue::new(StorageMethod::Const(Value::Number(0.)), vec![])
+                    }),
+                    vec![Statement::Literal("Foo")]
+                )
+            )
+        }
     }
 }
 
@@ -988,11 +1047,20 @@ mod pest_tests {
     #[test]
     fn test_assign() {
         test_cases(
-            &[
-                "{my_var=12}",
-                r#"{my_var = "test"|modifier:arg}"#,
-            ],
+            &["{my_var=12}", r#"{my_var = "test"|modifier:arg}"#],
             Rule::assign,
+        )
+    }
+
+    #[test]
+    fn test_while() {
+        test_cases(
+            &[
+                "{while var==0}1{endwhile}",
+                "{ while var == 0 } 1 { endwhile }",
+                "{while var==0}\n1\n{endwhile}",
+            ],
+            Rule::while_loop,
         )
     }
 

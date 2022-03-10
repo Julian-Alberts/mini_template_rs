@@ -1,16 +1,22 @@
-#[cfg(not(feature = "disable_assign"))]
+#[cfg(feature = "assign")]
 mod assign;
 mod calculated_value;
-#[cfg(not(feature = "disable_conditional"))]
+#[cfg(feature = "conditional")]
 mod conditional;
+#[cfg(feature = "loop")]
+mod loops;
 mod statement;
 mod storage_method;
+#[cfg(feature = "condition")]
+pub mod condition;
 
-#[cfg(not(feature = "disable_assign"))]
+#[cfg(feature = "assign")]
 pub use assign::Assign;
 pub use calculated_value::CalculatedValue;
-#[cfg(not(feature = "disable_conditional"))]
+#[cfg(feature = "conditional")]
 pub use conditional::*;
+#[cfg(feature = "loop")]
+pub use loops::Loop;
 pub use statement::Statement;
 pub use storage_method::StorageMethod;
 
@@ -55,10 +61,12 @@ impl Render for Vec<Statement> {
                     let var = cv.calc(context)?;
                     buf.push_str(&var.to_string()[..])
                 }
-                #[cfg(not(feature = "disable_conditional"))]
+                #[cfg(feature = "conditional")]
                 Statement::Condition(c) => c.render(context, buf)?,
-                #[cfg(not(feature = "disable_assign"))]
+                #[cfg(feature = "assign")]
                 Statement::Assign(a) => a.assign(context)?,
+                #[cfg(feature = "loop")]
+                Statement::Loop(l) => l.render(context, buf)?,
             }
         }
 
