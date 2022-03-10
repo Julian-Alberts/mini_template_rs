@@ -16,9 +16,9 @@ extern crate log;
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::RenderContext;
-use variable_container::VariableContainer;
 use std::{collections::HashMap, hash::Hash};
 use template::{Render, Template};
+use variable_container::VariableContainer;
 
 /// A Storage for Templates
 ///
@@ -61,8 +61,8 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     }
 
     /// Register a new modifier
-    /// 
-    /// You can implement modifiers by hand. But that will result quite complex setup code. 
+    ///
+    /// You can implement modifiers by hand. But that will result quite complex setup code.
     /// Preferably you should take a look at the [`mini_template::modifier::create_modifier`] macro.
     pub fn add_modifier(&mut self, key: &'static str, modifier: &'static Modifier) {
         self.modifier.insert(key, modifier);
@@ -86,9 +86,9 @@ impl<K: Eq + Hash> MiniTemplate<K> {
             Some(t) => t,
             None => return Err(error::Error::UnknownTemplate),
         };
-        let context = RenderContext::new(&self.modifier, data);
+        let mut context = RenderContext::new(&self.modifier, data);
         let mut buf = String::new();
-        tpl.render(&context, &mut buf)?;
+        tpl.render(&mut context, &mut buf)?;
         Ok(buf)
     }
 }

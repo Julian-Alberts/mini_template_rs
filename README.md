@@ -23,6 +23,12 @@ mini_template also supports if statements. Conditions behave as they would in al
     {var}
 {endif}
 ```
+### Assigning a value
+To assign a value, you have to give it an identifier followed by an equals sign. After that, you can specify what value to set.
+```
+{new_var = "foo"|upper}
+```
+
 ## Usage in Rust
 The mini_template API is quite simple. Most of the time, you will interact with mini_template::MiniTemplate this is the template manager responsible for all interactions with a template.
 Adding a new template
@@ -114,7 +120,6 @@ mini_template.add_modifier("is_even", &is_even);
 ## Todo
 * More tests
 * Allow arrays in templates
-* Assign values in a template
 * Allow disabling of features
 * Add loop
 * Rewrite create_modifier! macro

@@ -1,9 +1,11 @@
-mod calcualted_value;
+mod assign;
+mod calculated_value;
 mod conditional;
 mod statement;
 mod storage_method;
 
-pub use calcualted_value::CalculatedValue;
+pub use assign::Assign;
+pub use calculated_value::CalculatedValue;
 pub use conditional::*;
 pub use statement::Statement;
 pub use storage_method::StorageMethod;
@@ -17,17 +19,29 @@ pub struct Template {
 }
 
 impl Render for Template {
-    fn render<VC: VariableContainer>(&self, context: &RenderContext<VC>, buf: &mut String) -> Result<()> {
+    fn render<VC: VariableContainer>(
+        &self,
+        context: &mut RenderContext<VC>,
+        buf: &mut String,
+    ) -> Result<()> {
         self.tpl.render(context, buf)
     }
 }
 
 pub trait Render {
-    fn render<VC: VariableContainer>(&self, context: &RenderContext<VC>, buf: &mut String) -> Result<()>;
+    fn render<VC: VariableContainer>(
+        &self,
+        context: &mut RenderContext<VC>,
+        buf: &mut String,
+    ) -> Result<()>;
 }
 
 impl Render for Vec<Statement> {
-    fn render<VC: VariableContainer>(&self, context: &RenderContext<VC>, buf: &mut String) -> Result<()> {
+    fn render<VC: VariableContainer>(
+        &self,
+        context: &mut RenderContext<VC>,
+        buf: &mut String,
+    ) -> Result<()> {
         for statement in self {
             match statement {
                 Statement::Literal(literal) =>
@@ -38,6 +52,7 @@ impl Render for Vec<Statement> {
                     buf.push_str(&var.to_string()[..])
                 }
                 Statement::Condition(c) => c.render(context, buf)?,
+                Statement::Assign(a) => a.assign(context)?,
             }
         }
 

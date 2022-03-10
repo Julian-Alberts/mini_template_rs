@@ -3,7 +3,7 @@ use pest::{error::LineColLocation, iterators::Pair, Parser};
 use crate::{
     template::{
         AndCondition, CalculatedValue, CompareCondition, CompareOperator, Condition, Conditional,
-        OrCondition, Statement, StorageMethod,
+        OrCondition, Statement, StorageMethod, Assign,
     },
     value::Value,
     Template,
@@ -19,7 +19,7 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
         tpl: Vec::new(),
         tpl_str: input,
     };
-    let template = match TemplateParser::parse(Rule::tempalte, &compiled_template.tpl_str) {
+    let template = match TemplateParser::parse(Rule::template, &compiled_template.tpl_str) {
         Ok(t) => t,
         Err(e) => match e.line_col {
             LineColLocation::Pos(pos) => {
@@ -47,6 +47,7 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Statement> {
         Rule::text => Some(Statement::Literal(item.as_str())),
         Rule::calculated => Some(parse_calculated(item)),
         Rule::conditional => Some(parse_conditional(item)),
+        Rule::assign => Some(Statement::Assign(parse_assign(item))),
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
@@ -190,7 +191,7 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
     assert_eq!(value.as_rule(), Rule::value);
     let value = value.into_inner().next().unwrap();
     match value.as_rule() {
-        Rule::identifyer => StorageMethod::Variable(value.as_str()),
+        Rule::identifier => StorageMethod::Variable(value.as_str()),
         Rule::number => StorageMethod::Const(Value::Number(value.as_str().parse().unwrap())),
         Rule::string => StorageMethod::Const(Value::String(
             value.into_inner().next().unwrap().as_str().to_owned(),
@@ -205,6 +206,19 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
         }
         _ => unreachable!("Unexpected value {:#?}", value),
     }
+}
+
+fn parse_assign(assign: Pair<Rule>) -> Assign {
+    assert_eq!(assign.as_rule(), Rule::assign);
+    let mut inner = assign.into_inner();
+    let ident = inner.next().unwrap();
+    assert_eq!(ident.as_rule(), Rule::identifier);
+    let ident = ident.as_str();
+    let calc_val = parse_calculated_value(inner.next().unwrap());
+    Assign::new(
+        ident,
+        calc_val
+    )
 }
 
 #[derive(Debug)]
@@ -432,6 +446,27 @@ mod tests {
         )
     }
 
+    #[test]
+    fn parse_template_assign() {
+        let template = String::from("{var = 10|modifier:-32.09}");
+        let template = parse(template);
+        assert!(template.is_ok(), "{template:#?}");
+        let template = template.unwrap();
+        assert_eq!(
+            template,
+            Template {
+                tpl_str: String::from("{var = 10|modifier:-32.09}"),
+                tpl: vec![Statement::Assign(Assign::new("var", CalculatedValue::new(
+                    StorageMethod::Const(Value::Number(10.0)),
+                    vec![(
+                        "modifier",
+                        vec![StorageMethod::Const(Value::Number(-32.09))]
+                    )]
+                )))]
+            }
+        )
+    }
+
     mod conditional {
         use super::*;
 
@@ -531,7 +566,7 @@ mod tests {
         }
 
         #[test]
-        fn parse_mutiple() {
+        fn parse_multiple() {
             let template = "{if i < 10}HI{else}{if n == \"TEST\"}HI2{else}TEST{endif}{endif}";
             let conditional = TemplateParser::parse(Rule::conditional, template)
                 .unwrap()
@@ -766,6 +801,29 @@ mod tests {
             )
         }
     }
+
+    mod assign {
+        use crate::{parser::{TemplateParser, Rule, Parser, parse_assign}, template::{Assign, CalculatedValue, StorageMethod}, value::Value};
+
+        //r#"{my_var = "test"|modifier:arg}"#,
+
+        #[test]
+        fn parse_assign_simple() {
+            let tpl = "{my_var=12}";
+            let assign = TemplateParser::parse(Rule::assign, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+            let assign = parse_assign(assign);
+            assert_eq!(assign, Assign::new(
+                "my_var", CalculatedValue::new(
+                    StorageMethod::Const(Value::Number(12.)), 
+                    vec![]
+                )
+            ))
+        }
+
+    }
 }
 
 #[cfg(test)]
@@ -775,7 +833,7 @@ mod pest_tests {
 
     const NUMBER_CASES: [&str; 5] = ["42", "42.0", "0.815", "-0.815", "+0.815"];
 
-    const IDENTIFYER_CASES: [&str; 3] = ["onlylowercase", "camelCase", "snail_case"];
+    const IDENTIFIER_CASES: [&str; 3] = ["onlylowercase", "camelCase", "snail_case"];
 
     const INNER_STRING_CASES: [&str; 4] = [
         "Hello world",
@@ -800,8 +858,8 @@ mod pest_tests {
     }
 
     #[test]
-    fn identifyer() {
-        test_cases(&IDENTIFYER_CASES, Rule::identifyer)
+    fn identifier() {
+        test_cases(&IDENTIFIER_CASES, Rule::identifier)
     }
 
     #[test]
@@ -809,7 +867,7 @@ mod pest_tests {
         test_cases!(NUMBER_CASES, number_cases, ":{}");
         test_cases(&number_cases, Rule::argument);
 
-        test_cases!(IDENTIFYER_CASES, ident_cases, ":{}");
+        test_cases!(IDENTIFIER_CASES, ident_cases, ":{}");
         test_cases(&ident_cases, Rule::argument)
     }
 
@@ -870,7 +928,7 @@ mod pest_tests {
                 "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
                 "{if i}HI{endif}",
             ],
-            Rule::tempalte,
+            Rule::template,
         );
     }
 
@@ -889,14 +947,25 @@ mod pest_tests {
         )
     }
 
+    #[test]
+    fn test_assign() {
+        test_cases(
+            &[
+                "{my_var=12}",
+                r#"{my_var = "test"|modifier:arg}"#,
+            ],
+            Rule::assign,
+        )
+    }
+
     fn test_cases(cases: &[&str], rule: Rule) {
         cases.iter().for_each(|input| {
             let parsed = TemplateParser::parse(rule, input);
             assert!(parsed.is_ok(), "Failed to parse \"{input}\"\n{parsed:#?}");
             let parsed = parsed.unwrap().next();
             assert!(parsed.is_some(), "{:#?}", parsed);
-            let identifyer = parsed.unwrap();
-            assert_eq!(identifyer.as_str(), *input);
+            let identifier = parsed.unwrap();
+            assert_eq!(identifier.as_str(), *input);
         })
     }
 }

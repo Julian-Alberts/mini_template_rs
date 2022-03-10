@@ -12,7 +12,11 @@ pub struct Conditional {
 }
 
 impl Render for Conditional {
-    fn render<VC: VariableContainer>(&self, context: &RenderContext<VC>, buf: &mut String) -> crate::error::Result<()> {
+    fn render<VC: VariableContainer>(
+        &self,
+        context: &mut RenderContext<VC>,
+        buf: &mut String,
+    ) -> crate::error::Result<()> {
         if self.condition.eval(context)? {
             self.then_case.render(context, buf)
         } else {
@@ -45,7 +49,10 @@ impl Condition {
 }
 
 impl ConditionEval for Condition {
-    fn eval<VC: VariableContainer>(&self, context: &RenderContext<VC>) -> crate::error::Result<bool> {
+    fn eval<VC: VariableContainer>(
+        &self,
+        context: &RenderContext<VC>,
+    ) -> crate::error::Result<bool> {
         match self {
             Self::Or(c) => c.eval(context),
             Self::And(c) => c.eval(context),
@@ -56,7 +63,10 @@ impl ConditionEval for Condition {
 }
 
 pub trait ConditionEval {
-    fn eval<VC: VariableContainer>(&self, context: &RenderContext<VC>) -> crate::error::Result<bool>;
+    fn eval<VC: VariableContainer>(
+        &self,
+        context: &RenderContext<VC>,
+    ) -> crate::error::Result<bool>;
 }
 
 #[derive(Debug, PartialEq)]
@@ -71,7 +81,10 @@ impl OrCondition {
 }
 
 impl ConditionEval for OrCondition {
-    fn eval<VC: VariableContainer>(&self, context: &RenderContext<VC>) -> crate::error::Result<bool> {
+    fn eval<VC: VariableContainer>(
+        &self,
+        context: &RenderContext<VC>,
+    ) -> crate::error::Result<bool> {
         for condition in &self.conditions {
             if condition.eval(context)? {
                 return Ok(true);
@@ -93,7 +106,10 @@ impl AndCondition {
 }
 
 impl ConditionEval for AndCondition {
-    fn eval<VC: VariableContainer>(&self, context: &RenderContext<VC>) -> crate::error::Result<bool> {
+    fn eval<VC: VariableContainer>(
+        &self,
+        context: &RenderContext<VC>,
+    ) -> crate::error::Result<bool> {
         for condition in &self.conditions {
             if !condition.eval(context)? {
                 return Ok(false);
@@ -111,7 +127,10 @@ pub struct CompareCondition {
 }
 
 impl ConditionEval for CompareCondition {
-    fn eval<VC: VariableContainer>(&self, context: &RenderContext<VC>) -> crate::error::Result<bool> {
+    fn eval<VC: VariableContainer>(
+        &self,
+        context: &RenderContext<VC>,
+    ) -> crate::error::Result<bool> {
         let left = self.left.calc(context)?;
         let right = self.right.calc(context)?;
         let r = match self.operator {

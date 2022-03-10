@@ -15,7 +15,10 @@ impl CalculatedValue {
         Self { value, modifiers }
     }
 
-    pub fn calc<VC: VariableContainer>(&self, context: &RenderContext<VC>) -> crate::error::Result<Value> {
+    pub fn calc<VC: VariableContainer>(
+        &self,
+        context: &RenderContext<VC>,
+    ) -> crate::error::Result<Value> {
         let mut var = match &self.value {
             StorageMethod::Const(var) => Cow::Borrowed(var),
             StorageMethod::Variable(var_name) => {
@@ -29,7 +32,8 @@ impl CalculatedValue {
         for (modifier_name, args) in &self.modifiers {
             // Safety: modifier_name points to tpl.tpl_str and should never be null
             let modifier_name = unsafe { modifier_name.as_ref().unwrap() };
-            let modifier = context.modifier
+            let modifier = context
+                .modifier
                 .get(modifier_name)
                 .ok_or(crate::error::Error::UnknownModifier(modifier_name))?;
 

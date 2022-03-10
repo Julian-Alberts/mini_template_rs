@@ -1,10 +1,11 @@
-use super::{CalculatedValue, Conditional};
+use super::{assign::Assign, CalculatedValue, Conditional};
 
 #[derive(Debug)]
 pub enum Statement {
     Literal(*const str),
     Calculated(CalculatedValue),
     Condition(Conditional),
+    Assign(Assign),
 }
 
 impl PartialEq for Statement {
@@ -15,6 +16,7 @@ impl PartialEq for Statement {
             // Safety: Both literals point to positions in the original template string.
             unsafe { s.as_ref() == o.as_ref() },
             (Statement::Condition(s), Statement::Condition(o)) => s == o,
+            (Statement::Assign(s), Statement::Assign(o)) => s == o,
             _ => false,
         }
     }

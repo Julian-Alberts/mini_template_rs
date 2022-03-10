@@ -10,10 +10,7 @@ pub struct RenderContext<'a, VC: VariableContainer> {
 }
 
 impl<'a, VC: VariableContainer> RenderContext<'a, VC> {
-    pub fn new(
-        modifier: &'a HashMap<&'static str, &'a Modifier>,
-        variables: VC,
-    ) -> Self {
+    pub fn new(modifier: &'a HashMap<&'static str, &'a Modifier>, variables: VC) -> Self {
         Self {
             modifier,
             variables,
@@ -48,7 +45,7 @@ mod tests {
         let tpl = parse(tpl).unwrap();
         let mut rendered = String::new();
         tpl.render(
-            &RenderContext::new(&HashMap::new(), HashMap::new()),
+            &mut RenderContext::new(&HashMap::new(), HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -64,7 +61,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &RenderContext::new(&HashMap::new(), variables),
+            &mut RenderContext::new(&HashMap::new(), variables),
             &mut rendered,
         )
         .unwrap();
@@ -86,8 +83,11 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
         let mut rendered = String::new();
 
-        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
-            .unwrap();
+        tpl.render(
+            &mut RenderContext::new(&modifiers, variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(
             rendered,
             String::from("Simple MY TEST VALUE template string")
@@ -106,8 +106,11 @@ mod tests {
         modifiers.insert("args", &args_modifier);
         let mut rendered = String::new();
 
-        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
-            .unwrap();
+        tpl.render(
+            &mut RenderContext::new(&modifiers, variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(
             rendered,
             String::from("Simple my test value=BAR=42 template string")
@@ -127,8 +130,11 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
-            .unwrap();
+        tpl.render(
+            &mut RenderContext::new(&modifiers, variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(
             rendered,
             String::from("Simple MY TEST VALUE=bar=42 template string")
@@ -150,8 +156,11 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
-            .unwrap();
+        tpl.render(
+            &mut RenderContext::new(&modifiers, variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(rendered, String::from("Foo\nBar Baz"));
     }
 
@@ -166,8 +175,11 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
-            .unwrap();
+        tpl.render(
+            &mut RenderContext::new(&modifiers, variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(rendered, String::from("Foo\nBar\nBaz"));
     }
 
@@ -182,15 +194,21 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
-            .unwrap();
+        tpl.render(
+            &mut RenderContext::new(&modifiers, variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(rendered, String::from("FooBarBaz"));
 
         let mut variables = HashMap::new();
         variables.insert("var1".to_owned(), Value::Bool(false));
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
-            .unwrap();
+        tpl.render(
+            &mut RenderContext::new(&modifiers, variables),
+            &mut rendered,
+        )
+        .unwrap();
         assert_eq!(rendered, String::from("FooFizzBaz"));
     }
 }

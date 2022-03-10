@@ -79,7 +79,7 @@ static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 ///         }
 ///     }
 /// );
-/// 
+///
 /// assert!(as_usize(&Value::String("17".to_owned()), Vec::default()).is_ok());
 /// assert!(as_usize(&Value::String("Foo".to_owned()), Vec::default()).is_err());
 /// ```
@@ -95,11 +95,11 @@ static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 ///     }
 ///     result
 /// }
-/// 
+///
 /// create_modifier!(
 ///     fn repeat_n_times_modifier(s: &str, n: usize) -> String => repeat_n_times
 /// );
-/// 
+///
 /// assert_eq!(
 ///     repeat_n_times_modifier(&Value::String("17".to_owned()), vec![&Value::Number(2.)]),
 ///     Ok(Value::String("1717".to_owned()))

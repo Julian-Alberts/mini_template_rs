@@ -1,21 +1,23 @@
 WHITESPACE = _{" "|"\n"}
-modifier = {"|" ~ identifyer ~ argument*}
+modifier = {"|" ~ identifier ~ argument*}
 argument = { ":" ~ value }
 calculated = {!"\\" ~ "{" ~ calculated_value ~ "}"}
 calculated_value = { value ~ modifier* }
-identifyer = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
+identifier = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
 text = {(!"{" ~ ("\\{" | ANY))+}
 
+assign = !{"{" ~ identifier ~ "=" ~ calculated_value ~ "}"}
+
 // Template
-tempalte = {SOI ~ template_content ~ EOI}
-template_content = ${ (calculated|text|conditional)* }
+template = {SOI ~ template_content ~ EOI}
+template_content = ${ (assign|calculated|text|conditional)* }
 
 // Values
 string = { "\"" ~ inner_string ~ "\"" }
 inner_string = {(!"\"" ~ ( "\\\""| ANY))*}
 number = { ("+"|"-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 boolean = {true_key_word|false_key_word}
-value = { boolean|identifyer|number|string }
+value = { boolean|identifier|number|string }
 
 // Blocks
 conditional = !{ 
