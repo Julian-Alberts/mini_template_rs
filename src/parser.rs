@@ -2,10 +2,16 @@ use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 #[cfg(not(feature = "disable_assign"))]
 use crate::template::Assign;
+#[cfg(not(feature = "disable_conditional"))]
 use crate::{
     template::{
-        AndCondition, CalculatedValue, CompareCondition, CompareOperator, Condition, Conditional,
-        OrCondition, Statement, StorageMethod,
+        AndCondition, CompareCondition, CompareOperator, Condition, Conditional,
+        OrCondition
+    }
+};
+use crate::{
+    template::{
+        CalculatedValue, Statement, StorageMethod
     },
     value::Value,
     Template,
@@ -48,7 +54,10 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
     match item.as_rule() {
         Rule::text => Some(Ok(Statement::Literal(item.as_str()))),
         Rule::calculated => Some(Ok(parse_calculated(item))),
+        #[cfg(not(feature = "disable_conditional"))]
         Rule::conditional => Some(parse_conditional(item)),
+        #[cfg(feature = "disable_conditional")]
+        Rule::conditional => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Conditional))),
         #[cfg(not(feature = "disable_assign"))]
         Rule::assign => Some(Ok(Statement::Assign(parse_assign(item)))),
         #[cfg(feature = "disable_assign")]
@@ -58,6 +67,7 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
     }
 }
 
+#[cfg(not(feature = "disable_conditional"))]
 fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     assert_eq!(conditional.as_rule(), Rule::conditional);
     let mut conditional = conditional.into_inner();
@@ -90,6 +100,7 @@ fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     }))
 }
 
+#[cfg(not(feature = "disable_conditional"))]
 fn parse_condition(condition: Pair<Rule>) -> Condition {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
@@ -150,6 +161,7 @@ fn parse_calculated(calculated: Pair<Rule>) -> Statement {
     Statement::Calculated(parse_calculated_value(inner))
 }
 
+#[cfg(not(feature = "disable_conditional"))]
 fn parse_compare_condition(compare_condition: Pair<Rule>) -> CompareCondition {
     assert_eq!(compare_condition.as_rule(), Rule::compare_condition);
     let mut inner = compare_condition.into_inner();
@@ -163,6 +175,7 @@ fn parse_compare_condition(compare_condition: Pair<Rule>) -> CompareCondition {
     }
 }
 
+#[cfg(not(feature = "disable_conditional"))]
 fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
     assert_eq!(compare_operator.as_rule(), Rule::compare_operator);
     let inner = compare_operator.into_inner().next().unwrap();
@@ -243,7 +256,9 @@ pub enum ParseError {
 #[derive(Debug)]
 pub enum UnsupportedFeature {
     #[cfg(feature = "disable_assign")]
-    Assign
+    Assign,
+    #[cfg(not(feature = "disable_assign"))]
+    Conditional
 }
 
 #[cfg(test)]
@@ -487,6 +502,7 @@ mod tests {
         )
     }
 
+    #[cfg(not(feature = "disable_conditional"))]
     mod conditional {
         use super::*;
 
@@ -626,6 +642,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "disable_conditional"))]
     mod condition {
         use crate::template::AndCondition;
 

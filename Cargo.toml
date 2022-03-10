@@ -19,6 +19,7 @@ criterion = "0.3"
 [features]
 disable_conditional = []
 disable_assign = []
+default = []
 
 [profile.release]
 debug = true
