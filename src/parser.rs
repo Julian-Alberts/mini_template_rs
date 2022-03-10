@@ -108,7 +108,7 @@ fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     }))
 }
 
-#[cfg(any(feature = "conditional", feature = "loop"))]
+#[cfg(feature = "condition")]
 fn parse_condition(condition: Pair<Rule>) -> Condition {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
