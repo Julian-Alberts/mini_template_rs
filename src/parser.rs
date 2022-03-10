@@ -2,7 +2,7 @@ use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 use crate::{
     template::{
-        AndCondition, CalcualtedValue, CompareCondition, CompareOperator, Condition, Conditional,
+        AndCondition, CalculatedValue, CompareCondition, CompareOperator, Condition, Conditional,
         OrCondition, Statement, StorageMethod,
     },
     value::Value,
@@ -165,12 +165,12 @@ fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
     }
 }
 
-fn parse_calculated_value(calculated_value: Pair<Rule>) -> CalcualtedValue {
+fn parse_calculated_value(calculated_value: Pair<Rule>) -> CalculatedValue {
     assert_eq!(calculated_value.as_rule(), Rule::calculated_value);
     let mut inner = calculated_value.into_inner();
     let value = parse_value(inner.next().unwrap());
     let modifiers = inner.into_iter().map(parse_modifier).collect::<Vec<_>>();
-    CalcualtedValue::new(value, modifiers)
+    CalculatedValue::new(value, modifiers)
 }
 
 fn parse_modifier(item: Pair<Rule>) -> (*const str, Vec<StorageMethod>) {
@@ -257,7 +257,7 @@ mod tests {
         let statement = parse_calculated(item);
         assert_eq!(
             statement,
-            Statement::Calculated(CalcualtedValue::new(
+            Statement::Calculated(CalculatedValue::new(
                 StorageMethod::Variable("var"),
                 Vec::new()
             ))
@@ -273,7 +273,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![],
                 ))],
@@ -292,7 +292,7 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier}"),
-                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![("modifier", vec![])]
                 ))]
@@ -310,7 +310,7 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier1|modifier2}"),
-                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![("modifier1", vec![]), ("modifier2", vec![])]
                 ))]
@@ -328,7 +328,7 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from("{var|modifier:var2}"),
-                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![("modifier", vec![StorageMethod::Variable("var2")])]
                 ))]
@@ -346,7 +346,7 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09}"#),
-                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![(
                         "modifier",
@@ -367,7 +367,7 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{10|modifier:-32.09}"#),
-                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Number(10.0)),
                     vec![(
                         "modifier",
@@ -388,7 +388,7 @@ mod tests {
             template,
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#),
-                tpl: vec![Statement::Calculated(CalcualtedValue::new(
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![(
                         "modifier",
@@ -415,12 +415,12 @@ mod tests {
             Template {
                 tpl_str: String::from("{var|modifier}\n{10|modifier:-32.09}"),
                 tpl: vec![
-                    Statement::Calculated(CalcualtedValue::new(
+                    Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Variable("var"),
                         vec![("modifier", vec![])]
                     )),
                     Statement::Literal("\n"),
-                    Statement::Calculated(CalcualtedValue::new(
+                    Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Const(Value::Number(10.0)),
                         vec![(
                             "modifier",
@@ -448,9 +448,9 @@ mod tests {
                     conditional,
                     Conditional {
                         condition: Condition::Compare(CompareCondition {
-                            left: CalcualtedValue::new(StorageMethod::Variable("i"), vec![]),
+                            left: CalculatedValue::new(StorageMethod::Variable("i"), vec![]),
                             operator: CompareOperator::LT,
-                            right: CalcualtedValue::new(
+                            right: CalculatedValue::new(
                                 StorageMethod::Const(Value::Number(10.)),
                                 vec![]
                             )
@@ -478,16 +478,16 @@ mod tests {
                     Conditional {
                         condition: Condition::and(vec![
                             Condition::or(vec![
-                                Condition::CalculatedValue(CalcualtedValue::new(
+                                Condition::CalculatedValue(CalculatedValue::new(
                                     StorageMethod::Variable("var1"),
                                     vec![]
                                 )),
-                                Condition::CalculatedValue(CalcualtedValue::new(
+                                Condition::CalculatedValue(CalculatedValue::new(
                                     StorageMethod::Variable("var2"),
                                     vec![]
                                 ))
                             ]),
-                            Condition::CalculatedValue(CalcualtedValue::new(
+                            Condition::CalculatedValue(CalculatedValue::new(
                                 StorageMethod::Variable("var3"),
                                 vec![]
                             ))
@@ -514,9 +514,9 @@ mod tests {
                     conditional,
                     Conditional {
                         condition: Condition::Compare(CompareCondition {
-                            left: CalcualtedValue::new(StorageMethod::Variable("i"), vec![]),
+                            left: CalculatedValue::new(StorageMethod::Variable("i"), vec![]),
                             operator: CompareOperator::LT,
-                            right: CalcualtedValue::new(
+                            right: CalculatedValue::new(
                                 StorageMethod::Const(Value::Number(10.)),
                                 vec![]
                             )
@@ -543,9 +543,9 @@ mod tests {
                     conditional,
                     Conditional {
                         condition: Condition::Compare(CompareCondition {
-                            left: CalcualtedValue::new(StorageMethod::Variable("i"), vec![]),
+                            left: CalculatedValue::new(StorageMethod::Variable("i"), vec![]),
                             operator: CompareOperator::LT,
-                            right: CalcualtedValue::new(
+                            right: CalculatedValue::new(
                                 StorageMethod::Const(Value::Number(10.)),
                                 vec![]
                             )
@@ -553,9 +553,9 @@ mod tests {
                         then_case: vec![Statement::Literal("HI")],
                         else_case: Some(vec![Statement::Condition(Conditional {
                             condition: Condition::Compare(CompareCondition {
-                                left: CalcualtedValue::new(StorageMethod::Variable("n"), vec![]),
+                                left: CalculatedValue::new(StorageMethod::Variable("n"), vec![]),
                                 operator: CompareOperator::EQ,
-                                right: CalcualtedValue::new(
+                                right: CalculatedValue::new(
                                     StorageMethod::Const(Value::String("TEST".to_owned())),
                                     vec![]
                                 )
@@ -586,7 +586,7 @@ mod tests {
             let condition = super::parse_condition(condition);
             assert_eq!(
                 condition,
-                Condition::CalculatedValue(CalcualtedValue::new(
+                Condition::CalculatedValue(CalculatedValue::new(
                     StorageMethod::Variable("bar"),
                     vec![]
                 )),
@@ -604,9 +604,9 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::Compare(CompareCondition {
-                    left: CalcualtedValue::new(StorageMethod::Variable("bar"), vec![]),
+                    left: CalculatedValue::new(StorageMethod::Variable("bar"), vec![]),
                     operator: CompareOperator::EQ,
-                    right: CalcualtedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
                 })
             );
         }
@@ -622,9 +622,9 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::Compare(CompareCondition {
-                    left: CalcualtedValue::new(StorageMethod::Variable("bar"), vec![]),
+                    left: CalculatedValue::new(StorageMethod::Variable("bar"), vec![]),
                     operator: CompareOperator::EQ,
-                    right: CalcualtedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
                 })
             );
         }
@@ -640,16 +640,16 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::Or(OrCondition::new(vec![
-                    Condition::CalculatedValue(CalcualtedValue::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
                         StorageMethod::Variable("var1"),
                         vec![]
                     )),
                     Condition::And(AndCondition::new(vec![
-                        Condition::CalculatedValue(CalcualtedValue::new(
+                        Condition::CalculatedValue(CalculatedValue::new(
                             StorageMethod::Variable("var2"),
                             vec![]
                         )),
-                        Condition::CalculatedValue(CalcualtedValue::new(
+                        Condition::CalculatedValue(CalculatedValue::new(
                             StorageMethod::Variable("var3"),
                             vec![]
                         ))
@@ -670,11 +670,11 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::Or(OrCondition::new(vec![
-                    Condition::CalculatedValue(CalcualtedValue::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
                         StorageMethod::Variable("var1"),
                         vec![]
                     )),
-                    Condition::CalculatedValue(CalcualtedValue::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
                         StorageMethod::Variable("var2"),
                         vec![]
                     ))
@@ -694,11 +694,11 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::And(AndCondition::new(vec![
-                    Condition::CalculatedValue(CalcualtedValue::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
                         StorageMethod::Variable("var1"),
                         vec![]
                     )),
-                    Condition::CalculatedValue(CalcualtedValue::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
                         StorageMethod::Variable("var2"),
                         vec![]
                     ))
@@ -719,16 +719,16 @@ mod tests {
                 condition,
                 Condition::And(AndCondition::new(vec![
                     Condition::Or(OrCondition::new(vec![
-                        Condition::CalculatedValue(CalcualtedValue::new(
+                        Condition::CalculatedValue(CalculatedValue::new(
                             StorageMethod::Variable("var1"),
                             vec![]
                         )),
-                        Condition::CalculatedValue(CalcualtedValue::new(
+                        Condition::CalculatedValue(CalculatedValue::new(
                             StorageMethod::Variable("var2"),
                             vec![]
                         ))
                     ])),
-                    Condition::CalculatedValue(CalcualtedValue::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
                         StorageMethod::Variable("var3"),
                         vec![]
                     ))
@@ -748,16 +748,16 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::or(vec![
-                    Condition::CalculatedValue(CalcualtedValue::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
                         StorageMethod::Variable("var1"),
                         vec![]
                     )),
                     Condition::and(vec![
-                        Condition::CalculatedValue(CalcualtedValue::new(
+                        Condition::CalculatedValue(CalculatedValue::new(
                             StorageMethod::Variable("var2"),
                             vec![]
                         )),
-                        Condition::CalculatedValue(CalcualtedValue::new(
+                        Condition::CalculatedValue(CalculatedValue::new(
                             StorageMethod::Variable("var3"),
                             vec![]
                         ))
@@ -921,9 +921,9 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple more " as *const _),
-                Statement::Calculated(CalcualtedValue::new(StorageMethod::Variable("var"), vec![])),
+                Statement::Calculated(CalculatedValue::new(StorageMethod::Variable("var"), vec![])),
                 Statement::Literal(" template " as *const _),
-                Statement::Calculated(CalcualtedValue::new(StorageMethod::Variable("foo"), vec![]))
+                Statement::Calculated(CalculatedValue::new(StorageMethod::Variable("foo"), vec![]))
             ],
             tpl.tpl
         )
@@ -935,7 +935,7 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue::new(
+                Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![("test" as *const _, vec![])]
                 )),
@@ -951,7 +951,7 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue::new(
+                Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![(
                         "test" as *const _,
@@ -972,7 +972,7 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue::new(
+                Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![(
                         "test" as *const _,
@@ -991,7 +991,7 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
-                Statement::Calculated(CalcualtedValue::new(
+                Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable("var"),
                     vec![("test" as *const _, vec![StorageMethod::Variable("foobar")])]
                 )),

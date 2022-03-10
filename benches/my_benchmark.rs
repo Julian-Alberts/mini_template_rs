@@ -20,7 +20,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         vars.insert("var2".to_owned(), Value::String(String::from("TEST STRING")));
         (mini, vars)
     }, |(mini, vars)| {
-        mini.render(&String::from("tpl"), &vars).unwrap();
+        mini.render(&String::from("tpl"), vars).unwrap();
     })).final_summary();
 }
 

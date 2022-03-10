@@ -3,12 +3,12 @@ mod conditional;
 mod statement;
 mod storage_method;
 
-pub use calcualted_value::CalcualtedValue;
+pub use calcualted_value::CalculatedValue;
 pub use conditional::*;
 pub use statement::Statement;
 pub use storage_method::StorageMethod;
 
-use crate::{error::Result, renderer::RenderContext};
+use crate::{error::Result, renderer::RenderContext, variable_container::VariableContainer};
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
@@ -17,17 +17,17 @@ pub struct Template {
 }
 
 impl Render for Template {
-    fn render(&self, context: &RenderContext, buf: &mut String) -> Result<()> {
+    fn render<VC: VariableContainer>(&self, context: &RenderContext<VC>, buf: &mut String) -> Result<()> {
         self.tpl.render(context, buf)
     }
 }
 
 pub trait Render {
-    fn render(&self, context: &RenderContext, buf: &mut String) -> Result<()>;
+    fn render<VC: VariableContainer>(&self, context: &RenderContext<VC>, buf: &mut String) -> Result<()>;
 }
 
 impl Render for Vec<Statement> {
-    fn render(&self, context: &RenderContext, buf: &mut String) -> Result<()> {
+    fn render<VC: VariableContainer>(&self, context: &RenderContext<VC>, buf: &mut String) -> Result<()> {
         for statement in self {
             match statement {
                 Statement::Literal(literal) =>

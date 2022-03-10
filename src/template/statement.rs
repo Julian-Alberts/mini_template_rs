@@ -1,9 +1,9 @@
-use super::{CalcualtedValue, Conditional};
+use super::{CalculatedValue, Conditional};
 
 #[derive(Debug)]
 pub enum Statement {
     Literal(*const str),
-    Calculated(CalcualtedValue),
+    Calculated(CalculatedValue),
     Condition(Conditional),
 }
 
@@ -22,7 +22,7 @@ impl PartialEq for Statement {
 
 #[cfg(test)]
 mod tests {
-    use crate::template::{CalcualtedValue, StorageMethod};
+    use crate::template::{CalculatedValue, StorageMethod};
 
     use super::Statement;
 
@@ -48,11 +48,11 @@ mod tests {
     fn two_calclated_values_eq() {
         let str1 = "my var in a text";
         let str2 = "same var in an other text";
-        let calculated1 = Statement::Calculated(CalcualtedValue::new(
+        let calculated1 = Statement::Calculated(CalculatedValue::new(
             StorageMethod::Variable(&str1[3..6]),
             vec![],
         ));
-        let calculated2 = Statement::Calculated(CalcualtedValue::new(
+        let calculated2 = Statement::Calculated(CalculatedValue::new(
             StorageMethod::Variable(&str2[5..8]),
             vec![],
         ));
@@ -63,11 +63,11 @@ mod tests {
     fn two_calclated_values_not_eq() {
         let str1 = "my var in a text";
         let str2 = "other VAR in an other text";
-        let calculated1 = Statement::Calculated(CalcualtedValue::new(
+        let calculated1 = Statement::Calculated(CalculatedValue::new(
             StorageMethod::Variable(&str1[3..6]),
             vec![],
         ));
-        let calculated2 = Statement::Calculated(CalcualtedValue::new(
+        let calculated2 = Statement::Calculated(CalculatedValue::new(
             StorageMethod::Variable(&str2[5..8]),
             vec![],
         ));

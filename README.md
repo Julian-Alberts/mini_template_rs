@@ -65,7 +65,7 @@ fn main() {
     variables.insert("my_var".to_owned(), Value::Bool(true));
     
     // actual rendering
-    let render = mini_template.render(&0, &variables);
+    let render = mini_template.render(&0, variables);
     println!("{}", render.unwrap())
 }
 ```
@@ -114,7 +114,6 @@ mini_template.add_modifier("is_even", &is_even);
 ## Todo
 * More tests
 * Allow arrays in templates
-* Replace hash map with new variable storage
 * Assign values in a template
 * Allow disabling of features
 * Add loop

@@ -15,14 +15,16 @@ fn main() {
         Value::String(String::from("HELLO world")),
     );
     variables.insert("var2".to_owned(), Value::Number(9.));
-    let render = mini_template.render(&0, &variables);
+    let render = mini_template.render(&0, variables);
     println!("{}", render.unwrap());
 
+    let mut variables = HashMap::default();
     variables.insert("var2".to_owned(), Value::Number(10.));
-    let render = mini_template.render(&0, &variables);
+    let render = mini_template.render(&0, variables);
     println!("{}", render.unwrap());
 
+    let mut variables = HashMap::default();
     variables.insert("var2".to_owned(), Value::Number(20.));
-    let render = mini_template.render(&0, &variables);
+    let render = mini_template.render(&0, variables);
     println!("{}", render.unwrap());
 }

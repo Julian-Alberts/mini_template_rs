@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 
-use super::{modifier::Modifier, value::Value};
+use crate::variable_container::VariableContainer;
 
-pub struct RenderContext<'a> {
+use super::modifier::Modifier;
+
+pub struct RenderContext<'a, VC: VariableContainer> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
-    pub variables: &'a HashMap<String, Value>,
+    pub variables: VC,
 }
 
-impl<'a> RenderContext<'a> {
+impl<'a, VC: VariableContainer> RenderContext<'a, VC> {
     pub fn new(
         modifier: &'a HashMap<&'static str, &'a Modifier>,
-        variables: &'a HashMap<String, Value>,
+        variables: VC,
     ) -> Self {
         Self {
             modifier,
@@ -46,7 +48,7 @@ mod tests {
         let tpl = parse(tpl).unwrap();
         let mut rendered = String::new();
         tpl.render(
-            &RenderContext::new(&HashMap::new(), &HashMap::new()),
+            &RenderContext::new(&HashMap::new(), HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -62,7 +64,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &RenderContext::new(&HashMap::new(), &variables),
+            &RenderContext::new(&HashMap::new(), variables),
             &mut rendered,
         )
         .unwrap();
@@ -84,7 +86,7 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
         let mut rendered = String::new();
 
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
             .unwrap();
         assert_eq!(
             rendered,
@@ -104,7 +106,7 @@ mod tests {
         modifiers.insert("args", &args_modifier);
         let mut rendered = String::new();
 
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
             .unwrap();
         assert_eq!(
             rendered,
@@ -125,7 +127,7 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
             .unwrap();
         assert_eq!(
             rendered,
@@ -148,7 +150,7 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
             .unwrap();
         assert_eq!(rendered, String::from("Foo\nBar Baz"));
     }
@@ -164,7 +166,7 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
             .unwrap();
         assert_eq!(rendered, String::from("Foo\nBar\nBaz"));
     }
@@ -180,13 +182,14 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
             .unwrap();
         assert_eq!(rendered, String::from("FooBarBaz"));
 
+        let mut variables = HashMap::new();
         variables.insert("var1".to_owned(), Value::Bool(false));
         let mut rendered = String::new();
-        tpl.render(&RenderContext::new(&modifiers, &variables), &mut rendered)
+        tpl.render(&RenderContext::new(&modifiers, variables), &mut rendered)
             .unwrap();
         assert_eq!(rendered, String::from("FooFizzBaz"));
     }

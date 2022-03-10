@@ -19,7 +19,7 @@ fn main() {
     mini_template.add_template(0, TEMPLATE.to_owned()).unwrap();
     let render = mini_template.render(
         &0,
-        &HashMap::from_iter([
+        HashMap::from_iter([
             (String::from("even"), Value::Number(4.)),
             (String::from("zeros"), Value::Number(4.)),
         ]),
