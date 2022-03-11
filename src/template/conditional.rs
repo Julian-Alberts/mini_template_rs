@@ -2,7 +2,10 @@ use std::fmt::Debug;
 
 use crate::{renderer::RenderContext, variable_container::VariableContainer};
 
-use super::{Render, Statement, condition::{Condition, ConditionEval}};
+use super::{
+    condition::{Condition, ConditionEval},
+    Render, Statement,
+};
 
 #[derive(Debug, PartialEq)]
 pub struct Conditional {
@@ -35,7 +38,10 @@ mod tests {
 
     use crate::{
         renderer::RenderContext,
-        template::{CalculatedValue, StorageMethod, condition::{Condition, ConditionEval, AndCondition, OrCondition}},
+        template::{
+            condition::{AndCondition, Condition, ConditionEval, OrCondition},
+            CalculatedValue, StorageMethod,
+        },
         value::Value,
     };
 

@@ -38,7 +38,9 @@ mod tests {
 
     use crate::{
         renderer::RenderContext,
-        template::{Assign, CalculatedValue, condition::Condition, Render, Statement, StorageMethod},
+        template::{
+            condition::Condition, Assign, CalculatedValue, Render, Statement, StorageMethod,
+        },
         value::Value,
     };
 

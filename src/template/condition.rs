@@ -1,4 +1,4 @@
-use crate::{variable_container::VariableContainer, renderer::RenderContext};
+use crate::{renderer::RenderContext, variable_container::VariableContainer};
 
 use super::CalculatedValue;
 

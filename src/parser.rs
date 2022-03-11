@@ -1,13 +1,13 @@
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
-#[cfg(feature = "assign")]
-use crate::template::Assign;
-#[cfg(feature = "conditional")]
-use crate::template::Conditional;
 #[cfg(feature = "condition")]
 use crate::template::condition::{
     AndCondition, CompareCondition, CompareOperator, Condition, OrCondition,
 };
+#[cfg(feature = "assign")]
+use crate::template::Assign;
+#[cfg(feature = "conditional")]
+use crate::template::Conditional;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
 use crate::{
@@ -66,7 +66,7 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
         #[cfg(feature = "loop")]
         Rule::while_loop => match parse_loop(item) {
             Ok(l) => Some(Ok(Statement::Loop(l))),
-            Err(e) => Some(Err(e))
+            Err(e) => Some(Err(e)),
         },
         #[cfg(not(feature = "loop"))]
         Rule::while_loop => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Loop))),
@@ -279,7 +279,7 @@ pub enum UnsupportedFeature {
     #[cfg(not(feature = "conditional"))]
     Conditional,
     #[cfg(not(feature = "loop"))]
-    Loop
+    Loop,
 }
 
 #[cfg(test)]
@@ -895,7 +895,10 @@ mod tests {
     mod while_loop {
         use crate::{
             parser::{Parser, Rule, TemplateParser},
-            template::{Loop, Statement, StorageMethod, CalculatedValue, condition::{Condition, CompareCondition, CompareOperator}},
+            template::{
+                condition::{CompareCondition, CompareOperator, Condition},
+                CalculatedValue, Loop, Statement, StorageMethod,
+            },
             value::Value,
         };
 
@@ -914,7 +917,10 @@ mod tests {
                     Condition::Compare(CompareCondition {
                         left: CalculatedValue::new(StorageMethod::Variable("var"), vec![]),
                         operator: CompareOperator::EQ,
-                        right: CalculatedValue::new(StorageMethod::Const(Value::Number(0.)), vec![])
+                        right: CalculatedValue::new(
+                            StorageMethod::Const(Value::Number(0.)),
+                            vec![]
+                        )
                     }),
                     vec![Statement::Literal("Foo")]
                 )

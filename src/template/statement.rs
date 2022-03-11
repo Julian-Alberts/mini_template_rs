@@ -1,8 +1,8 @@
 #[cfg(feature = "assign")]
 use super::assign::Assign;
+use super::CalculatedValue;
 #[cfg(feature = "conditional")]
 use super::Conditional;
-use super::CalculatedValue;
 #[cfg(feature = "loop")]
 use super::Loop;
 

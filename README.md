@@ -120,7 +120,6 @@ mini_template.add_modifier("is_even", &is_even);
 ## Todo
 * More tests
 * Allow arrays in templates
-* Allow disabling of features
 * Rewrite create_modifier! macro
 * Allow objects in templates
 * NULL values

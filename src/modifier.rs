@@ -1,15 +1,18 @@
-use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
-    hash::Hasher,
-    sync::RwLock,
+#[cfg(feature = "regex")]
+use {
+    once_cell::sync::OnceCell,
+    regex::Regex,
+    std::{
+        collections::{hash_map::DefaultHasher, HashMap},
+        hash::Hash,
+        sync::RwLock,
+    },
 };
-
-use once_cell::sync::OnceCell;
-use regex::Regex;
 
 use super::value::Value;
 pub use error::*;
 
+#[cfg(feature = "regex")]
 static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 
 /// Creates a new modifier based on a method.
@@ -198,6 +201,7 @@ create_modifier!(
     }
 );
 
+#[cfg(feature = "regex")]
 create_modifier!(fn match_modifier(input: String, regex: String, group: usize = 0) -> Result<String> {
     with_regex_from_cache(regex, |regex| {
         match regex.captures(&input[..]) {
@@ -218,6 +222,7 @@ create_modifier!(fn replace_modifier(input: String, from: String, to: String, co
     }
 });
 
+#[cfg(feature = "regex")]
 create_modifier!(fn replace_regex_modifier(input: String, regex: String, to: String, count: usize = 0) -> Result<String> {
     with_regex_from_cache(regex, |regex| {
         regex.replacen(&input, count, to).to_string()
@@ -254,11 +259,12 @@ create_modifier!(
 
 create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
 
+#[cfg(feature = "regex")]
 fn with_regex_from_cache<F, T>(regex: String, f: F) -> std::result::Result<T, String>
 where
     F: FnOnce(&Regex) -> T,
 {
-    use std::hash::Hash;
+    use std::hash::Hasher;
     let mut hasher = DefaultHasher::new();
     regex.hash(&mut hasher);
     let cache_key = hasher.finish();
@@ -284,6 +290,7 @@ where
     Ok(result)
 }
 
+#[cfg(feature = "regex")]
 pub fn regex_cache_clear() {
     REGEX_CACHE.set(RwLock::default()).unwrap();
 }
@@ -330,6 +337,7 @@ mod tests {
 
     use super::*;
 
+    #[cfg(feature = "regex")]
     #[test]
     fn match_modifier() {
         let input = Value::String(String::from("My 2test2 string"));
@@ -385,11 +393,11 @@ mod tests {
         let input = Value::String(String::from("My test string"));
         let args = vec![];
 
-        let result = super::match_modifier(&input, args);
+        let result = super::slice_modifier(&input, args);
         assert_eq!(
             result,
             Err(Error::MissingArgument {
-                argument_name: "regex"
+                argument_name: "start"
             })
         );
     }
@@ -398,12 +406,11 @@ mod tests {
     fn can_not_parse_argument() {
         let input = Value::String(String::from("My test string"));
 
-        let regex = Value::String(String::from(r#"(\d[a-z]+\d) string"#));
-        let number = Value::String(String::from("test"));
+        let string = Value::String(String::from(r#"string"#));
 
-        let args = vec![&regex, &number];
+        let args = vec![&string];
 
-        let result = super::match_modifier(&input, args);
+        let result = super::slice_modifier(&input, args);
         assert_eq!(
             result,
             Err(Error::Type {
@@ -411,7 +418,7 @@ mod tests {
                     expected_type: "usize",
                     storage_type: "Number"
                 },
-                value: String::from("test")
+                value: String::from("string")
             })
         );
     }

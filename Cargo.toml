@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 once_cell = "1"
 log = "0.4"
-regex = "1.4"
+regex = {version = "1.4", optional = true}
 pest = "2.0"
 pest_derive = "2.0"
 
@@ -21,7 +21,7 @@ condition = []
 conditional = [ "condition" ]
 assign = []
 loop = [ "condition", "assign" ]
-default = [ "loop", "assign", "conditional" ]
+default = [ "loop", "assign", "conditional", "regex" ]
 
 [profile.release]
 debug = true

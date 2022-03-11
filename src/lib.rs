@@ -46,10 +46,13 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     pub fn add_default_modifiers(&mut self) {
         use modifier::*;
         self.add_modifier("slice", &slice_modifier);
-        self.add_modifier("regex", &match_modifier);
-        self.add_modifier("match", &match_modifier);
+        #[cfg(feature = "regex")]
+        {
+            self.add_modifier("regex", &match_modifier);
+            self.add_modifier("match", &match_modifier);
+            self.add_modifier("replace_regex", &replace_regex_modifier);
+        }
         self.add_modifier("replace", &replace_modifier);
-        self.add_modifier("replace_regex", &replace_regex_modifier);
         self.add_modifier("upper", &upper);
         self.add_modifier("lower", &lower);
         self.add_modifier("repeat", &repeat);

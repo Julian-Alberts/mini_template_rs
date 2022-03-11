@@ -1,14 +1,14 @@
 #[cfg(feature = "assign")]
 mod assign;
 mod calculated_value;
+#[cfg(feature = "condition")]
+pub mod condition;
 #[cfg(feature = "conditional")]
 mod conditional;
 #[cfg(feature = "loop")]
 mod loops;
 mod statement;
 mod storage_method;
-#[cfg(feature = "condition")]
-pub mod condition;
 
 #[cfg(feature = "assign")]
 pub use assign::Assign;
