@@ -1,5 +1,6 @@
 /*/target
 .vscode
+.idea
 callgrind.*
 perf.*
 /*.svg
