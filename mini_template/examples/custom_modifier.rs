@@ -30,7 +30,7 @@ fn main() {
 
 mod modifiers {
 
-    #[mini_template_derive::create_modifier(mini_template_crate = "mini_template")]
+    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template")]
     fn is_even(num: usize) -> bool {
         num % 2 == 0
     }
@@ -39,15 +39,15 @@ mod modifiers {
         fn leading_zeros(input: usize) -> u32 => usize::leading_zeros
     );
 
-    #[mini_template_derive::create_modifier(mini_template_crate = "mini_template", returns_result = true)]
+    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template", returns_result = true)]
     fn parse_as_usize(input: String) -> Result<usize, String> {
         match input.parse::<usize>() {
             Ok(o) => Ok(o),
-            Err(e) => Err(format!("Can not parse \"{input}\" as usize")),
+            Err(_) => Err(format!("Can not parse \"{input}\" as usize")),
         }
     }
 
-    #[mini_template_derive::create_modifier(mini_template_crate = "mini_template", defaults::n = 2)]
+    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template", defaults::n = 2)]
     fn nth_upper(input: String, n: usize) -> String {
         let mut buf = String::new();
         for (i, c) in input.chars().enumerate() {

@@ -12,11 +12,10 @@ log = "0.4"
 regex = {version = "1.4", optional = true}
 pest = "2.0"
 pest_derive = "2.0"
-mini_template_derive = { path = "../mini_template_derive"}
+mini_template_macro = { path = "../mini_template_macro"}
 
 [dev-dependencies]
 criterion = "0.3"
-mini_template_derive = { path = "../mini_template_derive" }
 
 [features]
 condition = []

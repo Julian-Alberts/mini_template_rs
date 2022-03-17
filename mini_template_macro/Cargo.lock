@@ -100,7 +100,7 @@ name = "mini_template"
 version = "0.1.0"
 dependencies = [
  "log",
- "mini_template_derive",
+ "mini_template_macro",
  "once_cell",
  "pest",
  "pest_derive",
@@ -108,7 +108,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mini_template_derive"
+name = "mini_template_macro"
 version = "0.1.0"
 dependencies = [
  "mini_template",

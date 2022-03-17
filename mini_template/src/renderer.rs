@@ -21,7 +21,7 @@ impl<'a, VC: VariableContainer> RenderContext<'a, VC> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use mini_template_derive::create_modifier;
+    use mini_template_macro::create_modifier;
     use crate::{
         modifier::Modifier, parser::parse, renderer::RenderContext,
         template::Render, value::Value,

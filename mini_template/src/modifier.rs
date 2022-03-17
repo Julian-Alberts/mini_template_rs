@@ -85,14 +85,14 @@ macro_rules! create_modifier {
 
 pub type Modifier = dyn Fn(&Value, Vec<&Value>) -> Result<Value>;
 
-#[mini_template_derive::create_modifier]
+#[mini_template_macro::create_modifier]
 fn slice_modifier(input: String, start: usize, length: usize) -> String {
     let chars = input.chars().skip(start);
     chars.take(length).collect::<String>()
 }
 
 #[cfg(feature = "regex")]
-#[mini_template_derive::create_modifier(returns_result = true, defaults::group = 0)]
+#[mini_template_macro::create_modifier(returns_result = true, defaults::group = 0)]
 fn match_modifier(input: String, regex: String, group: usize) -> std::result::Result<String, String> {
     with_regex_from_cache(regex, |regex| {
         match regex.captures(&input[..]) {
@@ -105,7 +105,7 @@ fn match_modifier(input: String, regex: String, group: usize) -> std::result::Re
     })
 }
 
-#[mini_template_derive::create_modifier(defaults::count = 0)]
+#[mini_template_macro::create_modifier(defaults::count = 0)]
 fn replace_modifier(input: String, from: String, to: String, count: usize) -> String {
     if count == 0 {
         input.replace(&from[..], &to[..])
@@ -115,7 +115,7 @@ fn replace_modifier(input: String, from: String, to: String, count: usize) -> St
 }
 
 #[cfg(feature = "regex")]
-#[mini_template_derive::create_modifier(defaults::count = 0, returns_result = true)]
+#[mini_template_macro::create_modifier(defaults::count = 0, returns_result = true)]
 fn replace_regex_modifier(input: String, regex: String, to: String, count: usize) -> std::result::Result<String, String> {
     with_regex_from_cache(regex, |regex| {
         regex.replacen(&input, count, to).to_string()
