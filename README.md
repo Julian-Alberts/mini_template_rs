@@ -78,23 +78,23 @@ fn main() {
 ### Creating a custom modifier
 Modifiers are normal rust functions with a special header. A simple modifier could look like this:
 ```rust
-fn always_true(&Value, Vec<&Value>) -> Result<Value> {
+fn always_true(value: &Value, args: Vec<&Value>) -> Result<Value> {
     Ok(Value::Bool(true))
 }
 ```
 The first argument is the value the modifier gets called on. The vector contains all arguments behind the modifier.
-Creating modifiers this way can be a tedious process. If you do not need the extra flexibility, you can use the provided create_modifier! macro.
+#### Basic macro use
+Creating modifiers this way can be a tedious process. If you do not need the extra flexibility, you can use the provided `create_modifier` macro.
 ```rust
-mini_template::create_modifier!(
-    fn is_even(num: usize) -> bool {
-        num % 2 == 0
-    }
-);
+#[mini_template::macros::create_modifier]
+fn is_even(num: usize) -> bool {
+    num % 2 == 0
+}
 ```
-The resulting code will look some what like this:
+The resulting code will look somewhat like this:
 ```rust
-fn is_even(value: &Value, args: Vec<&Value>) -> Result<Value> {
-    let n: usize = match value.try_into() {
+fn is_even(value: &Value, args: Vec<&Value>) -> mini_template::modifier::error::Result<Value> {
+    let num: usize = match value.try_into() {
         Ok(inner) => inner,
         Err(e) => return Err(
             Error::Type{
@@ -102,20 +102,60 @@ fn is_even(value: &Value, args: Vec<&Value>) -> Result<Value> {
                 type_error: e
             }
         )
-    }
+    };
 
-    fn inner(n: usize) -> bool {
+    fn is_even(num: usize) -> bool {
         num % 2 == 0
     }
 
-    let result = inner(n);
+    let result = is_even(num);
     Ok(result.into())
 }
 ```
+By default, the function will be overridden. If you want to keep your original function 
+you can add the `modifier_ident` attribute. This will generate a new method for your 
+modifier with the given name.
+```rust
+#[mini_template::macros::create_modifier(modifier_ident = is_even_modifier)]
+fn is_even(num: usize) -> bool {
+    num % 2 == 0
+}
+
+fn main() {
+    assert!(is_even(12));
+    assert!(is_even_modifier(&Value::Number(12.0), &Vec::default()))
+}
+```
+
+
+#### Results
+In case your modifier needs to return a result you can write your modifier like this.
+```rust
+#[mini_template::macros::create_modifier(returns_result = true)]
+fn parse(s: &str) -> Result<usize, String> {
+    match s.parse::<usize>() {
+        Ok(s) => Ok(s),
+        Err(_) => Err(format!("Can not convert \"{}\" to usize", s))
+    }
+}
+```
+Note the `returns_result` argument for `create_modifier`. The Result must be of type `Result<_, String>`.
+
+#### Use function as modifier
+Sometimes you want to use an existing function as a modifier. That can be achieved by using 
+the `mini_template::modifier::create_modifier` macro. The first part describes the function 
+signature followed by an `=>` and the actual function to call.
+```rust
+create_modifier!(fn add(a: f64, b: f64) -> f64 => f64::add);
+```
+
+#### Registering a modifier
 To register a new modifier you can call MiniTemplate::add_modifier. Modifiers are always registered for all templates.
 ```rust
-let mut mini_template = MiniTemplate::default();
-mini_template.add_modifier("is_even", &is_even);
+fn main() {
+    let mut mini_template = MiniTemplate::default();
+    mini_template.add_modifier("is_even", &is_even);
+}
 ```
 ## Todo
 * More tests
