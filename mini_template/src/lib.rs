@@ -1,6 +1,7 @@
 //#![deny(clippy::undocumented_unsafe_blocks)]
 
 mod error;
+pub mod macros;
 pub mod modifier;
 mod parser;
 mod renderer;
@@ -12,8 +13,6 @@ mod variable_container;
 extern crate pest_derive;
 #[macro_use]
 extern crate log;
-
-pub use mini_template_macro as macros;
 
 use modifier::Modifier;
 use parser::{parse, ParseError};

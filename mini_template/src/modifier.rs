@@ -12,76 +12,10 @@ use {
 
 use super::value::Value;
 pub use error::*;
+use crate::fn_as_modifier;
 
 #[cfg(feature = "regex")]
 static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
-
-/// Creates a new modifier based on a method.
-/// This macro is usually used to create new template modifiers. The method header of the resulting
-/// method will look different from the given header.
-///
-/// Possible parameter types are:
-///
-/// &str, String, bool, f64, isize, i32, usize, u32
-///
-/// # Example
-/// ```
-/// use mini_template::value::Value;
-/// use mini_template::create_modifier;
-///
-/// fn repeat_n_times(s: &str, n: usize) -> String {
-///     let mut result = String::new();
-///     for _ in 0..n {
-///         result.push_str(s)
-///     }
-///     result
-/// }
-///
-/// create_modifier!(
-///     fn repeat_n_times_modifier(s: &str, n: usize) -> String => repeat_n_times
-/// );
-///
-/// assert_eq!(
-///     repeat_n_times_modifier(&Value::String("17".to_owned()), vec![&Value::Number(2.)]),
-///     Ok(Value::String("1717".to_owned()))
-/// );
-/// ```
-#[macro_export]
-macro_rules! create_modifier {
-    (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty => $func: path) => {
-        #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
-            use $crate::modifier::error::Error;
-
-            let $first_name: $first_t = create_modifier!(try_into value: $first_t);
-
-            $(
-                let mut args = args.into_iter();
-                $(
-                    let $name: $t = match args.next() {
-                        Some($name) => create_modifier!(try_into $name: $t),
-                        None => create_modifier!(default_value $name $($default)?)
-                    };
-                )+
-            )?
-
-            let result = $func($first_name $($(,$name)+)?);
-            Ok(result.into())
-        }
-    };
-    (default_value $arg_name: ident) => {
-        return Err(Error::MissingArgument{argument_name: stringify!($arg_name)})
-    };
-    (default_value $arg_name: ident $default: tt) => {
-        $default
-    };
-    (try_into $value: ident: $type: ty) => {
-        match $value.try_into() {
-            Ok(inner) => inner,
-            Err(e) => return Err(Error::Type{value: $value.to_string(), type_error: e})
-        }
-    }
-}
 
 pub type Modifier = dyn Fn(&Value, Vec<&Value>) -> Result<Value>;
 
@@ -122,19 +56,19 @@ fn replace_regex_modifier(input: String, regex: String, to: String, count: usize
     })
 }
 
-create_modifier!(fn upper(input: &str) -> String => str::to_uppercase);
+fn_as_modifier!(fn upper(input: &str) -> String => str::to_uppercase);
 
-create_modifier!(fn lower(input: &str) -> String => str::to_lowercase);
+fn_as_modifier!(fn lower(input: &str) -> String => str::to_lowercase);
 
-create_modifier!(fn add(a: f64, b: f64) -> f64 => f64::add);
+fn_as_modifier!(fn add(a: f64, b: f64) -> f64 => f64::add);
 
-create_modifier!(fn sub(a: f64, b: f64) -> f64 => f64::sub);
+fn_as_modifier!(fn sub(a: f64, b: f64) -> f64 => f64::sub);
 
-create_modifier!(fn mul(a: f64, b: f64) -> f64 => f64::mul);
+fn_as_modifier!(fn mul(a: f64, b: f64) -> f64 => f64::mul);
 
-create_modifier!(fn div(a: f64, b: f64) -> f64 => f64::div);
+fn_as_modifier!(fn div(a: f64, b: f64) -> f64 => f64::div);
 
-create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
+fn_as_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
 
 #[cfg(feature = "regex")]
 fn with_regex_from_cache<F, T>(regex: String, f: F) -> std::result::Result<T, String>

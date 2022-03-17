@@ -35,7 +35,7 @@ mod modifiers {
         num % 2 == 0
     }
 
-    mini_template::create_modifier!(
+    mini_template::fn_as_modifier!(
         fn leading_zeros(input: usize) -> u32 => usize::leading_zeros
     );
 

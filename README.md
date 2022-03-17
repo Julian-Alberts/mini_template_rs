@@ -143,10 +143,10 @@ Note the `returns_result` argument for `create_modifier`. The Result must be of 
 
 #### Use function as modifier
 Sometimes you want to use an existing function as a modifier. That can be achieved by using 
-the `mini_template::modifier::create_modifier` macro. The first part describes the function 
+the `mini_template::fn_as_modifier` macro. The first part describes the function 
 signature followed by an `=>` and the actual function to call.
 ```rust
-create_modifier!(fn add(a: f64, b: f64) -> f64 => f64::add);
+fn_as_modifier!(fn add(a: f64, b: f64) -> f64 => f64::add);
 ```
 
 #### Registering a modifier
