@@ -116,7 +116,7 @@ By default, the function will be overridden. If you want to keep your original f
 you can add the `modifier_ident` attribute. This will generate a new method for your 
 modifier with the given name.
 ```rust
-#[mini_template::macros::create_modifier(modifier_ident = is_even_modifier)]
+#[mini_template::macros::create_modifier(modifier_ident = "is_even_modifier")]
 fn is_even(num: usize) -> bool {
     num % 2 == 0
 }
