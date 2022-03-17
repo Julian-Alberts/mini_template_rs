@@ -160,6 +160,5 @@ fn main() {
 ## Todo
 * More tests
 * Allow arrays in templates
-* Rewrite create_modifier! macro
 * Allow objects in templates
 * NULL values
