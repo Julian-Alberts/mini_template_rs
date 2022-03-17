@@ -4,6 +4,47 @@ use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use syn::spanned::Spanned;
 
+///## With body
+/// ```
+/// use mini_template::value::Value;
+/// use mini_template_derive::create_modifier;
+///
+/// #[create_modifier]
+/// fn fizz_buzz(n: usize) -> String {
+///     match (n % 3, n % 5) {
+///         (0, 0) => String::from("FIZZBUZZ"),
+///         (0, _) => String::from("FIZZ"),
+///         (_, 0) => String::from("BUZZ"),
+///         _ => n.to_string()
+///     }
+/// }
+///
+///
+/// assert_eq!(
+///     fizz_buzz(
+///         &Value::Number(3.),
+///         Vec::default()
+///     ),
+///     Ok(Value::String(String::from("FIZZ")))
+/// );
+/// ```
+/// ## Returns Result
+/// ```
+/// use mini_template::value::Value;
+/// use mini_template_derive::create_modifier;
+///
+/// #[create_modifier(returns_result = true)]
+/// fn as_usize(n: String) -> Result<usize, String> {
+///     match n.parse() {
+///         Ok(n) => Ok(n),
+///         Err(_) => Err(format!("Can not convert {n} to usize"))
+///     }
+/// }
+///
+///
+/// assert!(as_usize(&Value::String("17".to_owned()), Vec::default()).is_ok());
+/// assert!(as_usize(&Value::String("Foo".to_owned()), Vec::default()).is_err());
+/// ```
 pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<TokenStream, syn::Error> {
     let inputs = Inputs::new(&item.sig.inputs)?;
     let attrs = Attrs::new(attrs, &inputs)?;
