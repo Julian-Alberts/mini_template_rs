@@ -1,5 +1,6 @@
 #[cfg(feature = "regex")]
 use {
+    core::ops::{Add, Mul, Div, Sub},
     once_cell::sync::OnceCell,
     regex::Regex,
     std::{
@@ -110,53 +111,6 @@ static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 /// ```
 #[macro_export]
 macro_rules! create_modifier {
-    (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> Result<$return: ty> $b: block) => {
-        #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
-            use $crate::modifier::error::Error;
-            use std::convert::TryInto;
-
-            let $first_name: $first_t = create_modifier!(try_into value: $first_t);
-
-            $(
-                let mut args = args.into_iter();
-                $(
-                    let $name: $t = match args.next() {
-                        Some($name) => create_modifier!(try_into $name: $t),
-                        None => create_modifier!(default_value $name $($default)?)
-                    };
-                )+
-            )?
-
-            fn inner($first_name: $first_t $($(,$name: $t)+)?) -> std::result::Result<$return, String> $b
-
-            let result = inner($first_name $($(,$name)+)?).or_else(|e| Err(Error::Modifier(e)))?;
-            Ok(result.into())
-        }
-    };
-    (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty $b: block) => {
-        #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
-            use $crate::modifier::error::Error;
-
-            let $first_name: $first_t = create_modifier!(try_into value: $first_t);
-
-            $(
-                let mut args = args.into_iter();
-                $(
-                    let $name: $t = match args.next() {
-                        Some($name) => create_modifier!(try_into $name: $t),
-                        None => create_modifier!(default_value $name $($default)?)
-                    };
-                )+
-            )?
-
-            fn inner($first_name: $first_t $($(,$name: $t)+)?) -> $return $b
-
-            let result = inner($first_name $($(,$name)+)?);
-            Ok(result.into())
-        }
-    };
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty => $func: path) => {
         #[allow(unused_variables)]
         pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
@@ -194,15 +148,15 @@ macro_rules! create_modifier {
 
 pub type Modifier = dyn Fn(&Value, Vec<&Value>) -> Result<Value>;
 
-create_modifier!(
-    fn slice_modifier(input: String, start: usize, length: usize) -> String {
-        let chars = input.chars().skip(start);
-        chars.take(length).collect::<String>()
-    }
-);
+#[mini_template_derive::create_modifier]
+fn slice_modifier(input: String, start: usize, length: usize) -> String {
+    let chars = input.chars().skip(start);
+    chars.take(length).collect::<String>()
+}
 
 #[cfg(feature = "regex")]
-create_modifier!(fn match_modifier(input: String, regex: String, group: usize = 0) -> Result<String> {
+#[mini_template_derive::create_modifier(returns_result = true, defaults::group = 0)]
+fn match_modifier(input: String, regex: String, group: usize) -> std::result::Result<String, String> {
     with_regex_from_cache(regex, |regex| {
         match regex.captures(&input[..]) {
             Some(c) => match c.get(group) {
@@ -212,50 +166,36 @@ create_modifier!(fn match_modifier(input: String, regex: String, group: usize = 
             None => ""
         }.to_owned()
     })
-});
+}
 
-create_modifier!(fn replace_modifier(input: String, from: String, to: String, count: usize = 0) -> String {
+#[mini_template_derive::create_modifier(defaults::count = 0)]
+fn replace_modifier(input: String, from: String, to: String, count: usize) -> String {
     if count == 0 {
         input.replace(&from[..], &to[..])
     } else {
         input.replacen(&from[..], &to[..], count)
     }
-});
+}
 
 #[cfg(feature = "regex")]
-create_modifier!(fn replace_regex_modifier(input: String, regex: String, to: String, count: usize = 0) -> Result<String> {
+#[mini_template_derive::create_modifier(defaults::count = 0, returns_result = true)]
+fn replace_regex_modifier(input: String, regex: String, to: String, count: usize) -> std::result::Result<String, String> {
     with_regex_from_cache(regex, |regex| {
         regex.replacen(&input, count, to).to_string()
     })
-});
+}
 
 create_modifier!(fn upper(input: &str) -> String => str::to_uppercase);
 
 create_modifier!(fn lower(input: &str) -> String => str::to_lowercase);
 
-create_modifier!(
-    fn add(a: f64, b: f64) -> f64 {
-        a + b
-    }
-);
+create_modifier!(fn add(a: f64, b: f64) -> f64 => f64::add);
 
-create_modifier!(
-    fn sub(a: f64, b: f64) -> f64 {
-        a - b
-    }
-);
+create_modifier!(fn sub(a: f64, b: f64) -> f64 => f64::sub);
 
-create_modifier!(
-    fn mul(a: f64, b: f64) -> f64 {
-        a * b
-    }
-);
+create_modifier!(fn mul(a: f64, b: f64) -> f64 => f64::mul);
 
-create_modifier!(
-    fn div(a: f64, b: f64) -> f64 {
-        a / b
-    }
-);
+create_modifier!(fn div(a: f64, b: f64) -> f64 => f64::div);
 
 create_modifier!(fn repeat(input: &str, n: usize) -> String => str::repeat);
 

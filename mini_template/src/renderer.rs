@@ -21,23 +21,21 @@ impl<'a, VC: VariableContainer> RenderContext<'a, VC> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
+    use mini_template_derive::create_modifier;
     use crate::{
-        create_modifier, modifier::Modifier, parser::parse, renderer::RenderContext,
+        modifier::Modifier, parser::parse, renderer::RenderContext,
         template::Render, value::Value,
     };
 
-    create_modifier!(
-        fn upper_case_modifier(data: String) -> String {
-            data.to_uppercase()
-        }
-    );
+    #[create_modifier]
+    fn upper_case_modifier(data: String) -> String {
+        data.to_uppercase()
+    }
 
-    create_modifier!(
-        fn args_modifier(data: String, other: String, num: i32) -> String {
-            format!("{}={}={}", data, other, num)
-        }
-    );
+    #[create_modifier]
+    fn args_modifier(data: String, other: String, num: i32) -> String {
+        format!("{}={}={}", data, other, num)
+    }
 
     #[test]
     fn literal() {

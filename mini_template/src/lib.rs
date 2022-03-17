@@ -13,6 +13,8 @@ extern crate pest_derive;
 #[macro_use]
 extern crate log;
 
+pub use mini_template_derive;
+
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::RenderContext;
