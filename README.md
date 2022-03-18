@@ -23,6 +23,16 @@ mini_template also supports if statements. Conditions behave as they would in al
     {var}
 {endif}
 ```
+### Loops
+mini_template currently only knows while loops. While loops repeat as in any other language
+as long as the condition is `true`. A simple for loop looks like this.
+```
+{i = 0}
+{while i < 10}
+    {i}
+    {i = i|add:1}
+{endwhile}
+```
 ### Assigning a value
 To assign a value, you have to give it an identifier followed by an equals sign. After that, you can specify what value to set.
 ```
