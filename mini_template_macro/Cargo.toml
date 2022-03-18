@@ -2,6 +2,14 @@
 name = "mini_template_macro"
 version = "0.1.0"
 edition = "2021"
+authors = ["Julian Alberts <julian.alberts@ewe.net>"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Julian-Alberts/mini_template_rs"
+categories = ["template-engine"]
+keywords = ["template", "template_engine"]
+documentation = "https://docs.rs/mini_template_macro"
+description = "Macros used by mini_template"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,7 +21,3 @@ proc-macro2 = "1.0"
 quote = "1.0"
 syn = {version = "1.0", features = ["full"]}
 proc-macro-crate = "1.1"
-
-[dev-dependencies]
-mini_template = { path = "../mini_template" }
-

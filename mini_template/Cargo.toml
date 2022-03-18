@@ -3,6 +3,13 @@ name = "mini_template"
 version = "0.1.0"
 authors = ["Julian Alberts <julian.alberts@ewe.net>"]
 edition = "2021"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/Julian-Alberts/mini_template_rs"
+categories = ["template-engine"]
+keywords = ["template", "template_engine"]
+documentation = "https://docs.rs/mini_template"
+description = "Small template engine with smarty like syntax"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,7 +19,7 @@ log = "0.4"
 regex = {version = "1.4", optional = true}
 pest = "2.0"
 pest_derive = "2.0"
-mini_template_macro = { path = "../mini_template_macro"}
+mini_template_macro = { path = "../mini_template_macro", version = "0.1"}
 
 [dev-dependencies]
 criterion = "0.3"
@@ -23,9 +30,6 @@ conditional = [ "condition" ]
 assign = []
 loop = [ "condition", "assign" ]
 default = [ "loop", "assign", "conditional", "regex" ]
-
-[profile.release]
-debug = true
 
 [[bench]]
 name = "my_benchmark"
