@@ -236,6 +236,7 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
             };
             StorageMethod::Const(Value::Bool(value))
         }
+        Rule::null_literal => StorageMethod::Const(Value::Null),
         _ => unreachable!("Unexpected value {:#?}", value),
     }
 }
@@ -664,6 +665,104 @@ mod tests {
                 panic!("Unexpected statement")
             }
         }
+    }
+
+    mod value {
+        use crate::parser::{Rule, TemplateParser};
+        use pest::Parser;
+        use crate::template::StorageMethod;
+        use crate::value::Value;
+
+        #[test]
+        fn parse_bool_true() {
+            let template = "true";
+            let value = TemplateParser::parse(Rule::value, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let value = super::parse_value(value);
+            assert_eq!(
+                value,
+                StorageMethod::Const(Value::Bool(true))
+            );
+        }
+
+        #[test]
+        fn parse_bool_false() {
+            let template = "false";
+            let value = TemplateParser::parse(Rule::value, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let value = super::parse_value(value);
+            assert_eq!(
+                value,
+                StorageMethod::Const(Value::Bool(false))
+            );
+        }
+
+        #[test]
+        fn parse_ident() {
+            let templates = ["foo", "foo_bar", "fooBar", "foo2"];
+            templates.iter().for_each(|template| {
+                let value = TemplateParser::parse(Rule::value, template)
+                    .unwrap()
+                    .next()
+                    .unwrap();
+                let value = super::parse_value(value);
+                assert_eq!(
+                    value,
+                    StorageMethod::Variable(*template as *const _)
+                );
+            })
+        }
+
+        #[test]
+        fn parse_number() {
+            let templates = ["12", "-5", "-5.23", "+12.3", "0.2135"];
+            templates.iter().for_each(|template| {
+                let value = TemplateParser::parse(Rule::value, template)
+                    .unwrap()
+                    .next()
+                    .unwrap();
+                let value = super::parse_value(value);
+                assert_eq!(
+                    value,
+                    StorageMethod::Const(Value::Number(template.parse::<f64>().unwrap()))
+                );
+            })
+        }
+
+        #[test]
+        fn parse_string() {
+            let templates = [("\"My test string\"", "My test string"), ("\"c\"", "c"), ("\"FOO\\\"Bar\"", "FOO\"Bar")];
+            templates.iter().for_each(|(template, expected)| {
+                let value = TemplateParser::parse(Rule::value, template)
+                    .unwrap()
+                    .next()
+                    .unwrap();
+                let value = super::parse_value(value);
+                assert_eq!(
+                    value,
+                    StorageMethod::Const(Value::String((*expected).to_owned()))
+                );
+            })
+        }
+
+        #[test]
+        fn parse_null() {
+            let template = "null";
+            let value = TemplateParser::parse(Rule::value, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let value = super::parse_value(value);
+            assert_eq!(
+                value,
+                StorageMethod::Const(Value::Null)
+            );
+        }
+
     }
 
     #[cfg(feature = "conditional")]

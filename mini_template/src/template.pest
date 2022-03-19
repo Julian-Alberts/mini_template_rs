@@ -17,7 +17,7 @@ string = { "\"" ~ inner_string ~ "\"" }
 inner_string = {(!"\"" ~ ( "\\\""| ANY))*}
 number = { ("+"|"-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 boolean = {true_key_word|false_key_word}
-value = { boolean|identifier|number|string }
+value = { boolean|identifier|number|string|null_literal }
 
 // Blocks
 conditional = !{ 
@@ -77,4 +77,5 @@ while_key_word = _{"while"}
 endwhile_key_word = _{"endwhile"}
 true_key_word = _{"true"}
 false_key_word = _{"false"}
-key_words = { if_key_word | else_key_word | endif_key_word | true_key_word | false_key_word | while_key_word | endwhile_key_word }
+null_literal = {"null"}
+key_words = { if_key_word | else_key_word | endif_key_word | true_key_word | false_key_word | while_key_word | endwhile_key_word | null_literal}

@@ -9,6 +9,8 @@ pub enum Value {
     Number(f64),
     /// Stores a boolean
     Bool(bool),
+    /// Null value
+    Null
 }
 
 impl Value {
@@ -18,8 +20,10 @@ impl Value {
             Self::Bool(b) => *b,
             Self::Number(n) => *n != 0.,
             Self::String(s) => !s.is_empty(),
+            Self::Null => false
         }
     }
+
 }
 
 impl PartialEq for Value {
@@ -32,6 +36,8 @@ impl PartialEq for Value {
             (s, Self::Bool(o)) => s.as_bool() == *o,
             (Self::String(s), Self::Number(o)) => s == &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() == o,
+            (Self::Null, Self::Null) => true,
+            (Self::Null, _) | (_, Self::Null) => false,
         }
     }
 }
@@ -47,6 +53,10 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() < *o,
             (Self::String(s), Self::Number(o)) => s < &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() < o,
+
+
+            (Self::Null, _) => true,
+            (_, Self::Null) => false,
         }
     }
 
@@ -59,6 +69,9 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() >= *o,
             (Self::String(s), Self::Number(o)) => s >= &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() >= o,
+
+            (Self::Null, _) => false,
+            (_, Self::Null) => true
         }
     }
 
@@ -71,6 +84,9 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() > *o,
             (Self::String(s), Self::Number(o)) => s > &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() > o,
+
+            (Self::Null, _) => false,
+            (_, Self::Null) => true
         }
     }
 
@@ -83,6 +99,9 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() <= *o,
             (Self::String(s), Self::Number(o)) => s <= &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() <= o,
+
+            (Self::Null, _) => true,
+            (_, Self::Null) => false
         }
     }
 
@@ -117,7 +136,8 @@ impl ToString for Value {
                 } else {
                     String::from("false")
                 }
-            }
+            },
+            Self::Null => String::from("null")
         }
     }
 }
