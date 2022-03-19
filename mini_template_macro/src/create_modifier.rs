@@ -7,7 +7,7 @@ use syn::spanned::Spanned;
 ///## With body
 /// ```
 /// use mini_template::value::Value;
-/// use mini_template_derive::create_modifier;
+/// use mini_template_macro::create_modifier;
 ///
 /// #[create_modifier]
 /// fn fizz_buzz(n: usize) -> String {
@@ -31,7 +31,7 @@ use syn::spanned::Spanned;
 /// ## Returns Result
 /// ```
 /// use mini_template::value::Value;
-/// use mini_template_derive::create_modifier;
+/// use mini_template_macro::create_modifier;
 ///
 /// #[create_modifier(returns_result = true)]
 /// fn as_usize(n: String) -> Result<usize, String> {
@@ -61,7 +61,12 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
 
     let vars = create_var_init_code(&inputs, &attrs, &mini_template_crate_name)?;
     let inner_fn = &item;
-    let modifier_code_call = modifier_code_call(&item.sig.ident, &inputs.inputs, &attrs, &mini_template_crate_name);
+    let modifier_code_call = modifier_code_call(&item.sig.ident, inputs.inputs_punctuated, &attrs, &mini_template_crate_name);
+    let use_of_deprecated_feature = if !attrs.defaults.is_empty() {
+        quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: Default values will be removed in version 0.3.0")]}
+    } else {
+        TokenStream::default()
+    };
 
     if attrs.modifier_ident.is_some() {
         Ok(quote::quote! {
@@ -74,10 +79,12 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
                 let result: #mini_template_crate_name::modifier::error::Result<_> = #modifier_code_call;
                 result.map(#mini_template_crate_name::value::Value::from)
             }
+            #use_of_deprecated_feature
             #inner_fn
         })
     } else {
         Ok(quote::quote! {
+            #use_of_deprecated_feature
             pub fn #modifier_ident(
                 value: &#mini_template_crate_name::value::Value,
                 args: Vec<&#mini_template_crate_name::value::Value>
@@ -94,8 +101,8 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
 
 fn get_mini_template_crate_name(attrs: &Attrs) -> syn::Ident {
 
-    if let Some(mini_template_ident) = attrs.mini_template_crate.as_ref() {
-        return mini_template_ident.clone()
+    if let Some(mini_template_ident) = attrs.mini_template_crate.clone() {
+        return mini_template_ident
     }
 
     let found_crate = crate_name("mini_template").expect("my-crate is present in `Cargo.toml`");
@@ -107,7 +114,7 @@ fn get_mini_template_crate_name(attrs: &Attrs) -> syn::Ident {
     }
 }
 
-fn modifier_code_call<'a>(ident: &syn::Ident, inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>, attrs: &Attrs, mini_template_crate_name: &syn::Ident) -> TokenStream {
+fn modifier_code_call(ident: &syn::Ident, inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>, attrs: &Attrs, mini_template_crate_name: &syn::Ident) -> TokenStream {
     let inputs = inputs.iter().map(|i| {
         if let syn::FnArg::Typed(syn::PatType {
             pat,
@@ -133,7 +140,7 @@ fn modifier_code_call<'a>(ident: &syn::Ident, inputs: &syn::punctuated::Punctuat
     }
 }
 
-fn create_var_init_code<'a>(
+fn create_var_init_code(
     inputs: &Inputs,
     attrs: &Attrs,
     mini_template_crate_name: &syn::Ident
@@ -141,47 +148,39 @@ fn create_var_init_code<'a>(
     let mut inputs_iter = inputs.inputs.iter();
     let value = {
         let value = inputs_iter.next().unwrap();
-        
-        let value = if let syn::FnArg::Typed(typed) = value {
-            typed
-        } else {
-            unreachable!()
-        };
 
-        let ty = &value.ty;
-        let ident = if let syn::Pat::Ident(ident) = &*value.pat {
-            &ident.ident
-        } else {
-            return Err(syn::Error::new(value.span(), "Ident must be named"));
-        };
+        let ty = value.ty;
+        let ident = value.ident;
         let into = into_value(quote::quote! {value}, mini_template_crate_name);
         quote::quote! {let #ident: #ty = #into;}
     };
 
-    let args = if inputs.inputs.len() > 1 {
+    let args = if inputs.inputs_punctuated.len() > 1 {
         let mut args = quote::quote! {let mut args = args.into_iter();};
         let init = inputs_iter
             .map(|value| {
-                let value = if let syn::FnArg::Typed(typed) = value {
-                    typed
-                } else {
-                    unreachable!()
-                };
-                let ty = &*value.ty;
-                let ident = if let syn::Pat::Ident(ident) = &*value.pat {
-                    &ident.ident
-                } else {
-                    return Err(syn::Error::new(value.span(), "Ident must be named"));
-                };
+                let ty = value.ty;
+                let ident = value.ident;
                 let into = into_value(quote::quote! {v}, mini_template_crate_name);
-                let default = var_init_default(ident, attrs.defaults.get(ident), mini_template_crate_name);
-                Ok(quote::quote! {
-                    let #ident: #ty = match args.next() {
-                        Some(v) => #into,
-                        None => #default
-                    };
-                })
-            }).collect::<Result<TokenStream, _>>()?;
+
+                if value.is_option {
+                    quote::quote! {
+                        let #ident: #ty = match args.next() {
+                            Some(v) => Some(#into),
+                            None => None
+                        };
+                    }
+                } else {
+                    let default = var_init_default(ident, attrs.defaults.get(ident), mini_template_crate_name);
+                    quote::quote! {
+                        let #ident: #ty = match args.next() {
+                            Some(v) => #into,
+                            None => #default
+                        };
+                    }
+                }
+
+            }).collect::<TokenStream>();
             args.extend(init);
             args
     } else {
@@ -264,9 +263,12 @@ impl Attrs {
                 if let Some(syn::PathSegment{ ident, .. }) = segments_iter.next() {
                     if ident == &syn::Ident::new("defaults", proc_macro2::Span::call_site()) {
                         if let Some(syn::PathSegment{ ident, .. }) = segments_iter.next() {
-                            if inputs.idents.iter().any(|ii| {
-                                ident == *ii
+                            if let Some(input_info) = inputs.inputs.iter().find(|ii| {
+                                ident == ii.ident
                             }) {
+                                if input_info.is_option {
+                                    return Err(syn::Error::new(path.span(), "Arguments can not be optional and have a default value"));
+                                }
                                 attrs.defaults.insert(ident.clone(), lit);
                                 continue;
                             }
@@ -284,9 +286,15 @@ impl Attrs {
 
 }
 
+struct Input<'a> {
+    ident: &'a syn::Ident,
+    ty: &'a syn::Type,
+    is_option: bool
+}
+
 struct Inputs<'a> {
-    idents: Vec<&'a syn::Ident>,
-    inputs: &'a syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>
+    inputs: Vec<Input<'a>>,
+    inputs_punctuated: &'a syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>
 }
 
 impl <'a> Inputs<'a> {
@@ -296,20 +304,39 @@ impl <'a> Inputs<'a> {
             return Err(syn::Error::new(Spanned::span(i), "Modifiers require at least one argument"));
         }
         Ok(Self {
-            idents: i.iter().map(|i| {
-                let typed = if let syn::FnArg::Typed(t) = i {
+            inputs: i.iter().map(|arg| {
+                let typed = if let syn::FnArg::Typed(t) = arg {
                     t
                 } else {
-                    return Err(syn::Error::new(i.span(), "All arguments need to be typed"))
+                    return Err(syn::Error::new(arg.span(), "All arguments need to be typed"))
                 };
-                if let syn::Pat::Ident(pat_ident) = &*typed.pat {
-                    Ok(&pat_ident.ident)
+                let ident = if let syn::Pat::Ident(pat_ident) = &*typed.pat {
+                    &pat_ident.ident
                 } else {
-                    return Err(syn::Error::new(i.span(), "All arguments need to be typed"))
-                }
+                    return Err(syn::Error::new(arg.span(), "All arguments need to be named. If this value is not used add an _ before an valid identifier"))
+                };
+
+                let ty = &*typed.ty;
+
+                let is_option = if let syn::Type::Path(path) = &*typed.ty {
+                    is_pat_type(&path.path, syn::Ident::new("Option", proc_macro2::Span::call_site()))
+                } else {
+                    false
+                };
+
+                Ok(Input {
+                    ident,
+                    is_option,
+                    ty
+                })
             }).collect::<Result<_, _>>()?,
-            inputs: i
+            inputs_punctuated: i
         })
     }
 
+}
+
+fn is_pat_type(path: &syn::Path, ident: syn::Ident) -> bool {
+    path.segments.len() == 1 &&
+    path.segments.iter().next().unwrap().ident == ident
 }
