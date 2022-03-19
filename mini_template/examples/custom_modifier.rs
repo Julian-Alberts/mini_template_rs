@@ -47,8 +47,9 @@ mod modifiers {
         }
     }
 
-    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template", defaults::n = 2)]
-    fn nth_upper(input: String, n: usize) -> String {
+    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template")]
+    fn nth_upper(input: String, n: Option<usize>) -> String {
+        let n = n.unwrap_or(2);
         let mut buf = String::new();
         for (i, c) in input.chars().enumerate() {
             if i % n == 0 {

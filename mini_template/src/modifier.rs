@@ -26,8 +26,9 @@ fn slice_modifier(input: String, start: usize, length: usize) -> String {
 }
 
 #[cfg(feature = "regex")]
-#[mini_template_macro::create_modifier(returns_result = true, defaults::group = 0)]
-fn match_modifier(input: String, regex: String, group: usize) -> std::result::Result<String, String> {
+#[mini_template_macro::create_modifier(returns_result = true)]
+fn match_modifier(input: String, regex: String, group: Option<usize>) -> std::result::Result<String, String> {
+    let group = group.unwrap_or(0);
     with_regex_from_cache(regex, |regex| {
         match regex.captures(&input[..]) {
             Some(c) => match c.get(group) {
@@ -39,8 +40,9 @@ fn match_modifier(input: String, regex: String, group: usize) -> std::result::Re
     })
 }
 
-#[mini_template_macro::create_modifier(defaults::count = 0)]
-fn replace_modifier(input: String, from: String, to: String, count: usize) -> String {
+#[mini_template_macro::create_modifier]
+fn replace_modifier(input: String, from: String, to: String, count: Option<usize>) -> String {
+    let count = count.unwrap_or(0);
     if count == 0 {
         input.replace(&from[..], &to[..])
     } else {
@@ -49,8 +51,9 @@ fn replace_modifier(input: String, from: String, to: String, count: usize) -> St
 }
 
 #[cfg(feature = "regex")]
-#[mini_template_macro::create_modifier(defaults::count = 0, returns_result = true)]
-fn replace_regex_modifier(input: String, regex: String, to: String, count: usize) -> std::result::Result<String, String> {
+#[mini_template_macro::create_modifier(returns_result = true)]
+fn replace_regex_modifier(input: String, regex: String, to: String, count: Option<usize>) -> std::result::Result<String, String> {
+    let count = count.unwrap_or(0);
     with_regex_from_cache(regex, |regex| {
         regex.replacen(&input, count, to).to_string()
     })

@@ -1,6 +1,6 @@
 [package]
 name = "mini_template"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Julian Alberts <julian.alberts@ewe.net>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -19,7 +19,7 @@ log = "0.4"
 regex = {version = "1.4", optional = true}
 pest = "2.0"
 pest_derive = "2.0"
-mini_template_macro = { path = "../mini_template_macro", version = "0.1"}
+mini_template_macro = { path = "../mini_template_macro", version = "0.2"}
 
 [dev-dependencies]
 criterion = "0.3"
