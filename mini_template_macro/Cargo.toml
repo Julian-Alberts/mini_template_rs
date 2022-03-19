@@ -24,3 +24,8 @@ proc-macro-crate = "1.1"
 
 [dev-dependencies]
 mini_template = {path = "../mini_template"}
+trybuild = "1.0"
+
+[[test]]
+name = "tests"
+path = "tests/main.rs"

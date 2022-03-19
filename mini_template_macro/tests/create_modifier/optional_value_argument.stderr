@@ -1,0 +1,5 @@
+error: First argument can not be of type `Option`
+ --> tests/create_modifier/optional_value_argument.rs:4:13
+  |
+4 | fn modifier(value: Option<String>) -> String {
+  |             ^^^^^

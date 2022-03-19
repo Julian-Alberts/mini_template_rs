@@ -166,8 +166,8 @@ fn create_var_init_code(
                 if value.is_option {
                     quote::quote! {
                         let #ident: #ty = match args.next() {
+                            Some(#mini_template_crate_name::value::Value::Null) | None => None,
                             Some(v) => Some(#into),
-                            None => None
                         };
                     }
                 } else {
@@ -303,6 +303,8 @@ impl <'a> Inputs<'a> {
         if i.is_empty() {
             return Err(syn::Error::new(Spanned::span(i), "Modifiers require at least one argument"));
         }
+
+        let mut is_first = true;
         Ok(Self {
             inputs: i.iter().map(|arg| {
                 let typed = if let syn::FnArg::Typed(t) = arg {
@@ -323,6 +325,11 @@ impl <'a> Inputs<'a> {
                 } else {
                     false
                 };
+
+                if is_option && is_first {
+                    return Err(syn::Error::new(arg.span(), "First argument can not be of type `Option`"))
+                }
+                is_first = false;
 
                 Ok(Input {
                     ident,

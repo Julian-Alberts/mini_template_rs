@@ -1,0 +1,5 @@
+error: Arguments can not be optional and have a default value
+ --> tests/create_modifier/argument_is_optional_and_default.rs:3:19
+  |
+3 | #[create_modifier(defaults::_o = false)]
+  |                   ^^^^^^^^
