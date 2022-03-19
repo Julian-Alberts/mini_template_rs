@@ -226,7 +226,7 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
         Rule::identifier => StorageMethod::Variable(value.as_str()),
         Rule::number => StorageMethod::Const(Value::Number(value.as_str().parse().unwrap())),
         Rule::string => StorageMethod::Const(Value::String(
-            value.into_inner().next().unwrap().as_str().to_owned(),
+            value.into_inner().next().unwrap().as_str().replace("\\\"", "\""),
         )),
         Rule::boolean => {
             let value = match value.as_str() {
