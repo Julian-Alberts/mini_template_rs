@@ -1,6 +1,5 @@
 #[cfg(feature = "regex")]
 use {
-    core::ops::{Add, Mul, Div, Sub},
     once_cell::sync::OnceCell,
     regex::Regex,
     std::{
@@ -10,6 +9,7 @@ use {
     },
 };
 
+use core::ops::{Add, Mul, Div, Sub};
 use super::value::Value;
 pub use error::*;
 use crate::fn_as_modifier;
