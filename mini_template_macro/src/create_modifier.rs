@@ -174,11 +174,22 @@ fn create_var_init_code(
                 let into = into_value(quote::quote! {v}, mini_template_crate_name);
 
                 if value.is_option {
-                    quote::quote! {
-                        let #ident: #ty = match args.next() {
-                            Some(#mini_template_crate_name::value::Value::Null) | None => None,
-                            Some(v) => Some(#into),
-                        };
+                    if value.allow_missing {
+                        quote::quote! {
+                            let #ident: #ty = match args.next() {
+                                Some(#mini_template_crate_name::value::Value::Null) | None => None,
+                                Some(v) => Some(#into),
+                            };
+                        }
+                    } else {
+                        let ident_str = syn::LitStr::new(&ident.to_string(), ident.span());
+                        quote::quote! {
+                            let #ident: #ty = match args.next() {
+                                Some(#mini_template_crate_name::value::Value::Null) => None,
+                                Some(v) => Some(#into),
+                                None => return Err(#mini_template_crate_name::modifier::error::Error::MissingArgument{argument_name: #ident_str})
+                            };
+                        }
                     }
                 } else {
                     let default = var_init_default(ident, attrs.defaults.get(ident), mini_template_crate_name);
@@ -299,7 +310,8 @@ impl Attrs {
 struct Input<'a> {
     ident: &'a syn::Ident,
     ty: &'a syn::Type,
-    is_option: bool
+    is_option: bool,
+    allow_missing: bool
 }
 
 struct Inputs<'a> {
@@ -314,33 +326,44 @@ impl <'a> Inputs<'a> {
             return Err(syn::Error::new(Spanned::span(i), "Modifiers require at least one argument"));
         }
 
+        let mut inputs: Vec<Input> = i.iter().map(|arg| {
+            let typed = if let syn::FnArg::Typed(t) = arg {
+                t
+            } else {
+                return Err(syn::Error::new(arg.span(), "All arguments need to be typed"))
+            };
+            let ident = if let syn::Pat::Ident(pat_ident) = &*typed.pat {
+                &pat_ident.ident
+            } else {
+                return Err(syn::Error::new(arg.span(), "All arguments need to be named. If this value is not used add an _ before an valid identifier"))
+            };
+
+            let ty = &*typed.ty;
+
+            let is_option = if let syn::Type::Path(path) = &*typed.ty {
+                is_pat_type(&path.path, syn::Ident::new("Option", proc_macro2::Span::call_site()))
+            } else {
+                false
+            };
+
+            Ok(Input {
+                ident,
+                is_option,
+                ty,
+                allow_missing: false
+            })
+        }).collect::<Result<_, _>>()?;
+
+        for i in inputs.iter_mut().rev() {
+            if i.is_option {
+                i.allow_missing = true
+            } else {
+                break
+            }
+        }
+
         Ok(Self {
-            inputs: i.iter().map(|arg| {
-                let typed = if let syn::FnArg::Typed(t) = arg {
-                    t
-                } else {
-                    return Err(syn::Error::new(arg.span(), "All arguments need to be typed"))
-                };
-                let ident = if let syn::Pat::Ident(pat_ident) = &*typed.pat {
-                    &pat_ident.ident
-                } else {
-                    return Err(syn::Error::new(arg.span(), "All arguments need to be named. If this value is not used add an _ before an valid identifier"))
-                };
-
-                let ty = &*typed.ty;
-
-                let is_option = if let syn::Type::Path(path) = &*typed.ty {
-                    is_pat_type(&path.path, syn::Ident::new("Option", proc_macro2::Span::call_site()))
-                } else {
-                    false
-                };
-
-                Ok(Input {
-                    ident,
-                    is_option,
-                    ty
-                })
-            }).collect::<Result<_, _>>()?,
+            inputs,
             inputs_punctuated: i
         })
     }
