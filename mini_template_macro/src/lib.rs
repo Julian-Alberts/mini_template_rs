@@ -9,6 +9,7 @@ pub fn create_modifier(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let result = create_modifier::create_modifier(attr, item.into());
     match result {
         Ok(o) => o,
-        Err(e) => e.to_compile_error()
-    }.into()
+        Err(e) => e.to_compile_error(),
+    }
+    .into()
 }

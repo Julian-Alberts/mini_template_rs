@@ -5,5 +5,8 @@
 * Added `Option` support for modifiers
 * Added `null` literal
 
+### Changes
+* Modifiers now support unnamed arguments
+
 ### Depricated
 * `defaults::` attributes for `create_modifier` are depricated and will be removed in a future version

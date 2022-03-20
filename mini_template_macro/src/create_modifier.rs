@@ -61,7 +61,7 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
 
     let vars = create_var_init_code(&inputs, &attrs, &mini_template_crate_name)?;
     let inner_fn = &item;
-    let modifier_code_call = modifier_code_call(&item.sig.ident, inputs.inputs_punctuated, &attrs, &mini_template_crate_name);
+    let modifier_code_call = modifier_code_call(&item.sig.ident, &inputs, &attrs, &mini_template_crate_name);
     let use_of_deprecated_feature = if !attrs.defaults.is_empty() {
         quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: Default values will be removed in version 0.3.0")]}
     } else {
@@ -114,21 +114,8 @@ fn get_mini_template_crate_name(attrs: &Attrs) -> syn::Ident {
     }
 }
 
-fn modifier_code_call(ident: &syn::Ident, inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>, attrs: &Attrs, mini_template_crate_name: &syn::Ident) -> TokenStream {
-    let inputs = inputs.iter().map(|i| {
-        if let syn::FnArg::Typed(syn::PatType {
-            pat,
-            ..
-        }) = i {
-            if let syn::Pat::Ident(ident) = pat.as_ref() {
-                ident
-            } else {
-                unreachable!()
-            }
-        } else {
-            unreachable!()
-        }
-    }).collect::<syn::punctuated::Punctuated<_, syn::token::Comma>>();
+fn modifier_code_call(ident: &syn::Ident, inputs: &Inputs, attrs: &Attrs, mini_template_crate_name: &syn::Ident) -> TokenStream {
+    let inputs = inputs.inputs.iter().map(|i| &i.ident).collect::<syn::punctuated::Punctuated<_, syn::token::Comma>>();
     if attrs.returns_result {
         quote::quote! {
             #ident(#inputs).or_else(|e| Err(#mini_template_crate_name::modifier::error::Error::Modifier(e)))
@@ -150,7 +137,7 @@ fn create_var_init_code(
         let value = inputs_iter.next().unwrap();
 
         let ty = value.ty;
-        let ident = value.ident;
+        let ident = &value.ident;
         let into = into_value(quote::quote! {value}, mini_template_crate_name);
 
         if value.is_option {
@@ -165,40 +152,38 @@ fn create_var_init_code(
         }
     };
 
-    let args = if inputs.inputs_punctuated.len() > 1 {
+    let args = if inputs.inputs.len() > 1 {
         let mut args = quote::quote! {let mut args = args.into_iter();};
         let init = inputs_iter
             .map(|value| {
                 let ty = value.ty;
-                let ident = value.ident;
+                let ident = &value.ident;
                 let into = into_value(quote::quote! {v}, mini_template_crate_name);
-
                 if value.is_option {
                     if value.allow_missing {
-                        quote::quote! {
+                        return quote::quote! {
                             let #ident: #ty = match args.next() {
                                 Some(#mini_template_crate_name::value::Value::Null) | None => None,
                                 Some(v) => Some(#into),
                             };
                         }
-                    } else {
-                        let ident_str = syn::LitStr::new(&ident.to_string(), ident.span());
-                        quote::quote! {
-                            let #ident: #ty = match args.next() {
-                                Some(#mini_template_crate_name::value::Value::Null) => None,
-                                Some(v) => Some(#into),
-                                None => return Err(#mini_template_crate_name::modifier::error::Error::MissingArgument{argument_name: #ident_str})
-                            };
-                        }
                     }
-                } else {
-                    let default = var_init_default(ident, attrs.defaults.get(ident), mini_template_crate_name);
-                    quote::quote! {
+                    let ident_str = syn::LitStr::new(&ident.to_string(), ident.span());
+                    return quote::quote! {
                         let #ident: #ty = match args.next() {
-                            Some(v) => #into,
-                            None => #default
+                            Some(#mini_template_crate_name::value::Value::Null) => None,
+                            Some(v) => Some(#into),
+                            None => return Err(#mini_template_crate_name::modifier::error::Error::MissingArgument{argument_name: #ident_str})
                         };
                     }
+                }
+
+                let default = var_init_default(ident, attrs.defaults.get(ident), mini_template_crate_name);
+                quote::quote! {
+                    let #ident: #ty = match args.next() {
+                        Some(v) => #into,
+                        None => #default
+                    };
                 }
 
             }).collect::<TokenStream>();
@@ -285,7 +270,7 @@ impl Attrs {
                     if ident == &syn::Ident::new("defaults", proc_macro2::Span::call_site()) {
                         if let Some(syn::PathSegment{ ident, .. }) = segments_iter.next() {
                             if let Some(input_info) = inputs.inputs.iter().find(|ii| {
-                                ident == ii.ident
+                                ident == &ii.ident
                             }) {
                                 if input_info.is_option {
                                     return Err(syn::Error::new(path.span(), "Arguments can not be optional and have a default value"));
@@ -308,7 +293,7 @@ impl Attrs {
 }
 
 struct Input<'a> {
-    ident: &'a syn::Ident,
+    ident: syn::Ident,
     ty: &'a syn::Type,
     is_option: bool,
     allow_missing: bool
@@ -316,7 +301,6 @@ struct Input<'a> {
 
 struct Inputs<'a> {
     inputs: Vec<Input<'a>>,
-    inputs_punctuated: &'a syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>
 }
 
 impl <'a> Inputs<'a> {
@@ -325,6 +309,7 @@ impl <'a> Inputs<'a> {
         if i.is_empty() {
             return Err(syn::Error::new(Spanned::span(i), "Modifiers require at least one argument"));
         }
+        let mut unnamed_value_index = 0;
 
         let mut inputs: Vec<Input> = i.iter().map(|arg| {
             let typed = if let syn::FnArg::Typed(t) = arg {
@@ -333,9 +318,11 @@ impl <'a> Inputs<'a> {
                 return Err(syn::Error::new(arg.span(), "All arguments need to be typed"))
             };
             let ident = if let syn::Pat::Ident(pat_ident) = &*typed.pat {
-                &pat_ident.ident
+                pat_ident.ident.clone()
             } else {
-                return Err(syn::Error::new(arg.span(), "All arguments need to be named. If this value is not used add an _ before an valid identifier"))
+                let i = syn::Ident::new(&format!("mini_template_unnamed_{unnamed_value_index}"), typed.span());
+                unnamed_value_index += 1;
+                i
             };
 
             let ty = &*typed.ty;
@@ -364,7 +351,6 @@ impl <'a> Inputs<'a> {
 
         Ok(Self {
             inputs,
-            inputs_punctuated: i
         })
     }
 

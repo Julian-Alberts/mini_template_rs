@@ -9,4 +9,5 @@ fn create_modifier() {
     t.compile_fail("tests/create_modifier/missing_value_argument.rs");
     t.compile_fail("tests/create_modifier/missing_result.rs");
     t.pass("tests/create_modifier/optional_value_argument.rs");
+    t.pass("tests/create_modifier/unused_arg.rs");
 }
