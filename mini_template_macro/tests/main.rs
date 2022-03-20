@@ -8,5 +8,5 @@ fn create_modifier() {
     t.compile_fail("tests/create_modifier/argument_is_optional_and_default.rs");
     t.compile_fail("tests/create_modifier/missing_value_argument.rs");
     t.compile_fail("tests/create_modifier/missing_result.rs");
-    t.compile_fail("tests/create_modifier/optional_value_argument.rs");
+    t.pass("tests/create_modifier/optional_value_argument.rs");
 }
