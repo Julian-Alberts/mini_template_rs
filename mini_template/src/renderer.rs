@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use crate::variable_container::VariableContainer;
+use crate::value_container::ValueContainer;
 
 use super::modifier::Modifier;
 
-pub struct RenderContext<'a, VC: VariableContainer> {
+pub struct RenderContext<'a, VC: ValueContainer> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
     pub variables: VC,
 }
 
-impl<'a, VC: VariableContainer> RenderContext<'a, VC> {
+impl<'a, VC: ValueContainer> RenderContext<'a, VC> {
     pub fn new(modifier: &'a HashMap<&'static str, &'a Modifier>, variables: VC) -> Self {
         Self {
             modifier,

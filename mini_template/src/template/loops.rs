@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, variable_container::VariableContainer};
+use crate::{renderer::RenderContext, value_container::ValueContainer};
 
 #[cfg(feature = "condition")]
 use super::condition::{Condition, ConditionEval};
@@ -20,7 +20,7 @@ impl Loop {
 }
 
 impl Render for Loop {
-    fn render<VC: VariableContainer>(
+    fn render<VC: ValueContainer>(
         &self,
         context: &mut RenderContext<VC>,
         buf: &mut String,

@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, variable_container::VariableContainer};
+use crate::{renderer::RenderContext, value_container::ValueContainer};
 
 use super::CalculatedValue;
 
@@ -22,7 +22,7 @@ impl Condition {
 }
 
 impl ConditionEval for Condition {
-    fn eval<VC: VariableContainer>(
+    fn eval<VC: ValueContainer>(
         &self,
         context: &RenderContext<VC>,
     ) -> crate::error::Result<bool> {
@@ -36,7 +36,7 @@ impl ConditionEval for Condition {
 }
 
 pub trait ConditionEval {
-    fn eval<VC: VariableContainer>(
+    fn eval<VC: ValueContainer>(
         &self,
         context: &RenderContext<VC>,
     ) -> crate::error::Result<bool>;
@@ -54,7 +54,7 @@ impl OrCondition {
 }
 
 impl ConditionEval for OrCondition {
-    fn eval<VC: VariableContainer>(
+    fn eval<VC: ValueContainer>(
         &self,
         context: &RenderContext<VC>,
     ) -> crate::error::Result<bool> {
@@ -79,7 +79,7 @@ impl AndCondition {
 }
 
 impl ConditionEval for AndCondition {
-    fn eval<VC: VariableContainer>(
+    fn eval<VC: ValueContainer>(
         &self,
         context: &RenderContext<VC>,
     ) -> crate::error::Result<bool> {
@@ -100,7 +100,7 @@ pub struct CompareCondition {
 }
 
 impl ConditionEval for CompareCondition {
-    fn eval<VC: VariableContainer>(
+    fn eval<VC: ValueContainer>(
         &self,
         context: &RenderContext<VC>,
     ) -> crate::error::Result<bool> {

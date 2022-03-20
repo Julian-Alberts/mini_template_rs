@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, variable_container::VariableContainer};
+use crate::{renderer::RenderContext, value_container::ValueContainer};
 
 use super::CalculatedValue;
 
@@ -13,7 +13,7 @@ impl Assign {
         Self { identifier, calc }
     }
 
-    pub fn assign<VC: VariableContainer>(
+    pub fn assign<VC: ValueContainer>(
         &self,
         context: &mut RenderContext<VC>,
     ) -> crate::error::Result<()> {
@@ -41,7 +41,7 @@ mod tests {
         renderer::RenderContext,
         template::{CalculatedValue, StorageMethod},
         value::Value,
-        variable_container::VariableContainer,
+        value_container::ValueContainer,
     };
 
     use super::Assign;

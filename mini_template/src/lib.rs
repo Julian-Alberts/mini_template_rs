@@ -7,7 +7,7 @@ mod parser;
 mod renderer;
 mod template;
 pub mod value;
-mod variable_container;
+mod value_container;
 
 #[macro_use]
 extern crate pest_derive;
@@ -19,7 +19,7 @@ use parser::{parse, ParseError};
 use renderer::RenderContext;
 use std::{collections::HashMap, hash::Hash};
 use template::{Render, Template};
-use variable_container::VariableContainer;
+use value_container::ValueContainer;
 
 /// A Storage for Templates
 ///
@@ -85,7 +85,7 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render<VC: VariableContainer>(&self, key: &K, data: VC) -> error::Result<String> {
+    pub fn render<VC: ValueContainer>(&self, key: &K, data: VC) -> error::Result<String> {
         let tpl = match self.template.get(key) {
             Some(t) => t,
             None => return Err(error::Error::UnknownTemplate),

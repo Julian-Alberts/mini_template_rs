@@ -20,7 +20,7 @@ pub use loops::Loop;
 pub use statement::Statement;
 pub use storage_method::StorageMethod;
 
-use crate::{error::Result, renderer::RenderContext, variable_container::VariableContainer};
+use crate::{error::Result, renderer::RenderContext, value_container::ValueContainer};
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
@@ -29,7 +29,7 @@ pub struct Template {
 }
 
 impl Render for Template {
-    fn render<VC: VariableContainer>(
+    fn render<VC: ValueContainer>(
         &self,
         context: &mut RenderContext<VC>,
         buf: &mut String,
@@ -39,7 +39,7 @@ impl Render for Template {
 }
 
 pub trait Render {
-    fn render<VC: VariableContainer>(
+    fn render<VC: ValueContainer>(
         &self,
         context: &mut RenderContext<VC>,
         buf: &mut String,
@@ -47,7 +47,7 @@ pub trait Render {
 }
 
 impl Render for Vec<Statement> {
-    fn render<VC: VariableContainer>(
+    fn render<VC: ValueContainer>(
         &self,
         context: &mut RenderContext<VC>,
         buf: &mut String,

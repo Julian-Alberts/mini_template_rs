@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{renderer::RenderContext, value::Value, variable_container::VariableContainer};
+use crate::{renderer::RenderContext, value::Value, value_container::ValueContainer};
 
 use super::StorageMethod;
 
@@ -15,7 +15,7 @@ impl CalculatedValue {
         Self { value, modifiers }
     }
 
-    pub fn calc<VC: VariableContainer>(
+    pub fn calc<VC: ValueContainer>(
         &self,
         context: &RenderContext<VC>,
     ) -> crate::error::Result<Value> {
@@ -55,7 +55,7 @@ impl CalculatedValue {
 
 fn storage_methods_to_values<'a, 't>(
     args: &'a [StorageMethod],
-    variables: &'a dyn VariableContainer,
+    variables: &'a dyn ValueContainer,
 ) -> crate::error::Result<'t, Vec<&'a Value>> {
     let mut real_args = Vec::with_capacity(args.len());
 
