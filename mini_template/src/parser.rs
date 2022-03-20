@@ -428,6 +428,48 @@ mod tests {
     }
 
     #[test]
+    fn parse_template_single_computed_modifier_null_param() {
+        let template = String::from(r#"{var|modifier:null}"#);
+        let template = parse(template);
+        assert!(template.is_ok());
+        let template = template.unwrap();
+        assert_eq!(
+            template,
+            Template {
+                tpl_str: String::from(r#"{var|modifier:null}"#),
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
+                    StorageMethod::Variable("var"),
+                    vec![(
+                        "modifier",
+                        vec![StorageMethod::Const(Value::Null)]
+                    )]
+                ))]
+            }
+        )
+    }
+
+    #[test]
+    fn parse_template_single_computed_modifier_null_value() {
+        let template = String::from(r#"{null|modifier:-32.09}"#);
+        let template = parse(template);
+        assert!(template.is_ok());
+        let template = template.unwrap();
+        assert_eq!(
+            template,
+            Template {
+                tpl_str: String::from(r#"{null|modifier:-32.09}"#),
+                tpl: vec![Statement::Calculated(CalculatedValue::new(
+                    StorageMethod::Const(Value::Null),
+                    vec![(
+                        "modifier",
+                        vec![StorageMethod::Const(Value::Number(-32.09))]
+                    )]
+                ))]
+            }
+        )
+    }
+
+    #[test]
     fn parse_template_single_computed_literal_before_modifier() {
         let template = String::from(r#"{10|modifier:-32.09}"#);
         let template = parse(template);
