@@ -40,9 +40,9 @@ mod tests {
         renderer::RenderContext,
         template::{
             condition::{AndCondition, Condition, ConditionEval, OrCondition},
-            CalculatedValue, StorageMethod,
+            CalculatedValue,
         },
-        value::Value,
+        value::{Value, StorageMethod},
     };
 
     #[test]

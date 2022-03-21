@@ -39,9 +39,9 @@ mod tests {
     use crate::{
         renderer::RenderContext,
         template::{
-            condition::Condition, Assign, CalculatedValue, Render, Statement, StorageMethod,
+            condition::Condition, Assign, CalculatedValue, Render, Statement,
         },
-        value::Value,
+        value::{Value, StorageMethod},
     };
 
     use super::Loop;

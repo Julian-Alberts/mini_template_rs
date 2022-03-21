@@ -1,9 +1,11 @@
+mod storage_method;
+pub use storage_method::StorageMethod;
+
 use std::convert::TryFrom;
 
 /// Values are used as variables inside a template.
 #[derive(Debug, Clone)]
 pub enum Value {
-    Array(),
     /// Stores a string
     String(String),
     /// Stores a number as f64

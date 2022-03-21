@@ -38,7 +38,7 @@ impl PartialEq for Statement {
 
 #[cfg(test)]
 mod tests {
-    use crate::template::{CalculatedValue, StorageMethod};
+    use crate::{template::CalculatedValue, value::StorageMethod};
 
     use super::Statement;
 

@@ -8,7 +8,6 @@ mod conditional;
 #[cfg(feature = "loop")]
 mod loops;
 mod statement;
-mod storage_method;
 
 #[cfg(feature = "assign")]
 pub use assign::Assign;
@@ -18,7 +17,6 @@ pub use conditional::*;
 #[cfg(feature = "loop")]
 pub use loops::Loop;
 pub use statement::Statement;
-pub use storage_method::StorageMethod;
 
 use crate::{error::Result, renderer::RenderContext, value_container::ValueContainer};
 

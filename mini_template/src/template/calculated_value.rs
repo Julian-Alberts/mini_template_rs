@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{renderer::RenderContext, value::Value, value_container::ValueContainer};
-
-use super::StorageMethod;
+use crate::{renderer::RenderContext, value::{Value, StorageMethod}, value_container::ValueContainer};
 
 #[derive(Debug)]
 pub struct CalculatedValue {

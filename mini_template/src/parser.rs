@@ -11,8 +11,8 @@ use crate::template::Conditional;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
 use crate::{
-    template::{CalculatedValue, Statement, StorageMethod},
-    value::Value,
+    template::{CalculatedValue, Statement},
+    value::{Value, StorageMethod},
     Template,
 };
 
@@ -712,7 +712,7 @@ mod tests {
     mod value {
         use crate::parser::{Rule, TemplateParser};
         use pest::Parser;
-        use crate::template::StorageMethod;
+        use crate::value::StorageMethod;
         use crate::value::Value;
 
         #[test]
@@ -1008,8 +1008,8 @@ mod tests {
     mod assign {
         use crate::{
             parser::{parse_assign, Parser, Rule, TemplateParser},
-            template::{Assign, CalculatedValue, StorageMethod},
-            value::Value,
+            template::{Assign, CalculatedValue},
+            value::{Value, StorageMethod},
         };
 
         //r#"{my_var = "test"|modifier:arg}"#,
@@ -1038,9 +1038,9 @@ mod tests {
             parser::{Parser, Rule, TemplateParser},
             template::{
                 condition::{CompareCondition, CompareOperator, Condition},
-                CalculatedValue, Loop, Statement, StorageMethod,
+                CalculatedValue, Loop, Statement,
             },
-            value::Value,
+            value::{Value, StorageMethod},
         };
 
         #[test]

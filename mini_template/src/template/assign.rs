@@ -39,8 +39,8 @@ mod tests {
 
     use crate::{
         renderer::RenderContext,
-        template::{CalculatedValue, StorageMethod},
-        value::Value,
+        template::CalculatedValue,
+        value::{Value, StorageMethod},
         value_container::ValueContainer,
     };
 
