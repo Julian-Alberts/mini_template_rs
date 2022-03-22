@@ -10,3 +10,6 @@
 
 ### Depricated
 * `defaults::` attributes for `create_modifier` are depricated and will be removed in a future version
+
+### Internal
+* Rewrote entire identifier code to support multipart modifiers
