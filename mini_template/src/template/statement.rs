@@ -38,6 +38,7 @@ impl PartialEq for Statement {
 
 #[cfg(test)]
 mod tests {
+    use crate::value::ident::Ident;
     use crate::{template::CalculatedValue, value::StorageMethod};
 
     use super::Statement;
@@ -65,11 +66,11 @@ mod tests {
         let str1 = "my var in a text";
         let str2 = "same var in an other text";
         let calculated1 = Statement::Calculated(CalculatedValue::new(
-            StorageMethod::Variable(&str1[3..6]),
+            StorageMethod::Variable(Ident::new_static(&str1[3..6])),
             vec![],
         ));
         let calculated2 = Statement::Calculated(CalculatedValue::new(
-            StorageMethod::Variable(&str2[5..8]),
+            StorageMethod::Variable(Ident::new_static(&str2[5..8])),
             vec![],
         ));
         assert_eq!(calculated1, calculated2);
@@ -80,11 +81,11 @@ mod tests {
         let str1 = "my var in a text";
         let str2 = "other VAR in an other text";
         let calculated1 = Statement::Calculated(CalculatedValue::new(
-            StorageMethod::Variable(&str1[3..6]),
+            StorageMethod::Variable(Ident::new_static(&str1[3..6])),
             vec![],
         ));
         let calculated2 = Statement::Calculated(CalculatedValue::new(
-            StorageMethod::Variable(&str2[5..8]),
+            StorageMethod::Variable(Ident::new_static(&str2[5..8])),
             vec![],
         ));
         assert_ne!(calculated1, calculated2);

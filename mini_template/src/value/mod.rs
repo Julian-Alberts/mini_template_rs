@@ -1,5 +1,9 @@
+pub mod ident;
 mod storage_method;
+mod variable_manager;
+
 pub use storage_method::StorageMethod;
+pub use variable_manager::VariableManager;
 
 use std::convert::TryFrom;
 
@@ -13,7 +17,7 @@ pub enum Value {
     /// Stores a boolean
     Bool(bool),
     /// Null value
-    Null
+    Null,
 }
 
 impl Value {
@@ -23,10 +27,9 @@ impl Value {
             Self::Bool(b) => *b,
             Self::Number(n) => *n != 0.,
             Self::String(s) => !s.is_empty(),
-            Self::Null => false
+            Self::Null => false,
         }
     }
-
 }
 
 impl PartialEq for Value {
@@ -57,7 +60,6 @@ impl PartialOrd for Value {
             (Self::String(s), Self::Number(o)) => s < &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() < o,
 
-
             (Self::Null, _) => true,
             (_, Self::Null) => false,
         }
@@ -74,7 +76,7 @@ impl PartialOrd for Value {
             (Self::Number(s), Self::String(o)) => &s.to_string() >= o,
 
             (Self::Null, _) => false,
-            (_, Self::Null) => true
+            (_, Self::Null) => true,
         }
     }
 
@@ -89,7 +91,7 @@ impl PartialOrd for Value {
             (Self::Number(s), Self::String(o)) => &s.to_string() > o,
 
             (Self::Null, _) => false,
-            (_, Self::Null) => true
+            (_, Self::Null) => true,
         }
     }
 
@@ -104,7 +106,7 @@ impl PartialOrd for Value {
             (Self::Number(s), Self::String(o)) => &s.to_string() <= o,
 
             (Self::Null, _) => true,
-            (_, Self::Null) => false
+            (_, Self::Null) => false,
         }
     }
 
@@ -139,8 +141,8 @@ impl ToString for Value {
                 } else {
                     String::from("false")
                 }
-            },
-            Self::Null => String::from("null")
+            }
+            Self::Null => String::from("null"),
         }
     }
 }

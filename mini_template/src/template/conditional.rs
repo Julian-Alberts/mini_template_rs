@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{renderer::RenderContext, value_container::ValueContainer};
+use crate::{renderer::RenderContext, value::VariableManager};
 
 use super::{
     condition::{Condition, ConditionEval},
@@ -15,9 +15,9 @@ pub struct Conditional {
 }
 
 impl Render for Conditional {
-    fn render<VC: ValueContainer>(
+    fn render<VM: VariableManager>(
         &self,
-        context: &mut RenderContext<VC>,
+        context: &mut RenderContext<VM>,
         buf: &mut String,
     ) -> crate::error::Result<()> {
         if self.condition.eval(context)? {
@@ -36,13 +36,14 @@ impl Render for Conditional {
 mod tests {
     use std::collections::HashMap;
 
+    use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
         template::{
             condition::{AndCondition, Condition, ConditionEval, OrCondition},
             CalculatedValue,
         },
-        value::{Value, StorageMethod},
+        value::{StorageMethod, Value},
     };
 
     #[test]
@@ -59,8 +60,14 @@ mod tests {
     #[test]
     fn eval_condition_and() {
         let condition = AndCondition::new(vec![
-            Condition::CalculatedValue(CalculatedValue::new(StorageMethod::Variable("a"), vec![])),
-            Condition::CalculatedValue(CalculatedValue::new(StorageMethod::Variable("b"), vec![])),
+            Condition::CalculatedValue(CalculatedValue::new(
+                StorageMethod::Variable(Ident::new_static("a")),
+                vec![],
+            )),
+            Condition::CalculatedValue(CalculatedValue::new(
+                StorageMethod::Variable(Ident::new_static("b")),
+                vec![],
+            )),
         ]);
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(true));
@@ -91,8 +98,14 @@ mod tests {
     #[test]
     fn eval_condition_or() {
         let condition = OrCondition::new(vec![
-            Condition::CalculatedValue(CalculatedValue::new(StorageMethod::Variable("a"), vec![])),
-            Condition::CalculatedValue(CalculatedValue::new(StorageMethod::Variable("b"), vec![])),
+            Condition::CalculatedValue(CalculatedValue::new(
+                StorageMethod::Variable(Ident::new_static("a")),
+                vec![],
+            )),
+            Condition::CalculatedValue(CalculatedValue::new(
+                StorageMethod::Variable(Ident::new_static("b")),
+                vec![],
+            )),
         ]);
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(true));
@@ -125,7 +138,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Bool(true));
         let condition = Condition::CalculatedValue(CalculatedValue::new(
-            StorageMethod::Variable("my_var"),
+            StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(condition
@@ -138,7 +151,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Bool(false));
         let condition = Condition::CalculatedValue(CalculatedValue::new(
-            StorageMethod::Variable("my_var"),
+            StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(!condition
@@ -151,7 +164,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Number(0.));
         let condition = Condition::CalculatedValue(CalculatedValue::new(
-            StorageMethod::Variable("my_var"),
+            StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(!condition
@@ -164,7 +177,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Number(1.));
         let condition = Condition::CalculatedValue(CalculatedValue::new(
-            StorageMethod::Variable("my_var"),
+            StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(condition
@@ -177,7 +190,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("my_var".to_owned(), Value::Number(10.));
         let condition = Condition::CalculatedValue(CalculatedValue::new(
-            StorageMethod::Variable("my_var"),
+            StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(condition
@@ -191,16 +204,16 @@ mod tests {
         let condition = Condition::and(vec![
             Condition::or(vec![
                 Condition::CalculatedValue(CalculatedValue::new(
-                    StorageMethod::Variable("var1"),
+                    StorageMethod::Variable(Ident::new_static("var1")),
                     vec![],
                 )),
                 Condition::CalculatedValue(CalculatedValue::new(
-                    StorageMethod::Variable("var2"),
+                    StorageMethod::Variable(Ident::new_static("var2")),
                     vec![],
                 )),
             ]),
             Condition::CalculatedValue(CalculatedValue::new(
-                StorageMethod::Variable("var3"),
+                StorageMethod::Variable(Ident::new_static("var3")),
                 vec![],
             )),
         ]);

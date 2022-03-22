@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-use crate::value_container::ValueContainer;
+use crate::value::VariableManager;
 
 use super::modifier::Modifier;
 
-pub struct RenderContext<'a, VC: ValueContainer> {
+pub struct RenderContext<'a, VM: VariableManager> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
-    pub variables: VC,
+    pub variables: VM,
 }
 
-impl<'a, VC: ValueContainer> RenderContext<'a, VC> {
-    pub fn new(modifier: &'a HashMap<&'static str, &'a Modifier>, variables: VC) -> Self {
+impl<'a, VM: VariableManager> RenderContext<'a, VM> {
+    pub fn new(modifier: &'a HashMap<&'static str, &'a Modifier>, variables: VM) -> Self {
         Self {
             modifier,
             variables,
@@ -20,12 +20,11 @@ impl<'a, VC: ValueContainer> RenderContext<'a, VC> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use mini_template_macro::create_modifier;
     use crate::{
-        modifier::Modifier, parser::parse, renderer::RenderContext,
-        template::Render, value::Value,
+        modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
     };
+    use mini_template_macro::create_modifier;
+    use std::collections::HashMap;
 
     #[create_modifier]
     fn upper_case_modifier(data: String) -> String {

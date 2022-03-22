@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 
-use crate::{renderer::RenderContext, value::{Value, StorageMethod}, value_container::ValueContainer};
+use crate::{
+    renderer::RenderContext,
+    value::{StorageMethod, Value, VariableManager},
+};
 
 #[derive(Debug)]
 pub struct CalculatedValue {
@@ -13,27 +16,28 @@ impl CalculatedValue {
         Self { value, modifiers }
     }
 
-    pub fn calc<VC: ValueContainer>(
+    pub fn calc<VM: VariableManager>(
         &self,
-        context: &RenderContext<VC>,
+        context: &RenderContext<VM>,
     ) -> crate::error::Result<Value> {
         let mut var = match &self.value {
             StorageMethod::Const(var) => Cow::Borrowed(var),
-            StorageMethod::Variable(var_name) => {
-                // Safety: var_name points to tpl.tpl_str and should never be null
-                let var_name = unsafe { var_name.as_ref().unwrap() };
-                let var = context.variables.get(var_name);
-                Cow::Borrowed(var.ok_or(crate::error::Error::UnknownVariable(var_name))?)
+            StorageMethod::Variable(ident) => {
+                let var = context.variables.get(ident)?;
+                Cow::Borrowed(var)
             }
         };
 
         for (modifier_name, args) in &self.modifiers {
             // Safety: modifier_name points to tpl.tpl_str and should never be null
             let modifier_name = unsafe { modifier_name.as_ref().unwrap() };
-            let modifier = context
-                .modifier
-                .get(modifier_name)
-                .ok_or(crate::error::Error::UnknownModifier(modifier_name))?;
+            let modifier =
+                context
+                    .modifier
+                    .get(modifier_name)
+                    .ok_or(crate::error::Error::UnknownModifier(
+                        modifier_name.to_string(),
+                    ))?;
 
             let args = storage_methods_to_values(args, &context.variables)?;
 
@@ -51,23 +55,16 @@ impl CalculatedValue {
     }
 }
 
-fn storage_methods_to_values<'a, 't>(
+fn storage_methods_to_values<'a>(
     args: &'a [StorageMethod],
-    variables: &'a dyn ValueContainer,
-) -> crate::error::Result<'t, Vec<&'a Value>> {
+    variables: &'a dyn VariableManager,
+) -> crate::error::Result<Vec<&'a Value>> {
     let mut real_args = Vec::with_capacity(args.len());
 
     for arg in args {
         let arg = match arg {
             StorageMethod::Const(value) => value,
-            StorageMethod::Variable(var) =>
-            //Safety: var points to tpl.tpl_str and should never be null
-            unsafe {
-                let var = var.as_ref().unwrap();
-                variables
-                    .get(var)
-                    .ok_or(crate::error::Error::UnknownVariable(var))?
-            },
+            StorageMethod::Variable(ident) => variables.get(ident)?,
         };
         real_args.push(arg);
     }

@@ -1,34 +1,33 @@
-use crate::{renderer::RenderContext, value_container::ValueContainer};
+use crate::{
+    renderer::RenderContext,
+    value::{ident::Ident, VariableManager},
+};
 
 use super::CalculatedValue;
 
 #[derive(Debug)]
 pub struct Assign {
-    identifier: *const str,
+    identifier: Ident,
     calc: CalculatedValue,
 }
 
 impl Assign {
-    pub fn new(identifier: *const str, calc: CalculatedValue) -> Self {
+    pub fn new(identifier: Ident, calc: CalculatedValue) -> Self {
         Self { identifier, calc }
     }
 
-    pub fn assign<VC: ValueContainer>(
+    pub fn assign<VM: VariableManager>(
         &self,
-        context: &mut RenderContext<VC>,
+        context: &mut RenderContext<VM>,
     ) -> crate::error::Result<()> {
         let v = self.calc.calc(context)?;
-        // Safety: identifier points to the original template string
-        let k = unsafe { self.identifier.as_ref().unwrap() };
-        context.variables.set(k.to_owned(), v);
-        Ok(())
+        context.variables.set(&self.identifier, v)
     }
 }
 
 impl PartialEq for Assign {
     fn eq(&self, other: &Self) -> bool {
-        // Safety: identifier points to the original template string
-        let ident_eq = unsafe { self.identifier.as_ref() == other.identifier.as_ref() };
+        let ident_eq = self.identifier == other.identifier;
         ident_eq && self.calc == other.calc
     }
 }
@@ -37,11 +36,12 @@ impl PartialEq for Assign {
 mod tests {
     use std::collections::HashMap;
 
+    use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
         template::CalculatedValue,
-        value::{Value, StorageMethod},
-        value_container::ValueContainer,
+        value::{StorageMethod, Value},
+        VariableManager,
     };
 
     use super::Assign;
@@ -49,13 +49,13 @@ mod tests {
     #[test]
     fn simple_assign() {
         let mut vars = HashMap::default();
-        vars.set(String::from("input"), Value::Number(42.));
+        vars.set(&Ident::new_static("input"), Value::Number(42.));
         let modifiers = HashMap::default();
         let mut rc = RenderContext::new(&modifiers, vars);
 
         let assign = Assign::new(
-            "output",
-            CalculatedValue::new(StorageMethod::Variable("input"), vec![]),
+            Ident::new_static("output"),
+            CalculatedValue::new(StorageMethod::Variable(Ident::new_static("input")), vec![]),
         );
         assert!(assign.assign(&mut rc).is_ok());
         assert_eq!(rc.variables.get("output"), Some(&Value::Number(42.)))
@@ -64,16 +64,16 @@ mod tests {
     #[test]
     fn assign_calculated() {
         let mut vars = HashMap::default();
-        vars.set(String::from("input"), Value::Number(42.));
+        vars.set(&Ident::new_static("input"), Value::Number(42.));
         let mut modifiers = HashMap::new();
         let add_modifier: &crate::modifier::Modifier = &crate::modifier::add;
         modifiers.insert("add", add_modifier);
         let mut rc = RenderContext::new(&modifiers, vars);
 
         let assign = Assign::new(
-            "output",
+            Ident::new_static("output"),
             CalculatedValue::new(
-                StorageMethod::Variable("input"),
+                StorageMethod::Variable(Ident::new_static("input")),
                 vec![("add", vec![StorageMethod::Const(Value::Number(2.))])],
             ),
         );

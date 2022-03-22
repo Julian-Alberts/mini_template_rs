@@ -9,10 +9,10 @@ use {
     },
 };
 
-use core::ops::{Add, Mul, Div, Sub};
 use super::value::Value;
-pub use error::*;
 use crate::fn_as_modifier;
+use core::ops::{Add, Div, Mul, Sub};
+pub use error::*;
 
 #[cfg(feature = "regex")]
 static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
@@ -27,16 +27,21 @@ fn slice_modifier(input: String, start: usize, length: usize) -> String {
 
 #[cfg(feature = "regex")]
 #[mini_template_macro::create_modifier(returns_result = true)]
-fn match_modifier(input: String, regex: String, group: Option<usize>) -> std::result::Result<String, String> {
+fn match_modifier(
+    input: String,
+    regex: String,
+    group: Option<usize>,
+) -> std::result::Result<String, String> {
     let group = group.unwrap_or(0);
     with_regex_from_cache(regex, |regex| {
         match regex.captures(&input[..]) {
             Some(c) => match c.get(group) {
                 Some(c) => c.as_str(),
-                None => ""
+                None => "",
             },
-            None => ""
-        }.to_owned()
+            None => "",
+        }
+        .to_owned()
     })
 }
 
@@ -52,11 +57,14 @@ fn replace_modifier(input: String, from: String, to: String, count: Option<usize
 
 #[cfg(feature = "regex")]
 #[mini_template_macro::create_modifier(returns_result = true)]
-fn replace_regex_modifier(input: String, regex: String, to: String, count: Option<usize>) -> std::result::Result<String, String> {
+fn replace_regex_modifier(
+    input: String,
+    regex: String,
+    to: String,
+    count: Option<usize>,
+) -> std::result::Result<String, String> {
     let count = count.unwrap_or(0);
-    with_regex_from_cache(regex, |regex| {
-        regex.replacen(&input, count, to).to_string()
-    })
+    with_regex_from_cache(regex, |regex| regex.replacen(&input, count, to).to_string())
 }
 
 fn_as_modifier!(fn upper(input: &str) -> String => str::to_uppercase);

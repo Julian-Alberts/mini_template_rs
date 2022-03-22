@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, value_container::ValueContainer};
+use crate::{renderer::RenderContext, value::VariableManager};
 
 #[cfg(feature = "condition")]
 use super::condition::{Condition, ConditionEval};
@@ -20,9 +20,9 @@ impl Loop {
 }
 
 impl Render for Loop {
-    fn render<VC: ValueContainer>(
+    fn render<VM: VariableManager>(
         &self,
-        context: &mut RenderContext<VC>,
+        context: &mut RenderContext<VM>,
         buf: &mut String,
     ) -> crate::error::Result<()> {
         while self.condition.eval(context)? {
@@ -36,12 +36,11 @@ impl Render for Loop {
 mod tests {
     use std::collections::HashMap;
 
+    use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
-        template::{
-            condition::Condition, Assign, CalculatedValue, Render, Statement,
-        },
-        value::{Value, StorageMethod},
+        template::{condition::Condition, Assign, CalculatedValue, Render, Statement},
+        value::{StorageMethod, Value},
     };
 
     use super::Loop;
@@ -50,15 +49,18 @@ mod tests {
     fn loop_single_iteration() {
         let l = Loop::new(
             Condition::CalculatedValue(CalculatedValue::new(
-                StorageMethod::Variable("var"),
+                StorageMethod::Variable(Ident::new_static("var")),
                 vec![],
             )),
             vec![
-                Statement::Calculated(CalculatedValue::new(StorageMethod::Variable("var"), vec![])),
+                Statement::Calculated(CalculatedValue::new(
+                    StorageMethod::Variable(Ident::new_static("var")),
+                    vec![],
+                )),
                 Statement::Assign(Assign::new(
-                    "var",
+                    Ident::new_static("var"),
                     CalculatedValue::new(
-                        StorageMethod::Variable("var"),
+                        StorageMethod::Variable(Ident::new_static("var")),
                         vec![("sub", vec![StorageMethod::Const(Value::Number(1.))])],
                     ),
                 )),
@@ -81,15 +83,18 @@ mod tests {
     fn loop_multiple_iterations() {
         let l = Loop::new(
             Condition::CalculatedValue(CalculatedValue::new(
-                StorageMethod::Variable("var"),
+                StorageMethod::Variable(Ident::new_static("var")),
                 vec![],
             )),
             vec![
-                Statement::Calculated(CalculatedValue::new(StorageMethod::Variable("var"), vec![])),
+                Statement::Calculated(CalculatedValue::new(
+                    StorageMethod::Variable(Ident::new_static("var")),
+                    vec![],
+                )),
                 Statement::Assign(Assign::new(
-                    "var",
+                    Ident::new_static("var"),
                     CalculatedValue::new(
-                        StorageMethod::Variable("var"),
+                        StorageMethod::Variable(Ident::new_static("var")),
                         vec![("sub", vec![StorageMethod::Const(Value::Number(1.))])],
                     ),
                 )),

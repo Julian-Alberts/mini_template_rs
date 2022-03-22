@@ -19,7 +19,7 @@ use parser::{parse, ParseError};
 use renderer::RenderContext;
 use std::{collections::HashMap, hash::Hash};
 use template::{Render, Template};
-use value_container::ValueContainer;
+use value::VariableManager;
 
 /// A Storage for Templates
 ///
@@ -85,7 +85,7 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render<VC: ValueContainer>(&self, key: &K, data: VC) -> error::Result<String> {
+    pub fn render<VM: VariableManager>(&self, key: &K, data: VM) -> error::Result<String> {
         let tpl = match self.template.get(key) {
             Some(t) => t,
             None => return Err(error::Error::UnknownTemplate),

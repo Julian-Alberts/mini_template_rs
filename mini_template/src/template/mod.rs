@@ -18,7 +18,7 @@ pub use conditional::*;
 pub use loops::Loop;
 pub use statement::Statement;
 
-use crate::{error::Result, renderer::RenderContext, value_container::ValueContainer};
+use crate::{error::Result, renderer::RenderContext, value::VariableManager};
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
@@ -27,9 +27,9 @@ pub struct Template {
 }
 
 impl Render for Template {
-    fn render<VC: ValueContainer>(
+    fn render<VM: VariableManager>(
         &self,
-        context: &mut RenderContext<VC>,
+        context: &mut RenderContext<VM>,
         buf: &mut String,
     ) -> Result<()> {
         self.tpl.render(context, buf)
@@ -37,17 +37,17 @@ impl Render for Template {
 }
 
 pub trait Render {
-    fn render<VC: ValueContainer>(
+    fn render<VM: VariableManager>(
         &self,
-        context: &mut RenderContext<VC>,
+        context: &mut RenderContext<VM>,
         buf: &mut String,
     ) -> Result<()>;
 }
 
 impl Render for Vec<Statement> {
-    fn render<VC: ValueContainer>(
+    fn render<VM: VariableManager>(
         &self,
-        context: &mut RenderContext<VC>,
+        context: &mut RenderContext<VM>,
         buf: &mut String,
     ) -> Result<()> {
         for statement in self {

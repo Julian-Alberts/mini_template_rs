@@ -10,9 +10,10 @@ use crate::template::Assign;
 use crate::template::Conditional;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
+use crate::value::ident::Ident;
 use crate::{
     template::{CalculatedValue, Statement},
-    value::{Value, StorageMethod},
+    value::{StorageMethod, Value},
     Template,
 };
 
@@ -223,10 +224,15 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
     assert_eq!(value.as_rule(), Rule::value);
     let value = value.into_inner().next().unwrap();
     match value.as_rule() {
-        Rule::identifier => StorageMethod::Variable(value.as_str()),
+        Rule::identifier => StorageMethod::Variable(parse_identifier(value)),
         Rule::number => StorageMethod::Const(Value::Number(value.as_str().parse().unwrap())),
         Rule::string => StorageMethod::Const(Value::String(
-            value.into_inner().next().unwrap().as_str().replace("\\\"", "\""),
+            value
+                .into_inner()
+                .next()
+                .unwrap()
+                .as_str()
+                .replace("\\\"", "\""),
         )),
         Rule::boolean => {
             let value = match value.as_str() {
@@ -247,7 +253,7 @@ fn parse_assign(assign: Pair<Rule>) -> Assign {
     let mut inner = assign.into_inner();
     let ident = inner.next().unwrap();
     assert_eq!(ident.as_rule(), Rule::identifier);
-    let ident = ident.as_str();
+    let ident = parse_identifier(ident);
     let calc_val = parse_calculated_value(inner.next().unwrap());
     Assign::new(ident, calc_val)
 }
@@ -264,6 +270,11 @@ fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
         .filter_map(parse_template_content)
         .collect::<Result<Vec<_>, _>>()?;
     Ok(Loop::new(condition, template))
+}
+
+fn parse_identifier(ident: Pair<Rule>) -> Ident {
+    assert_eq!(ident.as_rule(), Rule::identifier);
+    Ident::new_static(ident.as_str())
 }
 
 #[derive(Debug)]
@@ -328,7 +339,7 @@ mod tests {
         assert_eq!(
             statement,
             Statement::Calculated(CalculatedValue::new(
-                StorageMethod::Variable("var"),
+                StorageMethod::Variable(Ident::new_static("var")),
                 Vec::new()
             ))
         )
@@ -344,7 +355,7 @@ mod tests {
             template,
             Template {
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![],
                 ))],
                 tpl_str: String::from("{var}")
@@ -363,7 +374,7 @@ mod tests {
             Template {
                 tpl_str: String::from("{var|modifier}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![("modifier", vec![])]
                 ))]
             }
@@ -381,7 +392,7 @@ mod tests {
             Template {
                 tpl_str: String::from("{var|modifier1|modifier2}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![("modifier1", vec![]), ("modifier2", vec![])]
                 ))]
             }
@@ -399,8 +410,11 @@ mod tests {
             Template {
                 tpl_str: String::from("{var|modifier:var2}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
-                    vec![("modifier", vec![StorageMethod::Variable("var2")])]
+                    StorageMethod::Variable(Ident::new_static("var")),
+                    vec![(
+                        "modifier",
+                        vec![StorageMethod::Variable(Ident::new_static("var2"))]
+                    )]
                 ))]
             }
         )
@@ -417,7 +431,7 @@ mod tests {
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![(
                         "modifier",
                         vec![StorageMethod::Const(Value::Number(-32.09))]
@@ -438,11 +452,8 @@ mod tests {
             Template {
                 tpl_str: String::from(r#"{var|modifier:null}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
-                    vec![(
-                        "modifier",
-                        vec![StorageMethod::Const(Value::Null)]
-                    )]
+                    StorageMethod::Variable(Ident::new_static("var")),
+                    vec![("modifier", vec![StorageMethod::Const(Value::Null)])]
                 ))]
             }
         )
@@ -501,13 +512,13 @@ mod tests {
             Template {
                 tpl_str: String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![(
                         "modifier",
                         vec![
                             StorageMethod::Const(Value::Number(-32.09)),
                             StorageMethod::Const(Value::String(String::from("argument"))),
-                            StorageMethod::Variable("var2"),
+                            StorageMethod::Variable(Ident::new_static("var2")),
                             StorageMethod::Const(Value::Bool(true))
                         ]
                     )]
@@ -528,7 +539,7 @@ mod tests {
                 tpl_str: String::from("{var|modifier}\n{10|modifier:-32.09}"),
                 tpl: vec![
                     Statement::Calculated(CalculatedValue::new(
-                        StorageMethod::Variable("var"),
+                        StorageMethod::Variable(Ident::new_static("var")),
                         vec![("modifier", vec![])]
                     )),
                     Statement::Literal("\n"),
@@ -556,7 +567,7 @@ mod tests {
             Template {
                 tpl_str: String::from("{var = 10|modifier:-32.09}"),
                 tpl: vec![Statement::Assign(Assign::new(
-                    "var",
+                    Ident::new_static("var"),
                     CalculatedValue::new(
                         StorageMethod::Const(Value::Number(10.0)),
                         vec![(
@@ -586,7 +597,10 @@ mod tests {
                     conditional,
                     Conditional {
                         condition: Condition::Compare(CompareCondition {
-                            left: CalculatedValue::new(StorageMethod::Variable("i"), vec![]),
+                            left: CalculatedValue::new(
+                                StorageMethod::Variable(Ident::new_static("i")),
+                                vec![]
+                            ),
                             operator: CompareOperator::LT,
                             right: CalculatedValue::new(
                                 StorageMethod::Const(Value::Number(10.)),
@@ -617,16 +631,16 @@ mod tests {
                         condition: Condition::and(vec![
                             Condition::or(vec![
                                 Condition::CalculatedValue(CalculatedValue::new(
-                                    StorageMethod::Variable("var1"),
+                                    StorageMethod::Variable(Ident::new_static("var1")),
                                     vec![]
                                 )),
                                 Condition::CalculatedValue(CalculatedValue::new(
-                                    StorageMethod::Variable("var2"),
+                                    StorageMethod::Variable(Ident::new_static("var2")),
                                     vec![]
                                 ))
                             ]),
                             Condition::CalculatedValue(CalculatedValue::new(
-                                StorageMethod::Variable("var3"),
+                                StorageMethod::Variable(Ident::new_static("var3")),
                                 vec![]
                             ))
                         ]),
@@ -652,7 +666,10 @@ mod tests {
                     conditional,
                     Conditional {
                         condition: Condition::Compare(CompareCondition {
-                            left: CalculatedValue::new(StorageMethod::Variable("i"), vec![]),
+                            left: CalculatedValue::new(
+                                StorageMethod::Variable(Ident::new_static("i")),
+                                vec![]
+                            ),
                             operator: CompareOperator::LT,
                             right: CalculatedValue::new(
                                 StorageMethod::Const(Value::Number(10.)),
@@ -681,7 +698,10 @@ mod tests {
                     conditional,
                     Conditional {
                         condition: Condition::Compare(CompareCondition {
-                            left: CalculatedValue::new(StorageMethod::Variable("i"), vec![]),
+                            left: CalculatedValue::new(
+                                StorageMethod::Variable(Ident::new_static("i")),
+                                vec![]
+                            ),
                             operator: CompareOperator::LT,
                             right: CalculatedValue::new(
                                 StorageMethod::Const(Value::Number(10.)),
@@ -691,7 +711,10 @@ mod tests {
                         then_case: vec![Statement::Literal("HI")],
                         else_case: Some(vec![Statement::Condition(Conditional {
                             condition: Condition::Compare(CompareCondition {
-                                left: CalculatedValue::new(StorageMethod::Variable("n"), vec![]),
+                                left: CalculatedValue::new(
+                                    StorageMethod::Variable(Ident::new_static("n")),
+                                    vec![]
+                                ),
                                 operator: CompareOperator::EQ,
                                 right: CalculatedValue::new(
                                     StorageMethod::Const(Value::String("TEST".to_owned())),
@@ -711,9 +734,9 @@ mod tests {
 
     mod value {
         use crate::parser::{Rule, TemplateParser};
-        use pest::Parser;
-        use crate::value::StorageMethod;
         use crate::value::Value;
+        use crate::value::{ident::Ident, StorageMethod};
+        use pest::Parser;
 
         #[test]
         fn parse_bool_true() {
@@ -723,10 +746,7 @@ mod tests {
                 .next()
                 .unwrap();
             let value = super::parse_value(value);
-            assert_eq!(
-                value,
-                StorageMethod::Const(Value::Bool(true))
-            );
+            assert_eq!(value, StorageMethod::Const(Value::Bool(true)));
         }
 
         #[test]
@@ -737,10 +757,7 @@ mod tests {
                 .next()
                 .unwrap();
             let value = super::parse_value(value);
-            assert_eq!(
-                value,
-                StorageMethod::Const(Value::Bool(false))
-            );
+            assert_eq!(value, StorageMethod::Const(Value::Bool(false)));
         }
 
         #[test]
@@ -752,10 +769,7 @@ mod tests {
                     .next()
                     .unwrap();
                 let value = super::parse_value(value);
-                assert_eq!(
-                    value,
-                    StorageMethod::Variable(*template as *const _)
-                );
+                assert_eq!(value, StorageMethod::Variable(Ident::new_static(*template)));
             })
         }
 
@@ -777,7 +791,11 @@ mod tests {
 
         #[test]
         fn parse_string() {
-            let templates = [("\"My test string\"", "My test string"), ("\"c\"", "c"), ("\"FOO\\\"Bar\"", "FOO\"Bar")];
+            let templates = [
+                ("\"My test string\"", "My test string"),
+                ("\"c\"", "c"),
+                ("\"FOO\\\"Bar\"", "FOO\"Bar"),
+            ];
             templates.iter().for_each(|(template, expected)| {
                 let value = TemplateParser::parse(Rule::value, template)
                     .unwrap()
@@ -799,12 +817,8 @@ mod tests {
                 .next()
                 .unwrap();
             let value = super::parse_value(value);
-            assert_eq!(
-                value,
-                StorageMethod::Const(Value::Null)
-            );
+            assert_eq!(value, StorageMethod::Const(Value::Null));
         }
-
     }
 
     #[cfg(feature = "conditional")]
@@ -824,7 +838,7 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::CalculatedValue(CalculatedValue::new(
-                    StorageMethod::Variable("bar"),
+                    StorageMethod::Variable(Ident::new_static("bar")),
                     vec![]
                 )),
             );
@@ -841,7 +855,10 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::Compare(CompareCondition {
-                    left: CalculatedValue::new(StorageMethod::Variable("bar"), vec![]),
+                    left: CalculatedValue::new(
+                        StorageMethod::Variable(Ident::new_static("bar")),
+                        vec![]
+                    ),
                     operator: CompareOperator::EQ,
                     right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
                 })
@@ -859,7 +876,10 @@ mod tests {
             assert_eq!(
                 condition,
                 Condition::Compare(CompareCondition {
-                    left: CalculatedValue::new(StorageMethod::Variable("bar"), vec![]),
+                    left: CalculatedValue::new(
+                        StorageMethod::Variable(Ident::new_static("bar")),
+                        vec![]
+                    ),
                     operator: CompareOperator::EQ,
                     right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
                 })
@@ -878,16 +898,16 @@ mod tests {
                 condition,
                 Condition::Or(OrCondition::new(vec![
                     Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable("var1"),
+                        StorageMethod::Variable(Ident::new_static("var1")),
                         vec![]
                     )),
                     Condition::And(AndCondition::new(vec![
                         Condition::CalculatedValue(CalculatedValue::new(
-                            StorageMethod::Variable("var2"),
+                            StorageMethod::Variable(Ident::new_static("var2")),
                             vec![]
                         )),
                         Condition::CalculatedValue(CalculatedValue::new(
-                            StorageMethod::Variable("var3"),
+                            StorageMethod::Variable(Ident::new_static("var3")),
                             vec![]
                         ))
                     ]))
@@ -908,11 +928,11 @@ mod tests {
                 condition,
                 Condition::Or(OrCondition::new(vec![
                     Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable("var1"),
+                        StorageMethod::Variable(Ident::new_static("var1")),
                         vec![]
                     )),
                     Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable("var2"),
+                        StorageMethod::Variable(Ident::new_static("var2")),
                         vec![]
                     ))
                 ])),
@@ -932,11 +952,11 @@ mod tests {
                 condition,
                 Condition::And(AndCondition::new(vec![
                     Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable("var1"),
+                        StorageMethod::Variable(Ident::new_static("var1")),
                         vec![]
                     )),
                     Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable("var2"),
+                        StorageMethod::Variable(Ident::new_static("var2")),
                         vec![]
                     ))
                 ])),
@@ -957,16 +977,16 @@ mod tests {
                 Condition::And(AndCondition::new(vec![
                     Condition::Or(OrCondition::new(vec![
                         Condition::CalculatedValue(CalculatedValue::new(
-                            StorageMethod::Variable("var1"),
+                            StorageMethod::Variable(Ident::new_static("var1")),
                             vec![]
                         )),
                         Condition::CalculatedValue(CalculatedValue::new(
-                            StorageMethod::Variable("var2"),
+                            StorageMethod::Variable(Ident::new_static("var2")),
                             vec![]
                         ))
                     ])),
                     Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable("var3"),
+                        StorageMethod::Variable(Ident::new_static("var3")),
                         vec![]
                     ))
                 ]))
@@ -986,16 +1006,16 @@ mod tests {
                 condition,
                 Condition::or(vec![
                     Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable("var1"),
+                        StorageMethod::Variable(Ident::new_static("var1")),
                         vec![]
                     )),
                     Condition::and(vec![
                         Condition::CalculatedValue(CalculatedValue::new(
-                            StorageMethod::Variable("var2"),
+                            StorageMethod::Variable(Ident::new_static("var2")),
                             vec![]
                         )),
                         Condition::CalculatedValue(CalculatedValue::new(
-                            StorageMethod::Variable("var3"),
+                            StorageMethod::Variable(Ident::new_static("var3")),
                             vec![]
                         ))
                     ])
@@ -1006,10 +1026,11 @@ mod tests {
 
     #[cfg(feature = "assign")]
     mod assign {
+        use crate::value::ident::Ident;
         use crate::{
             parser::{parse_assign, Parser, Rule, TemplateParser},
             template::{Assign, CalculatedValue},
-            value::{Value, StorageMethod},
+            value::{StorageMethod, Value},
         };
 
         //r#"{my_var = "test"|modifier:arg}"#,
@@ -1025,7 +1046,7 @@ mod tests {
             assert_eq!(
                 assign,
                 Assign::new(
-                    "my_var",
+                    Ident::new_static("my_var"),
                     CalculatedValue::new(StorageMethod::Const(Value::Number(12.)), vec![])
                 )
             )
@@ -1034,13 +1055,14 @@ mod tests {
 
     #[cfg(feature = "loop")]
     mod while_loop {
+        use crate::value::ident::Ident;
         use crate::{
             parser::{Parser, Rule, TemplateParser},
             template::{
                 condition::{CompareCondition, CompareOperator, Condition},
                 CalculatedValue, Loop, Statement,
             },
-            value::{Value, StorageMethod},
+            value::{StorageMethod, Value},
         };
 
         #[test]
@@ -1056,7 +1078,10 @@ mod tests {
                 l,
                 Loop::new(
                     Condition::Compare(CompareCondition {
-                        left: CalculatedValue::new(StorageMethod::Variable("var"), vec![]),
+                        left: CalculatedValue::new(
+                            StorageMethod::Variable(Ident::new_static("var")),
+                            vec![]
+                        ),
                         operator: CompareOperator::EQ,
                         right: CalculatedValue::new(
                             StorageMethod::Const(Value::Number(0.)),
@@ -1243,9 +1268,15 @@ mod legacy_tests {
         assert_eq!(
             vec![
                 Statement::Literal("Simple more " as *const _),
-                Statement::Calculated(CalculatedValue::new(StorageMethod::Variable("var"), vec![])),
+                Statement::Calculated(CalculatedValue::new(
+                    StorageMethod::Variable(Ident::new_static("var")),
+                    vec![]
+                )),
                 Statement::Literal(" template " as *const _),
-                Statement::Calculated(CalculatedValue::new(StorageMethod::Variable("foo"), vec![]))
+                Statement::Calculated(CalculatedValue::new(
+                    StorageMethod::Variable(Ident::new_static("foo")),
+                    vec![]
+                ))
             ],
             tpl.tpl
         )
@@ -1258,7 +1289,7 @@ mod legacy_tests {
             vec![
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![("test" as *const _, vec![])]
                 )),
                 Statement::Literal(" template" as *const _)
@@ -1274,7 +1305,7 @@ mod legacy_tests {
             vec![
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![(
                         "test" as *const _,
                         vec![StorageMethod::Const(Value::String(
@@ -1295,7 +1326,7 @@ mod legacy_tests {
             vec![
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
+                    StorageMethod::Variable(Ident::new_static("var")),
                     vec![(
                         "test" as *const _,
                         vec![StorageMethod::Const(Value::Number(42_f64))]
@@ -1314,8 +1345,11 @@ mod legacy_tests {
             vec![
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Variable("var"),
-                    vec![("test" as *const _, vec![StorageMethod::Variable("foobar")])]
+                    StorageMethod::Variable(Ident::new_static("var")),
+                    vec![(
+                        "test" as *const _,
+                        vec![StorageMethod::Variable(Ident::new_static("foobar"))]
+                    )]
                 )),
                 Statement::Literal(" template" as *const _)
             ],
