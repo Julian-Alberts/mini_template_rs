@@ -11,8 +11,6 @@ mod value_container;
 
 #[macro_use]
 extern crate pest_derive;
-#[macro_use]
-extern crate log;
 
 use modifier::Modifier;
 use parser::{parse, ParseError};

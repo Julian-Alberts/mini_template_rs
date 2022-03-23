@@ -1,5 +1,6 @@
 use crate::value::ident::ResolvedIdent;
 use std::fmt::Display;
+use crate::template::UnknownModifierError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -7,7 +8,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     Modifier(super::modifier::error::Error),
     UnknownVariable(ResolvedIdent),
-    UnknownModifier(String),
+    UnknownModifier(UnknownModifierError),
     UnknownTemplate,
     UnsupportedIdentifier,
 }
@@ -18,15 +19,30 @@ impl<'t> Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Modifier(e) => e.fmt(f),
-            Self::UnknownVariable(ident) => mark_area_in_string(unsafe{ident.span.input.as_ref().unwrap()}, ident.span.start, ident.span.end, f),
-            Self::UnknownModifier(modifier_name) => write!(f, "unknown modifier {}", modifier_name),
+            Self::UnknownVariable(ident) => mark_area_in_string(
+                unsafe { ident.span.input.as_ref().unwrap() },
+                ident.span.start,
+                ident.span.end,
+                f,
+            ),
+            Self::UnknownModifier(modifier) => mark_area_in_string(
+                unsafe { modifier.span.input.as_ref().unwrap() },
+                modifier.span.start,
+                modifier.span.end,
+                f,
+            ),
             Self::UnknownTemplate => write!(f, "unknown template"),
             Self::UnsupportedIdentifier => f.write_str("Tried to access unsupported Identifier"),
         }
     }
 }
 
-fn mark_area_in_string(input: &str, start: usize, end: usize, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn mark_area_in_string(
+    input: &str,
+    start: usize,
+    end: usize,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
     debug_assert!(start < end);
     let start_char_pos = find_char_pos(input, start);
     let end_char_pos = {
@@ -47,7 +63,7 @@ fn mark_area_in_string(input: &str, start: usize, end: usize, f: &mut std::fmt::
             writeln!(f, "{}> {}", num_str, line)?;
 
             if num < start_char_pos.0 && num > end_char_pos.0 {
-                return Ok(())
+                return Ok(());
             }
 
             write!(f, "{}  ", " ".repeat(num_len))?;
@@ -55,8 +71,18 @@ fn mark_area_in_string(input: &str, start: usize, end: usize, f: &mut std::fmt::
             match (num == start_char_pos.0, num == end_char_pos.0) {
                 (false, false) => writeln!(f, "{}", "^".repeat(line.len())),
                 (false, true) => writeln!(f, "{}", "^".repeat(end_char_pos.1)),
-                (true, false) => writeln!(f, "{}{}", " ".repeat(start_char_pos.1), "^".repeat(line.len() - start_char_pos.1)),
-                (true, true) => writeln!(f, "{}{}", " ".repeat(start_char_pos.1), "^".repeat(line.len() - start_char_pos.1 - (end_char_pos.1 - start_char_pos.1))),
+                (true, false) => writeln!(
+                    f,
+                    "{}{}",
+                    " ".repeat(start_char_pos.1),
+                    "^".repeat(line.len() - start_char_pos.1)
+                ),
+                (true, true) => writeln!(
+                    f,
+                    "{}{}",
+                    " ".repeat(start_char_pos.1),
+                    "^".repeat(line.len() - start_char_pos.1 - (end_char_pos.1 - start_char_pos.1))
+                ),
             }
         })
 }
@@ -104,28 +130,28 @@ mod tests {
 
     #[test]
     fn format_string() {
-        let error = super::Error::UnknownVariable(ResolvedIdent{
+        let error = super::Error::UnknownVariable(ResolvedIdent {
             span: Span {
                 end: 7,
                 start: 5,
-                input: "0123456789"
+                input: "0123456789",
             },
             part: Box::new(ResolvedIdentPart::Static("wasd")),
-            next: None
+            next: None,
         });
         assert_eq!(&format!("{}", error), "1> 0123456789\n        ^^^\n")
     }
 
     #[test]
     fn format_string_multiple_lines() {
-        let error = super::Error::UnknownVariable(ResolvedIdent{
+        let error = super::Error::UnknownVariable(ResolvedIdent {
             span: Span {
                 end: 19,
                 start: 14,
-                input: "0123456789\nABCDEFGHIJ\nKLMNOPQRST"
+                input: "0123456789\nABCDEFGHIJ\nKLMNOPQRST",
             },
             part: Box::new(ResolvedIdentPart::Static("wasd")),
-            next: None
+            next: None,
         });
         assert_eq!(&format!("{}", error), "2> ABCDEFGHIJ\n      ^^\n")
     }

@@ -36,6 +36,7 @@ impl Render for Loop {
 mod tests {
     use std::collections::HashMap;
 
+    use crate::template::Modifier;
     use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
@@ -61,7 +62,11 @@ mod tests {
                     Ident::new_static("var"),
                     CalculatedValue::new(
                         StorageMethod::Variable(Ident::new_static("var")),
-                        vec![("sub", vec![StorageMethod::Const(Value::Number(1.))])],
+                        vec![Modifier {
+                            name: "sub",
+                            args: vec![StorageMethod::Const(Value::Number(1.))],
+                            span: Default::default(),
+                        }],
                     ),
                 )),
             ],
@@ -95,7 +100,11 @@ mod tests {
                     Ident::new_static("var"),
                     CalculatedValue::new(
                         StorageMethod::Variable(Ident::new_static("var")),
-                        vec![("sub", vec![StorageMethod::Const(Value::Number(1.))])],
+                        vec![Modifier {
+                            name: "sub",
+                            args: vec![StorageMethod::Const(Value::Number(1.))],
+                            span: Default::default(),
+                        }],
                     ),
                 )),
             ],

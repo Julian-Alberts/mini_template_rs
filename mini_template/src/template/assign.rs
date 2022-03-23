@@ -36,6 +36,7 @@ impl PartialEq for Assign {
 mod tests {
     use std::collections::HashMap;
 
+    use crate::template::Modifier;
     use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
@@ -76,7 +77,11 @@ mod tests {
             Ident::new_static("output"),
             CalculatedValue::new(
                 StorageMethod::Variable(Ident::new_static("input")),
-                vec![("add", vec![StorageMethod::Const(Value::Number(2.))])],
+                vec![Modifier {
+                    name: "add",
+                    args: vec![StorageMethod::Const(Value::Number(2.))],
+                    span: Default::default(),
+                }],
             ),
         );
         assert!(assign.assign(&mut rc).is_ok());

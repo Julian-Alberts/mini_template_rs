@@ -10,6 +10,7 @@ use crate::template::Assign;
 use crate::template::Conditional;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
+use crate::template::Modifier;
 use crate::value::ident::{Ident, IdentPart};
 use crate::{
     template::{CalculatedValue, Statement},
@@ -216,11 +217,14 @@ fn parse_calculated_value(calculated_value: Pair<Rule>) -> Result<CalculatedValu
     Ok(CalculatedValue::new(value, modifiers))
 }
 
-fn parse_modifier(item: Pair<Rule>) -> Result<(*const str, Vec<StorageMethod>), ParseError> {
+fn parse_modifier(item: Pair<Rule>) -> Result<Modifier, ParseError> {
     assert_eq!(item.as_rule(), Rule::modifier);
+    let span = item.as_span().into();
     let mut items = item.into_inner();
     let name = items.next().unwrap().as_str();
-    Ok((name, items.map(parse_argument).collect::<Result<_, _>>()?))
+    let args = items.map(parse_argument).collect::<Result<_, _>>()?;
+
+    Ok(Modifier { name, args, span })
 }
 
 fn parse_argument(argument: Pair<Rule>) -> Result<StorageMethod, ParseError> {
@@ -431,7 +435,7 @@ mod tests {
                 tpl_str: String::from("{var|modifier}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![("modifier", vec![])]
+                    vec![Modifier{name: "modifier", args: vec![], span: Default::default()}]
                 ))]
             }
         )
@@ -449,7 +453,7 @@ mod tests {
                 tpl_str: String::from("{var|modifier1|modifier2}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![("modifier1", vec![]), ("modifier2", vec![])]
+                    vec![Modifier{name: "modifier1", args: vec![], span: Default::default()}, Modifier{name: "modifier2", args: vec![], span: Default::default()}]
                 ))]
             }
         )
@@ -467,10 +471,7 @@ mod tests {
                 tpl_str: String::from("{var|modifier:var2}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![(
-                        "modifier",
-                        vec![StorageMethod::Variable(Ident::new_static("var2"))]
-                    )]
+                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Variable(Ident::new_static("var2"))], span: Default::default()}]
                 ))]
             }
         )
@@ -488,10 +489,7 @@ mod tests {
                 tpl_str: String::from(r#"{var|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![(
-                        "modifier",
-                        vec![StorageMethod::Const(Value::Number(-32.09))]
-                    )]
+                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
                 ))]
             }
         )
@@ -509,7 +507,7 @@ mod tests {
                 tpl_str: String::from(r#"{var|modifier:null}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![("modifier", vec![StorageMethod::Const(Value::Null)])]
+                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Null)], span: Default::default()}]
                 ))]
             }
         )
@@ -527,10 +525,7 @@ mod tests {
                 tpl_str: String::from(r#"{null|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Null),
-                    vec![(
-                        "modifier",
-                        vec![StorageMethod::Const(Value::Number(-32.09))]
-                    )]
+                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
                 ))]
             }
         )
@@ -548,10 +543,7 @@ mod tests {
                 tpl_str: String::from(r#"{10|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Number(10.0)),
-                    vec![(
-                        "modifier",
-                        vec![StorageMethod::Const(Value::Number(-32.09))]
-                    )]
+                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
                 ))]
             }
         )
@@ -569,15 +561,16 @@ mod tests {
                 tpl_str: String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![(
-                        "modifier",
-                        vec![
+                    vec![Modifier {
+                        name: "modifier",
+                        args: vec![
                             StorageMethod::Const(Value::Number(-32.09)),
                             StorageMethod::Const(Value::String(String::from("argument"))),
                             StorageMethod::Variable(Ident::new_static("var2")),
                             StorageMethod::Const(Value::Bool(true))
-                        ]
-                    )]
+                        ],
+                        span: Default::default()
+                    }]
                 ))]
             }
         )
@@ -596,15 +589,16 @@ mod tests {
                 tpl: vec![
                     Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Variable(Ident::new_static("var")),
-                        vec![("modifier", vec![])]
+                        vec![Modifier{name: "modifier", args: vec![], span: Default::default()}]
                     )),
                     Statement::Literal("\n"),
                     Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Const(Value::Number(10.0)),
-                        vec![(
-                            "modifier",
-                            vec![StorageMethod::Const(Value::Number(-32.09))]
-                        )]
+                        vec![Modifier {
+                            name: "modifier",
+                            args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                            span: Default::default()
+                        }]
                     ))
                 ]
             }
@@ -626,10 +620,7 @@ mod tests {
                     Ident::new_static("var"),
                     CalculatedValue::new(
                         StorageMethod::Const(Value::Number(10.0)),
-                        vec![(
-                            "modifier",
-                            vec![StorageMethod::Const(Value::Number(-32.09))]
-                        )]
+                        vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
                     )
                 ))]
             }
@@ -1412,7 +1403,7 @@ mod legacy_tests {
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![("test" as *const _, vec![])]
+                    vec![Modifier{name: "test", args: vec![], span: Default::default()}]
                 )),
                 Statement::Literal(" template" as *const _)
             ],
@@ -1428,12 +1419,13 @@ mod legacy_tests {
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![(
-                        "test" as *const _,
-                        vec![StorageMethod::Const(Value::String(
+                    vec![Modifier {
+                        name: "test",
+                        args: vec![StorageMethod::Const(Value::String(
                             "test value".to_string()
-                        ))]
-                    )]
+                        ))],
+                        span: Default::default()
+                    }]
                 )),
                 Statement::Literal(" template" as *const _)
             ],
@@ -1449,10 +1441,11 @@ mod legacy_tests {
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![(
-                        "test" as *const _,
-                        vec![StorageMethod::Const(Value::Number(42_f64))]
-                    )]
+                    vec![Modifier {
+                        name: "test",
+                        args: vec![StorageMethod::Const(Value::Number(42_f64))],
+                        span: Default::default()
+                    }]
                 )),
                 Statement::Literal(" template" as *const _)
             ],
@@ -1468,10 +1461,11 @@ mod legacy_tests {
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![(
-                        "test" as *const _,
-                        vec![StorageMethod::Variable(Ident::new_static("foobar"))]
-                    )]
+                    vec![Modifier {
+                        name: "test",
+                        args: vec![StorageMethod::Variable(Ident::new_static("foobar"))],
+                        span: Default::default()
+                    }]
                 )),
                 Statement::Literal(" template" as *const _)
             ],

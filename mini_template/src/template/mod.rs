@@ -7,6 +7,7 @@ pub mod condition;
 mod conditional;
 #[cfg(feature = "loop")]
 mod loops;
+mod modifier;
 mod span;
 mod statement;
 
@@ -17,6 +18,7 @@ pub use calculated_value::CalculatedValue;
 pub use conditional::*;
 #[cfg(feature = "loop")]
 pub use loops::Loop;
+pub use modifier::{Modifier, UnknownModifierError};
 pub use span::Span;
 pub use statement::Statement;
 
