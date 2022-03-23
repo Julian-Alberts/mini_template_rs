@@ -329,7 +329,6 @@ name = "mini_template"
 version = "0.2.0"
 dependencies = [
  "criterion",
- "log",
  "mini_template_macro",
  "once_cell",
  "pest",
