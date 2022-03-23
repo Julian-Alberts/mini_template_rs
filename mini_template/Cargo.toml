@@ -1,6 +1,6 @@
 [package]
 name = "mini_template"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Julian Alberts <julian.alberts@ewe.net>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
