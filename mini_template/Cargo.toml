@@ -29,6 +29,7 @@ condition = []
 conditional = [ "condition" ]
 assign = []
 loop = [ "condition", "assign" ]
+dynamic_global_access = []
 default = [ "loop", "assign", "conditional", "regex" ]
 
 [[bench]]

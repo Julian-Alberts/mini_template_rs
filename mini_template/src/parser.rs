@@ -10,7 +10,7 @@ use crate::template::Assign;
 use crate::template::Conditional;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
-use crate::value::ident::Ident;
+use crate::value::ident::{Ident, IdentPart};
 use crate::{
     template::{CalculatedValue, Statement},
     value::{StorageMethod, Value},
@@ -53,7 +53,7 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
 fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseError>> {
     match item.as_rule() {
         Rule::text => Some(Ok(Statement::Literal(item.as_str()))),
-        Rule::calculated => Some(Ok(parse_calculated(item))),
+        Rule::calculated => Some(parse_calculated(item)),
         #[cfg(feature = "conditional")]
         Rule::conditional => Some(parse_conditional(item)),
         #[cfg(not(feature = "conditional"))]
@@ -61,7 +61,13 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
             UnsupportedFeature::Conditional,
         ))),
         #[cfg(feature = "assign")]
-        Rule::assign => Some(Ok(Statement::Assign(parse_assign(item)))),
+        Rule::assign => {
+            let assign = match parse_assign(item) {
+                Ok(a) => a,
+                Err(e) => return Some(Err(e))
+            };
+            Some(Ok(Statement::Assign(assign)))
+        },
         #[cfg(not(feature = "assign"))]
         Rule::assign => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Assign))),
         #[cfg(feature = "loop")]
@@ -82,7 +88,7 @@ fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
     let mut conditional = conditional.into_inner();
 
     let condition = conditional.next().unwrap();
-    let condition = parse_condition(condition);
+    let condition = parse_condition(condition)?;
     let then_case = conditional
         .next()
         .unwrap()
@@ -110,7 +116,7 @@ fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
 }
 
 #[cfg(feature = "condition")]
-fn parse_condition(condition: Pair<Rule>) -> Condition {
+fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
 
@@ -121,9 +127,9 @@ fn parse_condition(condition: Pair<Rule>) -> Condition {
     // At some point no more operators will be found and the function returns
     while let Some(c) = inner.next() {
         let c = match c.as_rule() {
-            Rule::condition => parse_condition(c),
-            Rule::compare_condition => Condition::Compare(parse_compare_condition(c)),
-            Rule::calculated_value => Condition::CalculatedValue(parse_calculated_value(c)),
+            Rule::condition => parse_condition(c)?,
+            Rule::compare_condition => Condition::Compare(parse_compare_condition(c)?),
+            Rule::calculated_value => Condition::CalculatedValue(parse_calculated_value(c)?),
             _ => unreachable!(),
         };
 
@@ -147,16 +153,16 @@ fn parse_condition(condition: Pair<Rule>) -> Condition {
                     let and = Condition::And(AndCondition::new(current_and.take().unwrap()));
                     return if !current_or.is_empty() {
                         current_or.push(and);
-                        Condition::Or(OrCondition::new(current_or))
+                        Ok(Condition::Or(OrCondition::new(current_or)))
                     } else {
-                        and
+                        Ok(and)
                     };
                 }
                 Some(Rule::or_operator) => {
                     current_or.push(c);
-                    return Condition::Or(OrCondition::new(current_or));
+                    return Ok(Condition::Or(OrCondition::new(current_or)));
                 }
-                None => return c,
+                None => return Ok(c),
                 _ => unreachable!(),
             }
         }
@@ -164,24 +170,24 @@ fn parse_condition(condition: Pair<Rule>) -> Condition {
     unreachable!()
 }
 
-fn parse_calculated(calculated: Pair<Rule>) -> Statement {
+fn parse_calculated(calculated: Pair<Rule>) -> Result<Statement, ParseError> {
     assert_eq!(calculated.as_rule(), Rule::calculated);
     let inner = calculated.into_inner().next().unwrap();
-    Statement::Calculated(parse_calculated_value(inner))
+    Ok(Statement::Calculated(parse_calculated_value(inner)?))
 }
 
 #[cfg(feature = "condition")]
-fn parse_compare_condition(compare_condition: Pair<Rule>) -> CompareCondition {
+fn parse_compare_condition(compare_condition: Pair<Rule>) -> Result<CompareCondition, ParseError> {
     assert_eq!(compare_condition.as_rule(), Rule::compare_condition);
     let mut inner = compare_condition.into_inner();
-    let calc_val_l = parse_calculated_value(inner.next().unwrap());
+    let calc_val_l = parse_calculated_value(inner.next().unwrap())?;
     let operator = parse_compare_operator(inner.next().unwrap());
-    let calc_val_r = parse_calculated_value(inner.next().unwrap());
-    CompareCondition {
+    let calc_val_r = parse_calculated_value(inner.next().unwrap())?;
+    Ok(CompareCondition {
         left: calc_val_l,
         operator,
         right: calc_val_r,
-    }
+    })
 }
 
 #[cfg(feature = "condition")]
@@ -199,32 +205,32 @@ fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
     }
 }
 
-fn parse_calculated_value(calculated_value: Pair<Rule>) -> CalculatedValue {
+fn parse_calculated_value(calculated_value: Pair<Rule>) -> Result<CalculatedValue, ParseError> {
     assert_eq!(calculated_value.as_rule(), Rule::calculated_value);
     let mut inner = calculated_value.into_inner();
-    let value = parse_value(inner.next().unwrap());
-    let modifiers = inner.into_iter().map(parse_modifier).collect::<Vec<_>>();
-    CalculatedValue::new(value, modifiers)
+    let value = parse_value(inner.next().unwrap())?;
+    let modifiers = inner.into_iter().map(parse_modifier).collect::<Result<Vec<_>,_>>()?;
+    Ok(CalculatedValue::new(value, modifiers))
 }
 
-fn parse_modifier(item: Pair<Rule>) -> (*const str, Vec<StorageMethod>) {
+fn parse_modifier(item: Pair<Rule>) -> Result<(*const str, Vec<StorageMethod>), ParseError> {
     assert_eq!(item.as_rule(), Rule::modifier);
     let mut items = item.into_inner();
     let name = items.next().unwrap().as_str();
-    (name, items.map(parse_argument).collect())
+    Ok((name, items.map(parse_argument).collect::<Result<_, _>>()?))
 }
 
-fn parse_argument(argument: Pair<Rule>) -> StorageMethod {
+fn parse_argument(argument: Pair<Rule>) -> Result<StorageMethod, ParseError> {
     assert_eq!(argument.as_rule(), Rule::argument);
     let value = argument.into_inner().next().unwrap();
     parse_value(value)
 }
 
-fn parse_value(value: Pair<Rule>) -> StorageMethod {
+fn parse_value(value: Pair<Rule>) -> Result<StorageMethod, ParseError> {
     assert_eq!(value.as_rule(), Rule::value);
     let value = value.into_inner().next().unwrap();
-    match value.as_rule() {
-        Rule::identifier => StorageMethod::Variable(parse_identifier(value)),
+    let value = match value.as_rule() {
+        Rule::identifier => StorageMethod::Variable(parse_identifier(value)?),
         Rule::number => StorageMethod::Const(Value::Number(value.as_str().parse().unwrap())),
         Rule::string => StorageMethod::Const(Value::String(
             value
@@ -244,25 +250,26 @@ fn parse_value(value: Pair<Rule>) -> StorageMethod {
         }
         Rule::null_literal => StorageMethod::Const(Value::Null),
         _ => unreachable!("Unexpected value {:#?}", value),
-    }
+    };
+    Ok(value)
 }
 
 #[cfg(feature = "assign")]
-fn parse_assign(assign: Pair<Rule>) -> Assign {
+fn parse_assign(assign: Pair<Rule>) -> Result<Assign, ParseError> {
     assert_eq!(assign.as_rule(), Rule::assign);
     let mut inner = assign.into_inner();
     let ident = inner.next().unwrap();
     assert_eq!(ident.as_rule(), Rule::identifier);
-    let ident = parse_identifier(ident);
-    let calc_val = parse_calculated_value(inner.next().unwrap());
-    Assign::new(ident, calc_val)
+    let ident = parse_identifier(ident)?;
+    let calc_val = parse_calculated_value(inner.next().unwrap())?;
+    Ok(Assign::new(ident, calc_val))
 }
 
 #[cfg(feature = "loop")]
 fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
     assert_eq!(l.as_rule(), Rule::while_loop);
     let mut inner = l.into_inner();
-    let condition = parse_condition(inner.next().unwrap());
+    let condition = parse_condition(inner.next().unwrap())?;
     let template = inner
         .next()
         .unwrap()
@@ -272,19 +279,55 @@ fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
     Ok(Loop::new(condition, template))
 }
 
-fn parse_identifier(ident: Pair<Rule>) -> Ident {
+fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
     assert_eq!(ident.as_rule(), Rule::identifier);
-    Ident::new_static(ident.as_str())
+    let mut inner = ident.into_inner().rev();
+
+    fn ident_to_part(ident: Pair<Rule>) -> Result<IdentPart, ParseError> {
+        let ident = match ident.as_rule() {
+            Rule::ident_static => IdentPart::Static(ident.as_str()),
+            Rule::ident_dynamic => IdentPart::Dynamic(
+                parse_value(ident.into_inner().next().unwrap())?
+            ),
+            _ => unreachable!()
+        };
+        Ok(ident)
+    }
+
+    let ident = inner.next().unwrap();
+    let ident_part = ident_to_part(ident)?;
+
+    let ident = inner.try_fold(Ident {
+        part: Box::new(ident_part),
+        next: None
+    }, |next, ident| {
+        let ident_part = ident_to_part(ident)?;
+        Ok(Ident {
+            part: Box::new(ident_part),
+            next: Some(Box::new(next))
+        })
+    })?;
+
+    #[cfg(feature = "dynamic_global_access")]
+    return Ok(ident);
+
+    #[cfg(not(feature = "dynamic_global_access"))]
+    if let IdentPart::Dynamic(_) = &*ident.part {
+        Err(ParseError::DisabledFeature(DynamicGlobalAccess))
+    } else {
+        Ok(ident)
+    }
+
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseError {
     Pos((usize, usize)),
     Span((usize, usize), (usize, usize)),
     DisabledFeature(UnsupportedFeature),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UnsupportedFeature {
     #[cfg(not(feature = "assign"))]
     Assign,
@@ -292,6 +335,8 @@ pub enum UnsupportedFeature {
     Conditional,
     #[cfg(not(feature = "loop"))]
     Loop,
+    #[cfg(not(feature = "dynamic_global_access"))]
+    DynamicGlobalAccess,
 }
 
 #[cfg(test)]
@@ -335,7 +380,7 @@ mod tests {
         let item = item.unwrap().next();
         assert!(item.is_some());
         let item = item.unwrap();
-        let statement = parse_calculated(item);
+        let statement = parse_calculated(item).unwrap();
         assert_eq!(
             statement,
             Statement::Calculated(CalculatedValue::new(
@@ -732,6 +777,56 @@ mod tests {
         }
     }
 
+    mod ident {
+        use pest::Parser;
+        use crate::parser::{Rule, TemplateParser};
+        use crate::value::ident::{Ident, IdentPart};
+        use crate::value::StorageMethod;
+
+        #[test]
+        fn simple_ident() {
+            let template = "var";
+            let value = TemplateParser::parse(Rule::identifier, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let value = super::parse_identifier(value).unwrap();
+            assert_eq!(value, Ident::new_static("var"));
+        }
+
+        #[test]
+        fn path_ident() {
+            let template = "var.my";
+            let value = TemplateParser::parse(Rule::identifier, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let value = super::parse_identifier(value).unwrap();
+            assert_eq!(value, Ident {
+                part: Box::new(IdentPart::Static("var")),
+                next: Some(Box::new(Ident::new_static("my")))
+            });
+        }
+
+        #[test]
+        fn path_dynamic() {
+            let template = "var[my]";
+            let value = TemplateParser::parse(Rule::identifier, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let value = super::parse_identifier(value).unwrap();
+            assert_eq!(value, Ident {
+                part: Box::new(IdentPart::Static("var")),
+                next: Some(Box::new(Ident {
+                    part: Box::new(IdentPart::Dynamic(StorageMethod::Variable(Ident::new_static("my")))),
+                    next: None
+                }))
+            });
+        }
+
+    }
+
     mod value {
         use crate::parser::{Rule, TemplateParser};
         use crate::value::Value;
@@ -745,7 +840,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let value = super::parse_value(value);
+            let value = super::parse_value(value).unwrap();
             assert_eq!(value, StorageMethod::Const(Value::Bool(true)));
         }
 
@@ -756,7 +851,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let value = super::parse_value(value);
+            let value = super::parse_value(value).unwrap();
             assert_eq!(value, StorageMethod::Const(Value::Bool(false)));
         }
 
@@ -768,7 +863,7 @@ mod tests {
                     .unwrap()
                     .next()
                     .unwrap();
-                let value = super::parse_value(value);
+                let value = super::parse_value(value).unwrap();
                 assert_eq!(value, StorageMethod::Variable(Ident::new_static(*template)));
             })
         }
@@ -781,7 +876,7 @@ mod tests {
                     .unwrap()
                     .next()
                     .unwrap();
-                let value = super::parse_value(value);
+                let value = super::parse_value(value).unwrap();
                 assert_eq!(
                     value,
                     StorageMethod::Const(Value::Number(template.parse::<f64>().unwrap()))
@@ -801,7 +896,7 @@ mod tests {
                     .unwrap()
                     .next()
                     .unwrap();
-                let value = super::parse_value(value);
+                let value = super::parse_value(value).unwrap();
                 assert_eq!(
                     value,
                     StorageMethod::Const(Value::String((*expected).to_owned()))
@@ -816,7 +911,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let value = super::parse_value(value);
+            let value = super::parse_value(value).unwrap();
             assert_eq!(value, StorageMethod::Const(Value::Null));
         }
     }
@@ -834,7 +929,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::CalculatedValue(CalculatedValue::new(
@@ -851,7 +946,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::Compare(CompareCondition {
@@ -872,7 +967,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::Compare(CompareCondition {
@@ -893,7 +988,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::Or(OrCondition::new(vec![
@@ -923,7 +1018,7 @@ mod tests {
                 .next()
                 .unwrap();
 
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::Or(OrCondition::new(vec![
@@ -947,7 +1042,7 @@ mod tests {
                 .next()
                 .unwrap();
 
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::And(AndCondition::new(vec![
@@ -971,7 +1066,7 @@ mod tests {
                 .next()
                 .unwrap();
 
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::And(AndCondition::new(vec![
@@ -1001,7 +1096,7 @@ mod tests {
                 .next()
                 .unwrap();
 
-            let condition = super::parse_condition(condition);
+            let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
                 Condition::or(vec![
@@ -1042,7 +1137,7 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let assign = parse_assign(assign);
+            let assign = parse_assign(assign).unwrap();
             assert_eq!(
                 assign,
                 Assign::new(
@@ -1102,7 +1197,7 @@ mod pest_tests {
 
     const NUMBER_CASES: [&str; 5] = ["42", "42.0", "0.815", "-0.815", "+0.815"];
 
-    const IDENTIFIER_CASES: [&str; 3] = ["onlylowercase", "camelCase", "snail_case"];
+    const IDENTIFIER_CASES: [&str; 5] = ["onlylowercase", "camelCase", "snail_case", "var[0]", "test[dyn]"];
 
     const INNER_STRING_CASES: [&str; 4] = [
         "Hello world",

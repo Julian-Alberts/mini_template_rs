@@ -3,7 +3,15 @@ modifier = {"|" ~ identifier ~ argument*}
 argument = { ":" ~ value }
 calculated = {!"\\" ~ "{" ~ calculated_value ~ "}"}
 calculated_value = { value ~ modifier* }
-identifier = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
+identifier = {
+    (ident_static|ident_dynamic) ~
+    (
+        ("."~ident_static)|
+        ident_dynamic
+    )*
+}
+ident_static = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
+ident_dynamic = {"[" ~ value ~ "]"}
 text = {(!"{" ~ ("\\{" | ANY))+}
 
 assign = !{"{" ~ identifier ~ "=" ~ calculated_value ~ "}"}

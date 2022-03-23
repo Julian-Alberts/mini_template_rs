@@ -69,6 +69,39 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "dynamic_global_access")]
+    fn dynamic_global_access() {
+        let tpl = String::from("Simple {[foo]} template string");
+        let tpl = parse(tpl).unwrap();
+        let mut variables = HashMap::new();
+        variables.insert("foo".to_owned(), Value::String("my_var".to_owned()));
+        variables.insert("my_var".to_owned(), Value::String("BAR".to_owned()));
+
+        let mut rendered = String::new();
+
+        tpl.render(
+            &mut RenderContext::new(&HashMap::new(), variables),
+            &mut rendered,
+        )
+            .unwrap();
+        assert_eq!(
+            rendered,
+            String::from("Simple BAR template string")
+        );
+    }
+
+    #[test]
+    #[cfg(not(feature = "dynamic_global_access"))]
+    fn dynamic_global_access_disabled() {
+        let tpl = String::from("Simple {[foo]} template string");
+        let tpl = parse(tpl);
+        assert_eq!(
+            tpl,
+            Err(crate::parser::ParseError::DisabledFeature(UnsupportedFeature::DynamicGlobalAccess))
+        );
+    }
+
+    #[test]
     fn modifier() {
         let tpl = String::from("Simple {foo|upper} template string");
         let tpl = parse(tpl).unwrap();
