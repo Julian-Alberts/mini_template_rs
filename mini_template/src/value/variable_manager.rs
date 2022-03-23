@@ -26,7 +26,11 @@ pub trait VariableManager {
             None
         };
 
-        Ok(ResolvedIdent { part, next })
+        Ok(ResolvedIdent {
+            part,
+            next,
+            span: k.span.clone(),
+        })
     }
 }
 

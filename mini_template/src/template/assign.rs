@@ -49,7 +49,8 @@ mod tests {
     #[test]
     fn simple_assign() {
         let mut vars = HashMap::default();
-        vars.set(&Ident::new_static("input"), Value::Number(42.)).unwrap();
+        vars.set(&Ident::new_static("input"), Value::Number(42.))
+            .unwrap();
         let modifiers = HashMap::default();
         let mut rc = RenderContext::new(&modifiers, vars);
 
@@ -64,7 +65,8 @@ mod tests {
     #[test]
     fn assign_calculated() {
         let mut vars = HashMap::default();
-        vars.set(&Ident::new_static("input"), Value::Number(42.)).unwrap();
+        vars.set(&Ident::new_static("input"), Value::Number(42.))
+            .unwrap();
         let mut modifiers = HashMap::new();
         let add_modifier: &crate::modifier::Modifier = &crate::modifier::add;
         modifiers.insert("add", add_modifier);

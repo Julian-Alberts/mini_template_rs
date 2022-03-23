@@ -64,10 +64,10 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
         Rule::assign => {
             let assign = match parse_assign(item) {
                 Ok(a) => a,
-                Err(e) => return Some(Err(e))
+                Err(e) => return Some(Err(e)),
             };
             Some(Ok(Statement::Assign(assign)))
-        },
+        }
         #[cfg(not(feature = "assign"))]
         Rule::assign => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Assign))),
         #[cfg(feature = "loop")]
@@ -209,7 +209,10 @@ fn parse_calculated_value(calculated_value: Pair<Rule>) -> Result<CalculatedValu
     assert_eq!(calculated_value.as_rule(), Rule::calculated_value);
     let mut inner = calculated_value.into_inner();
     let value = parse_value(inner.next().unwrap())?;
-    let modifiers = inner.into_iter().map(parse_modifier).collect::<Result<Vec<_>,_>>()?;
+    let modifiers = inner
+        .into_iter()
+        .map(parse_modifier)
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(CalculatedValue::new(value, modifiers))
 }
 
@@ -281,15 +284,16 @@ fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
 
 fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
     assert_eq!(ident.as_rule(), Rule::identifier);
+    let ident_span = ident.as_span().into();
     let mut inner = ident.into_inner().rev();
 
     fn ident_to_part(ident: Pair<Rule>) -> Result<IdentPart, ParseError> {
         let ident = match ident.as_rule() {
             Rule::ident_static => IdentPart::Static(ident.as_str()),
-            Rule::ident_dynamic => IdentPart::Dynamic(
-                parse_value(ident.into_inner().next().unwrap())?
-            ),
-            _ => unreachable!()
+            Rule::ident_dynamic => {
+                IdentPart::Dynamic(parse_value(ident.into_inner().next().unwrap())?)
+            }
+            _ => unreachable!(),
         };
         Ok(ident)
     }
@@ -297,27 +301,34 @@ fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
     let ident = inner.next().unwrap();
     let ident_part = ident_to_part(ident)?;
 
-    let ident = inner.try_fold(Ident {
-        part: Box::new(ident_part),
-        next: None
-    }, |next, ident| {
-        let ident_part = ident_to_part(ident)?;
-        Ok(Ident {
+    let ident = inner.try_fold(
+        Ident {
             part: Box::new(ident_part),
-            next: Some(Box::new(next))
-        })
-    })?;
+            next: None,
+            span: ident_span,
+        },
+        |next, ident| {
+            let ident_span = ident.as_span().into();
+            let ident_part = ident_to_part(ident)?;
+            Ok(Ident {
+                part: Box::new(ident_part),
+                next: Some(Box::new(next)),
+                span: ident_span,
+            })
+        },
+    )?;
 
     #[cfg(feature = "dynamic_global_access")]
     return Ok(ident);
 
     #[cfg(not(feature = "dynamic_global_access"))]
     if let IdentPart::Dynamic(_) = &*ident.part {
-        Err(ParseError::DisabledFeature(DynamicGlobalAccess))
+        Err(ParseError::DisabledFeature(
+            UnsupportedFeature::DynamicGlobalAccess,
+        ))
     } else {
         Ok(ident)
     }
-
 }
 
 #[derive(Debug, PartialEq)]
@@ -778,10 +789,10 @@ mod tests {
     }
 
     mod ident {
-        use pest::Parser;
         use crate::parser::{Rule, TemplateParser};
         use crate::value::ident::{Ident, IdentPart};
         use crate::value::StorageMethod;
+        use pest::Parser;
 
         #[test]
         fn simple_ident() {
@@ -802,10 +813,14 @@ mod tests {
                 .next()
                 .unwrap();
             let value = super::parse_identifier(value).unwrap();
-            assert_eq!(value, Ident {
-                part: Box::new(IdentPart::Static("var")),
-                next: Some(Box::new(Ident::new_static("my")))
-            });
+            assert_eq!(
+                value,
+                Ident {
+                    part: Box::new(IdentPart::Static("var")),
+                    next: Some(Box::new(Ident::new_static("my"))),
+                    span: Default::default()
+                }
+            );
         }
 
         #[test]
@@ -816,15 +831,21 @@ mod tests {
                 .next()
                 .unwrap();
             let value = super::parse_identifier(value).unwrap();
-            assert_eq!(value, Ident {
-                part: Box::new(IdentPart::Static("var")),
-                next: Some(Box::new(Ident {
-                    part: Box::new(IdentPart::Dynamic(StorageMethod::Variable(Ident::new_static("my")))),
-                    next: None
-                }))
-            });
+            assert_eq!(
+                value,
+                Ident {
+                    part: Box::new(IdentPart::Static("var")),
+                    next: Some(Box::new(Ident {
+                        part: Box::new(IdentPart::Dynamic(StorageMethod::Variable(
+                            Ident::new_static("my")
+                        ))),
+                        next: None,
+                        span: Default::default()
+                    })),
+                    span: Default::default()
+                }
+            );
         }
-
     }
 
     mod value {
@@ -1197,7 +1218,13 @@ mod pest_tests {
 
     const NUMBER_CASES: [&str; 5] = ["42", "42.0", "0.815", "-0.815", "+0.815"];
 
-    const IDENTIFIER_CASES: [&str; 5] = ["onlylowercase", "camelCase", "snail_case", "var[0]", "test[dyn]"];
+    const IDENTIFIER_CASES: [&str; 5] = [
+        "onlylowercase",
+        "camelCase",
+        "snail_case",
+        "var[0]",
+        "test[dyn]",
+    ];
 
     const INNER_STRING_CASES: [&str; 4] = [
         "Hello world",

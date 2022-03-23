@@ -85,10 +85,10 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render<VM: VariableManager>(&self, key: &K, data: VM) -> error::Result<String> {
+    pub fn render<VM: VariableManager>(&self, key: &K, data: VM) -> crate::error::Result<String> {
         let tpl = match self.template.get(key) {
             Some(t) => t,
-            None => return Err(error::Error::UnknownTemplate),
+            None => return Err(crate::error::Error::UnknownTemplate),
         };
         let mut context = RenderContext::new(&self.modifier, data);
         let mut buf = String::new();

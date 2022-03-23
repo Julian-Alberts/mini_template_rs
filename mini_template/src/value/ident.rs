@@ -1,19 +1,29 @@
 use super::StorageMethod;
+use crate::template::Span;
 use crate::value::Value;
 use std::fmt::{Debug, Display, Formatter, Write};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Ident {
     pub next: Option<Box<Ident>>,
     pub part: Box<IdentPart>,
+    pub span: Span,
 }
 
+#[cfg(test)]
 impl Ident {
     pub fn new_static(ident: &str) -> Self {
         Self {
             next: None,
             part: Box::new(IdentPart::Static(ident)),
+            span: Default::default(),
         }
+    }
+}
+
+impl PartialEq for Ident {
+    fn eq(&self, other: &Self) -> bool {
+        self.next == other.next && self.part == other.part
     }
 }
 
@@ -35,10 +45,17 @@ impl PartialEq for IdentPart {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct ResolvedIdent {
     pub next: Option<Box<ResolvedIdent>>,
     pub part: Box<ResolvedIdentPart>,
+    pub span: Span,
+}
+
+impl PartialEq for ResolvedIdent {
+    fn eq(&self, other: &Self) -> bool {
+        self.next == other.next && self.part == other.part
+    }
 }
 
 impl Display for ResolvedIdent {

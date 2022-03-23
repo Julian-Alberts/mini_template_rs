@@ -7,6 +7,7 @@ pub mod condition;
 mod conditional;
 #[cfg(feature = "loop")]
 mod loops;
+mod span;
 mod statement;
 
 #[cfg(feature = "assign")]
@@ -16,6 +17,7 @@ pub use calculated_value::CalculatedValue;
 pub use conditional::*;
 #[cfg(feature = "loop")]
 pub use loops::Loop;
+pub use span::Span;
 pub use statement::Statement;
 
 use crate::{error::Result, renderer::RenderContext, value::VariableManager};

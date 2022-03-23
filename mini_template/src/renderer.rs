@@ -20,6 +20,7 @@ impl<'a, VM: VariableManager> RenderContext<'a, VM> {
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::UnsupportedFeature;
     use crate::{
         modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
     };
@@ -83,11 +84,8 @@ mod tests {
             &mut RenderContext::new(&HashMap::new(), variables),
             &mut rendered,
         )
-            .unwrap();
-        assert_eq!(
-            rendered,
-            String::from("Simple BAR template string")
-        );
+        .unwrap();
+        assert_eq!(rendered, String::from("Simple BAR template string"));
     }
 
     #[test]
@@ -97,7 +95,9 @@ mod tests {
         let tpl = parse(tpl);
         assert_eq!(
             tpl,
-            Err(crate::parser::ParseError::DisabledFeature(UnsupportedFeature::DynamicGlobalAccess))
+            Err(crate::parser::ParseError::DisabledFeature(
+                UnsupportedFeature::DynamicGlobalAccess
+            ))
         );
     }
 
