@@ -1,6 +1,6 @@
+use crate::template::UnknownModifierError;
 use crate::value::ident::ResolvedIdent;
 use std::fmt::Display;
-use crate::template::UnknownModifierError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

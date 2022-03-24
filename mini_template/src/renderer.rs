@@ -1,3 +1,4 @@
+use crate::Template;
 use std::collections::HashMap;
 
 use crate::value::VariableManager;
@@ -7,13 +8,19 @@ use super::modifier::Modifier;
 pub struct RenderContext<'a, VM: VariableManager> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
     pub variables: VM,
+    pub templates: &'a HashMap<u64, Template>,
 }
 
 impl<'a, VM: VariableManager> RenderContext<'a, VM> {
-    pub fn new(modifier: &'a HashMap<&'static str, &'a Modifier>, variables: VM) -> Self {
+    pub fn new(
+        modifier: &'a HashMap<&'static str, &'a Modifier>,
+        variables: VM,
+        templates: &'a HashMap<u64, Template>,
+    ) -> Self {
         Self {
             modifier,
             variables,
+            templates,
         }
     }
 }
@@ -43,7 +50,7 @@ mod tests {
         let tpl = parse(tpl).unwrap();
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&HashMap::new(), HashMap::new()),
+            &mut RenderContext::new(&HashMap::new(), HashMap::new(), &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -59,7 +66,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &mut RenderContext::new(&HashMap::new(), variables),
+            &mut RenderContext::new(&HashMap::new(), variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -81,7 +88,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &mut RenderContext::new(&HashMap::new(), variables),
+            &mut RenderContext::new(&HashMap::new(), variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -114,7 +121,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables),
+            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -137,7 +144,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables),
+            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -161,7 +168,7 @@ mod tests {
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables),
+            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -187,7 +194,7 @@ Baz"#,
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables),
+            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -206,7 +213,7 @@ Baz"#,
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables),
+            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -225,7 +232,7 @@ Baz"#,
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables),
+            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();
@@ -235,7 +242,7 @@ Baz"#,
         variables.insert("var1".to_owned(), Value::Bool(false));
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables),
+            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
         .unwrap();

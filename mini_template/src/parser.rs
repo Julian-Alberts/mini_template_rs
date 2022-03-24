@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use pest::{error::LineColLocation, iterators::Pair, Parser};
+use std::fmt::{Display, Formatter};
 
 #[cfg(feature = "condition")]
 use crate::template::condition::{
@@ -9,11 +9,18 @@ use crate::template::condition::{
 use crate::template::Assign;
 #[cfg(feature = "conditional")]
 use crate::template::Conditional;
+#[cfg(feature = "include")]
+use crate::template::Include;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
 use crate::template::Modifier;
 use crate::value::ident::{Ident, IdentPart};
-use crate::{template::{CalculatedValue, Statement}, value::{StorageMethod, Value}, Template, util};
+use crate::{
+    template::{CalculatedValue, Statement},
+    util,
+    value::{StorageMethod, Value},
+    Template,
+};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Parser)]
@@ -57,6 +64,18 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
         #[cfg(not(feature = "conditional"))]
         Rule::conditional => Some(Err(ParseError::DisabledFeature(
             UnsupportedFeature::Conditional,
+        ))),
+        #[cfg(feature = "include")]
+        Rule::include => {
+            let i = match parse_include(item) {
+                Ok(i) => i,
+                Err(e) => return Some(Err(e)),
+            };
+            Some(Ok(Statement::Include(i)))
+        }
+        #[cfg(not(feature = "include"))]
+        Rule::conditional => Some(Err(ParseError::DisabledFeature(
+            UnsupportedFeature::Include,
         ))),
         #[cfg(feature = "assign")]
         Rule::assign => {
@@ -269,6 +288,13 @@ fn parse_assign(assign: Pair<Rule>) -> Result<Assign, ParseError> {
     Ok(Assign::new(ident, calc_val))
 }
 
+fn parse_include(include: Pair<Rule>) -> Result<Include, ParseError> {
+    assert_eq!(include.as_rule(), Rule::include);
+    let mut inner = include.into_inner();
+    let template_name = parse_calculated_value(inner.next().unwrap())?;
+    Ok(Include { template_name })
+}
+
 #[cfg(feature = "loop")]
 fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
     assert_eq!(l.as_rule(), Rule::while_loop);
@@ -341,11 +367,12 @@ pub enum ParseError {
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseError::Syntax(start, end, template) => util::mark_between_points(*start, *end, template, f),
-            ParseError::DisabledFeature(u) => write!(f, "{:#?}", u)
+            ParseError::Syntax(start, end, template) => {
+                util::mark_between_points(*start, *end, template, f)
+            }
+            ParseError::DisabledFeature(u) => write!(f, "{:#?}", u),
         }
     }
-
 }
 
 #[derive(Debug, PartialEq)]
@@ -358,6 +385,8 @@ pub enum UnsupportedFeature {
     Loop,
     #[cfg(not(feature = "dynamic_global_access"))]
     DynamicGlobalAccess,
+    #[cfg(not(feature = "include"))]
+    Include,
 }
 
 #[cfg(test)]
@@ -441,7 +470,11 @@ mod tests {
                 tpl_str: String::from("{var|modifier}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![Modifier{name: "modifier", args: vec![], span: Default::default()}]
+                    vec![Modifier {
+                        name: "modifier",
+                        args: vec![],
+                        span: Default::default()
+                    }]
                 ))]
             }
         )
@@ -459,7 +492,18 @@ mod tests {
                 tpl_str: String::from("{var|modifier1|modifier2}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![Modifier{name: "modifier1", args: vec![], span: Default::default()}, Modifier{name: "modifier2", args: vec![], span: Default::default()}]
+                    vec![
+                        Modifier {
+                            name: "modifier1",
+                            args: vec![],
+                            span: Default::default()
+                        },
+                        Modifier {
+                            name: "modifier2",
+                            args: vec![],
+                            span: Default::default()
+                        }
+                    ]
                 ))]
             }
         )
@@ -477,7 +521,11 @@ mod tests {
                 tpl_str: String::from("{var|modifier:var2}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Variable(Ident::new_static("var2"))], span: Default::default()}]
+                    vec![Modifier {
+                        name: "modifier",
+                        args: vec![StorageMethod::Variable(Ident::new_static("var2"))],
+                        span: Default::default()
+                    }]
                 ))]
             }
         )
@@ -495,7 +543,11 @@ mod tests {
                 tpl_str: String::from(r#"{var|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
+                    vec![Modifier {
+                        name: "modifier",
+                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        span: Default::default()
+                    }]
                 ))]
             }
         )
@@ -513,7 +565,11 @@ mod tests {
                 tpl_str: String::from(r#"{var|modifier:null}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Null)], span: Default::default()}]
+                    vec![Modifier {
+                        name: "modifier",
+                        args: vec![StorageMethod::Const(Value::Null)],
+                        span: Default::default()
+                    }]
                 ))]
             }
         )
@@ -531,7 +587,11 @@ mod tests {
                 tpl_str: String::from(r#"{null|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Null),
-                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
+                    vec![Modifier {
+                        name: "modifier",
+                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        span: Default::default()
+                    }]
                 ))]
             }
         )
@@ -549,7 +609,11 @@ mod tests {
                 tpl_str: String::from(r#"{10|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Number(10.0)),
-                    vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
+                    vec![Modifier {
+                        name: "modifier",
+                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        span: Default::default()
+                    }]
                 ))]
             }
         )
@@ -595,7 +659,11 @@ mod tests {
                 tpl: vec![
                     Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Variable(Ident::new_static("var")),
-                        vec![Modifier{name: "modifier", args: vec![], span: Default::default()}]
+                        vec![Modifier {
+                            name: "modifier",
+                            args: vec![],
+                            span: Default::default()
+                        }]
                     )),
                     Statement::Literal("\n"),
                     Statement::Calculated(CalculatedValue::new(
@@ -626,7 +694,11 @@ mod tests {
                     Ident::new_static("var"),
                     CalculatedValue::new(
                         StorageMethod::Const(Value::Number(10.0)),
-                        vec![Modifier{name: "modifier", args: vec![StorageMethod::Const(Value::Number(-32.09))], span: Default::default()}]
+                        vec![Modifier {
+                            name: "modifier",
+                            args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                            span: Default::default()
+                        }]
                     )
                 ))]
             }
@@ -931,6 +1003,57 @@ mod tests {
                 .unwrap();
             let value = super::parse_value(value).unwrap();
             assert_eq!(value, StorageMethod::Const(Value::Null));
+        }
+    }
+
+    #[cfg(feature = "include")]
+    mod include {
+        use crate::parser::{Rule, TemplateParser};
+        use crate::template::{CalculatedValue, Include, Modifier, Span};
+        use crate::value::ident::Ident;
+        use crate::value::{StorageMethod, Value};
+        use pest::Parser;
+
+        #[test]
+        fn parse_include_string() {
+            let template = "{include \"template_name\"}";
+            let include = TemplateParser::parse(Rule::include, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let include = super::parse_include(include).unwrap();
+            assert_eq!(
+                include,
+                Include {
+                    template_name: CalculatedValue::new(
+                        StorageMethod::Const(Value::String("template_name".to_owned())),
+                        vec![]
+                    )
+                }
+            )
+        }
+
+        #[test]
+        fn parse_include_modifier() {
+            let template = "{include template_name|modifier}";
+            let include = TemplateParser::parse(Rule::include, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let include = super::parse_include(include).unwrap();
+            assert_eq!(
+                include,
+                Include {
+                    template_name: CalculatedValue::new(
+                        StorageMethod::Variable(Ident::new_static("template_name")),
+                        vec![Modifier {
+                            name: "modifier",
+                            args: vec![],
+                            span: Span::default()
+                        }]
+                    )
+                }
+            )
         }
     }
 
@@ -1355,6 +1478,18 @@ mod pest_tests {
         )
     }
 
+    #[test]
+    fn test_include() {
+        test_cases(
+            &[
+                "{include \"string\"}",
+                "{ include var }",
+                "{include  1|modifier:arg1:arg2}",
+            ],
+            Rule::include,
+        )
+    }
+
     fn test_cases(cases: &[&str], rule: Rule) {
         cases.iter().for_each(|input| {
             let parsed = TemplateParser::parse(rule, input);
@@ -1409,7 +1544,11 @@ mod legacy_tests {
                 Statement::Literal("Simple " as *const _),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
-                    vec![Modifier{name: "test", args: vec![], span: Default::default()}]
+                    vec![Modifier {
+                        name: "test",
+                        args: vec![],
+                        span: Default::default()
+                    }]
                 )),
                 Statement::Literal(" template" as *const _)
             ],

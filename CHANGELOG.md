@@ -5,6 +5,7 @@
 * Added `Option` support for modifiers
 * Added `null` literal
 * Added `span` to some types
+* Added `ìnclude` statement
 
 ### Changes
 * Modifiers now support unnamed arguments
@@ -12,8 +13,9 @@
 * Removed unused log dependency
 * Improved error reporting
 
-### Depricated
+### Deprecated
 * `defaults::` attributes for `create_modifier` are depricated and will be removed in a future version
 
 ### Internal
 * Rewrote entire identifier code to support multipart modifiers
+* Templates are now indexed by hashes

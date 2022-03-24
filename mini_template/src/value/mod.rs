@@ -6,6 +6,7 @@ pub use storage_method::StorageMethod;
 pub use variable_manager::VariableManager;
 
 use std::convert::TryFrom;
+use std::hash::{Hash, Hasher};
 
 /// Values are used as variables inside a template.
 #[derive(Debug, Clone)]
@@ -18,6 +19,17 @@ pub enum Value {
     Bool(bool),
     /// Null value
     Null,
+}
+
+impl Hash for Value {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Value::String(s) => s.hash(state),
+            Value::Number(n) => n.to_bits().hash(state),
+            Value::Bool(b) => b.hash(state),
+            Value::Null => {}
+        }
+    }
 }
 
 impl Value {

@@ -75,9 +75,11 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
+        let templates = HashMap::new();
         let mut ctx = RenderContext::new(
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(1.))]),
+            &templates,
         );
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
@@ -113,9 +115,11 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
+        let templates = HashMap::new();
         let mut ctx = RenderContext::new(
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
+            &templates,
         );
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
@@ -133,9 +137,11 @@ mod tests {
         );
 
         let modifiers = HashMap::new();
+        let templates = HashMap::new();
         let mut ctx = RenderContext::new(
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
+            &templates,
         );
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());

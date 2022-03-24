@@ -16,6 +16,8 @@ extern crate pest_derive;
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::RenderContext;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
 use std::{collections::HashMap, hash::Hash};
 use template::{Render, Template};
 use value::VariableManager;
@@ -24,12 +26,12 @@ use value::VariableManager;
 ///
 /// A MiniTemplate instance is used to parse, save and render templates.
 #[derive(Default)]
-pub struct MiniTemplate<K: Eq + Hash> {
+pub struct MiniTemplate {
     modifier: HashMap<&'static str, &'static Modifier>,
-    template: HashMap<K, Template>,
+    template: HashMap<u64, Template>,
 }
 
-impl<K: Eq + Hash> MiniTemplate<K> {
+impl MiniTemplate {
     /// Creates a new instance.
     /// Use [`MiniTemplate::default`] instead.
     #[deprecated]
@@ -72,8 +74,15 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     }
 
     /// Register a new Template for a give key
-    pub fn add_template(&mut self, key: K, tpl: String) -> Result<Option<Template>, ParseError> {
+    pub fn add_template<K: Eq + Hash>(
+        &mut self,
+        key: K,
+        tpl: String,
+    ) -> Result<Option<Template>, ParseError> {
         let tpl = parse(tpl)?;
+        let mut hasher = DefaultHasher::new();
+        key.hash(&mut hasher);
+        let key = hasher.finish();
         Ok(self.template.insert(key, tpl))
     }
 
@@ -84,12 +93,19 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render<VM: VariableManager>(&self, key: &K, data: VM) -> crate::error::Result<String> {
-        let tpl = match self.template.get(key) {
+    pub fn render<VM: VariableManager, K: Eq + Hash>(
+        &self,
+        key: &K,
+        data: VM,
+    ) -> crate::error::Result<String> {
+        let mut hasher = DefaultHasher::new();
+        key.hash(&mut hasher);
+        let key = hasher.finish();
+        let tpl = match self.template.get(&key) {
             Some(t) => t,
             None => return Err(crate::error::Error::UnknownTemplate),
         };
-        let mut context = RenderContext::new(&self.modifier, data);
+        let mut context = RenderContext::new(&self.modifier, data, &self.template);
         let mut buf = String::new();
         tpl.render(&mut context, &mut buf)?;
         Ok(buf)

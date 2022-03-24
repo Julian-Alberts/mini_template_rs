@@ -16,7 +16,12 @@ pub fn mark_area_in_string(
     mark_between_points(start_char_pos, end_char_pos, input, f)
 }
 
-pub fn mark_between_points(start_char_pos: (usize, usize), end_char_pos: (usize, usize), input: &str, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+pub fn mark_between_points(
+    start_char_pos: (usize, usize),
+    end_char_pos: (usize, usize),
+    input: &str,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
     input
         .lines()
         .enumerate()

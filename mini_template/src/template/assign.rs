@@ -53,7 +53,8 @@ mod tests {
         vars.set(&Ident::new_static("input"), Value::Number(42.))
             .unwrap();
         let modifiers = HashMap::default();
-        let mut rc = RenderContext::new(&modifiers, vars);
+        let templates = HashMap::new();
+        let mut rc = RenderContext::new(&modifiers, vars, &templates);
 
         let assign = Assign::new(
             Ident::new_static("output"),
@@ -71,7 +72,8 @@ mod tests {
         let mut modifiers = HashMap::new();
         let add_modifier: &crate::modifier::Modifier = &crate::modifier::add;
         modifiers.insert("add", add_modifier);
-        let mut rc = RenderContext::new(&modifiers, vars);
+        let templates = HashMap::new();
+        let mut rc = RenderContext::new(&modifiers, vars, &templates);
 
         let assign = Assign::new(
             Ident::new_static("output"),

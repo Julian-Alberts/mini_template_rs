@@ -21,12 +21,10 @@ impl Modifier {
             *context
                 .modifier
                 .get(modifier_name)
-                .ok_or(crate::error::Error::UnknownModifier(
-                    UnknownModifierError{
-                        name: modifier_name.to_string(),
-                        span: self.span.clone()
-                    }
-                ))?;
+                .ok_or(crate::error::Error::UnknownModifier(UnknownModifierError {
+                    name: modifier_name.to_string(),
+                    span: self.span.clone(),
+                }))?;
 
         let args = storage_methods_to_values(&self.args, &context.variables)?;
         match modifier(value, args) {
@@ -45,14 +43,13 @@ impl PartialEq for Modifier {
 #[derive(Debug)]
 pub struct UnknownModifierError {
     pub name: String,
-    pub span: Span
+    pub span: Span,
 }
 
 impl PartialEq for UnknownModifierError {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
-
 }
 
 fn storage_methods_to_values<'a>(

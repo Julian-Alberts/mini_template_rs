@@ -5,6 +5,8 @@ mod calculated_value;
 pub mod condition;
 #[cfg(feature = "conditional")]
 mod conditional;
+#[cfg(feature = "include")]
+mod include;
 #[cfg(feature = "loop")]
 mod loops;
 mod modifier;
@@ -16,6 +18,8 @@ pub use assign::Assign;
 pub use calculated_value::CalculatedValue;
 #[cfg(feature = "conditional")]
 pub use conditional::*;
+#[cfg(feature = "include")]
+pub use include::Include;
 #[cfg(feature = "loop")]
 pub use loops::Loop;
 pub use modifier::{Modifier, UnknownModifierError};
@@ -69,6 +73,8 @@ impl Render for Vec<Statement> {
                 Statement::Assign(a) => a.assign(context)?,
                 #[cfg(feature = "loop")]
                 Statement::Loop(l) => l.render(context, buf)?,
+                #[cfg(feature = "include")]
+                Statement::Include(i) => i.render(context, buf)?,
             }
         }
 

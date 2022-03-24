@@ -5,6 +5,7 @@ use super::CalculatedValue;
 use super::Conditional;
 #[cfg(feature = "loop")]
 use super::Loop;
+use crate::template::Include;
 
 #[derive(Debug)]
 pub enum Statement {
@@ -16,6 +17,7 @@ pub enum Statement {
     Assign(Assign),
     #[cfg(feature = "loop")]
     Loop(Loop),
+    Include(Include),
 }
 
 impl PartialEq for Statement {
