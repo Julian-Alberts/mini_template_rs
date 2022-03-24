@@ -10,6 +10,7 @@
 * Modifiers now support unnamed arguments
 * Some errors give better error messages
 * Removed unused log dependency
+* Improved error reporting
 
 ### Depricated
 * `defaults::` attributes for `create_modifier` are depricated and will be removed in a future version

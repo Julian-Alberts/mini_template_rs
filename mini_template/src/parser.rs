@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use pest::{error::LineColLocation, iterators::Pair, Parser};
 
 #[cfg(feature = "condition")]
@@ -12,11 +13,7 @@ use crate::template::Conditional;
 use crate::template::Loop;
 use crate::template::Modifier;
 use crate::value::ident::{Ident, IdentPart};
-use crate::{
-    template::{CalculatedValue, Statement},
-    value::{StorageMethod, Value},
-    Template,
-};
+use crate::{template::{CalculatedValue, Statement}, value::{StorageMethod, Value}, Template, util};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Parser)]
@@ -32,10 +29,10 @@ pub fn parse(input: String) -> Result<Template, ParseError> {
         Ok(t) => t,
         Err(e) => match e.line_col {
             LineColLocation::Pos(pos) => {
-                return Err(ParseError::Pos(pos));
+                return Err(ParseError::Syntax(pos, pos, compiled_template.tpl_str));
             }
             LineColLocation::Span(start, end) => {
-                return Err(ParseError::Span(start, end));
+                return Err(ParseError::Syntax(start, end, compiled_template.tpl_str));
             }
         },
     }
@@ -337,9 +334,18 @@ fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
 
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
-    Pos((usize, usize)),
-    Span((usize, usize), (usize, usize)),
+    Syntax((usize, usize), (usize, usize), String),
     DisabledFeature(UnsupportedFeature),
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseError::Syntax(start, end, template) => util::mark_between_points(*start, *end, template, f),
+            ParseError::DisabledFeature(u) => write!(f, "{:#?}", u)
+        }
+    }
+
 }
 
 #[derive(Debug, PartialEq)]
