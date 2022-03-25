@@ -1,0 +1,8 @@
+[book]
+authors = ["Julian Alberts"]
+language = "en"
+multilingual = false
+src = "src"
+title = "mini_template"
+[build]
+build-dir = "../docs"
