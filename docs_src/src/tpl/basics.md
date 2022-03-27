@@ -1,4 +1,4 @@
-# Basic Syntax
+# Basics
 Every mini_template instruction is contained inside a pair of opening 
 and closing brackets. 
 

@@ -147,3 +147,17 @@ Subtracts two numbers
 |    b     |   Number    | Number |    -    |    No    |
 
 Returns Number
+
+## upper
+| since | requires feature |  default feature  |
+|-------|:----------------:|:-----------------:|
+| 0.1.0 |        -         |        yes        |
+
+Converts a string to upper case
+### Arguments
+| argument | description |  type  | Default | Nullable |
+|:--------:|:-----------:|:------:|:-------:|:--------:|
+|  input   |   String    | String |    -    |    No    |
+
+
+Returns String

@@ -1,11 +1,11 @@
 # Summary
 [Introduction](./introduction.md)
 # Templates
-- [Basic Syntax](tpl/basic_syntax.md)
+- [Basics](tpl/basics.md)
 - [Modifiers](tpl/modifier.md)
   - [Default Modifiers](tpl/modifier_default.md)
 - [Assign](tpl/assign.md)
-- [Condition](tpl/condition.md)
+- [Conditional](tpl/conditional.md)
 - [Loop](tpl/loop.md)
 - [Include](tpl/include.md)
 
