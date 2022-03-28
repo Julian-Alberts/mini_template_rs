@@ -20,6 +20,7 @@ use renderer::RenderContext;
 use std::marker::PhantomData;
 use std::{collections::HashMap, hash::Hash};
 use template::{Render, Template};
+pub use template_key::TemplateKey;
 use value::VariableManager;
 
 /// A Storage for Templates
@@ -102,21 +103,22 @@ where
 }
 
 #[cfg(feature = "include")]
-pub trait TemplateKey:
-    Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError>
-{
+mod template_key {
+    use std::hash::Hash;
+
+    pub trait TemplateKey:
+        Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError>
+    {
+    }
+
+    impl <T> TemplateKey for T where T: Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError> {}
+
 }
 #[cfg(not(feature = "include"))]
-pub trait TemplateKey: Hash + Eq + TryFrom<crate::value::Value> {}
+mod template_key {
+    use std::hash::Hash;
 
-impl TemplateKey for String {}
-impl TemplateKey for u8 {}
-impl TemplateKey for i8 {}
-impl TemplateKey for u16 {}
-impl TemplateKey for i16 {}
-impl TemplateKey for u32 {}
-impl TemplateKey for i32 {}
-impl TemplateKey for u64 {}
-impl TemplateKey for i64 {}
-impl TemplateKey for usize {}
-impl TemplateKey for isize {}
+    pub trait TemplateKey: Hash + Eq {}
+
+    impl <T> TemplateKey for T where T: Hash + Eq {}
+}
