@@ -1,6 +1,6 @@
 use crate::template::Span;
 use crate::value::{StorageMethod, Value};
-use crate::{RenderContext, VariableManager};
+use crate::{RenderContext, TemplateKey, VariableManager};
 
 #[derive(Debug)]
 pub struct Modifier {
@@ -10,11 +10,14 @@ pub struct Modifier {
 }
 
 impl Modifier {
-    pub fn eval<VM: VariableManager>(
+    pub fn eval<VM: VariableManager, TK>(
         &self,
         value: &Value,
-        context: &RenderContext<VM>,
-    ) -> crate::error::Result<Value> {
+        context: &RenderContext<VM, TK>,
+    ) -> crate::error::Result<Value>
+    where
+        TK: TemplateKey,
+    {
         // Safety: modifier_name points to tpl.tpl_str and should never be null
         let modifier_name = unsafe { self.name.as_ref().unwrap() };
         let modifier =

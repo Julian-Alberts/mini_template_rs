@@ -1,12 +1,12 @@
 pub mod ident;
 mod storage_method;
+mod traits;
 mod variable_manager;
 
 pub use storage_method::StorageMethod;
 pub use variable_manager::VariableManager;
 
 use std::convert::TryFrom;
-use std::hash::{Hash, Hasher};
 
 /// Values are used as variables inside a template.
 #[derive(Debug, Clone)]
@@ -19,17 +19,6 @@ pub enum Value {
     Bool(bool),
     /// Null value
     Null,
-}
-
-impl Hash for Value {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Value::String(s) => s.hash(state),
-            Value::Number(n) => n.to_bits().hash(state),
-            Value::Bool(b) => b.hash(state),
-            Value::Null => {}
-        }
-    }
 }
 
 impl Value {
@@ -56,6 +45,8 @@ impl PartialEq for Value {
             (Self::Number(s), Self::String(o)) => &s.to_string() == o,
             (Self::Null, Self::Null) => true,
             (Self::Null, _) | (_, Self::Null) => false,
+            //(Self::Object(s), Self::Object(o)) => s == o
+            _ => false,
         }
     }
 }
@@ -158,70 +149,3 @@ impl ToString for Value {
         }
     }
 }
-
-impl<'a> TryFrom<&'a Value> for &'a str {
-    type Error = TypeError;
-    fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
-        match value {
-            Value::String(s) => {
-                let s = &s[..];
-                Ok(s)
-            }
-            _ => Err(TypeError {
-                expected_type: stringify!(&str),
-                storage_type: stringify!(String),
-            }),
-        }
-    }
-}
-
-macro_rules! value_impl {
-    ($name: ident => $main_type: ty as [$($type: ty),+]) => {
-        value_impl!($name => $main_type);
-        $(
-            impl TryFrom<&Value> for $type {
-                type Error = TypeError;
-                fn try_from(value: &Value) -> Result<Self, Self::Error> {
-                    match value {
-                        Value::$name(s) => Ok(*s as $type),
-                        _ => Err(TypeError{ expected_type: stringify!($type), storage_type: stringify!($name)})
-                    }
-                }
-            }
-
-            impl From<$type> for Value {
-                fn from(s: $type) -> Self {
-                    Self::$name(s as $main_type)
-                }
-            }
-
-        )+
-    };
-    ($name: ident => $type: ty) => {
-        value_impl!(try_from_type $name => $type);
-        value_impl!(from_value $name => $type);
-    };
-    (try_from_type $name: ident => $type: ty) => {
-        impl TryFrom<&Value> for $type {
-            type Error = TypeError;
-            fn try_from(value: &Value) -> Result<Self, Self::Error> {
-                match value {
-                    Value::$name(s) => Ok(s.clone()),
-                    _ => Err(TypeError{ expected_type: stringify!($type), storage_type: stringify!($name)})
-                }
-            }
-        }
-    };
-    (from_value $name: ident => $type: ty) => {
-        impl From<$type> for Value {
-            fn from(s: $type) -> Self {
-                Self::$name(s)
-            }
-        }
-    }
-
-}
-
-value_impl!(String => String);
-value_impl!(Bool => bool);
-value_impl!(Number => f64 as [isize, i32, usize, u32]);

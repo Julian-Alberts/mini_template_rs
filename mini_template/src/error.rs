@@ -1,6 +1,7 @@
 use crate::template::UnknownModifierError;
 use crate::value::ident::ResolvedIdent;
-use std::fmt::Display;
+use crate::value::TypeError;
+use std::fmt::{write, Display};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -11,6 +12,8 @@ pub enum Error {
     UnknownModifier(UnknownModifierError),
     UnknownTemplate,
     UnsupportedIdentifier,
+    #[cfg(feature = "include")]
+    IncludeError(TypeError),
 }
 
 impl std::error::Error for Error {}
@@ -33,6 +36,11 @@ impl<'t> Display for Error {
             ),
             Self::UnknownTemplate => write!(f, "unknown template"),
             Self::UnsupportedIdentifier => f.write_str("Tried to access unsupported Identifier"),
+            Self::IncludeError(e) => write!(
+                f,
+                "Can not use value of type \"{}\" as template name",
+                e.storage_type
+            ),
         }
     }
 }

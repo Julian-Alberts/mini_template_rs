@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, value::VariableManager};
+use crate::{renderer::RenderContext, value::VariableManager, TemplateKey};
 
 #[cfg(feature = "condition")]
 use super::condition::{Condition, ConditionEval};
@@ -20,11 +20,14 @@ impl Loop {
 }
 
 impl Render for Loop {
-    fn render<VM: VariableManager>(
+    fn render<VM: VariableManager, TK>(
         &self,
-        context: &mut RenderContext<VM>,
+        context: &mut RenderContext<VM, TK>,
         buf: &mut String,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        TK: TemplateKey,
+    {
         while self.condition.eval(context)? {
             self.template.render(context, buf)?
         }
@@ -76,7 +79,7 @@ mod tests {
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
         let templates = HashMap::new();
-        let mut ctx = RenderContext::new(
+        let mut ctx = RenderContext::<_, String>::new(
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(1.))]),
             &templates,
@@ -116,7 +119,7 @@ mod tests {
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
         let templates = HashMap::new();
-        let mut ctx = RenderContext::new(
+        let mut ctx = RenderContext::<_, String>::new(
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
             &templates,
@@ -138,7 +141,7 @@ mod tests {
 
         let modifiers = HashMap::new();
         let templates = HashMap::new();
-        let mut ctx = RenderContext::new(
+        let mut ctx = RenderContext::<_, String>::new(
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
             &templates,

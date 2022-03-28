@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, value::VariableManager};
+use crate::{renderer::RenderContext, value::VariableManager, TemplateKey};
 
 use super::CalculatedValue;
 
@@ -22,7 +22,13 @@ impl Condition {
 }
 
 impl ConditionEval for Condition {
-    fn eval<VM: VariableManager>(&self, context: &RenderContext<VM>) -> crate::error::Result<bool> {
+    fn eval<VM: VariableManager, TK>(
+        &self,
+        context: &RenderContext<VM, TK>,
+    ) -> crate::error::Result<bool>
+    where
+        TK: TemplateKey,
+    {
         match self {
             Self::Or(c) => c.eval(context),
             Self::And(c) => c.eval(context),
@@ -33,7 +39,12 @@ impl ConditionEval for Condition {
 }
 
 pub trait ConditionEval {
-    fn eval<VM: VariableManager>(&self, context: &RenderContext<VM>) -> crate::error::Result<bool>;
+    fn eval<VM: VariableManager, TK>(
+        &self,
+        context: &RenderContext<VM, TK>,
+    ) -> crate::error::Result<bool>
+    where
+        TK: TemplateKey;
 }
 
 #[derive(Debug, PartialEq)]
@@ -48,7 +59,13 @@ impl OrCondition {
 }
 
 impl ConditionEval for OrCondition {
-    fn eval<VM: VariableManager>(&self, context: &RenderContext<VM>) -> crate::error::Result<bool> {
+    fn eval<VM: VariableManager, TK>(
+        &self,
+        context: &RenderContext<VM, TK>,
+    ) -> crate::error::Result<bool>
+    where
+        TK: TemplateKey,
+    {
         for condition in &self.conditions {
             if condition.eval(context)? {
                 return Ok(true);
@@ -70,7 +87,13 @@ impl AndCondition {
 }
 
 impl ConditionEval for AndCondition {
-    fn eval<VM: VariableManager>(&self, context: &RenderContext<VM>) -> crate::error::Result<bool> {
+    fn eval<VM: VariableManager, TK>(
+        &self,
+        context: &RenderContext<VM, TK>,
+    ) -> crate::error::Result<bool>
+    where
+        TK: TemplateKey,
+    {
         for condition in &self.conditions {
             if !condition.eval(context)? {
                 return Ok(false);
@@ -88,7 +111,13 @@ pub struct CompareCondition {
 }
 
 impl ConditionEval for CompareCondition {
-    fn eval<VC: VariableManager>(&self, context: &RenderContext<VC>) -> crate::error::Result<bool> {
+    fn eval<VC: VariableManager, TK>(
+        &self,
+        context: &RenderContext<VC, TK>,
+    ) -> crate::error::Result<bool>
+    where
+        TK: TemplateKey,
+    {
         let left = self.left.calc(context)?;
         let right = self.right.calc(context)?;
         let r = match self.operator {

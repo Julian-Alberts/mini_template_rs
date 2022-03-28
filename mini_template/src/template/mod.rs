@@ -26,7 +26,7 @@ pub use modifier::{Modifier, UnknownModifierError};
 pub use span::Span;
 pub use statement::Statement;
 
-use crate::{error::Result, renderer::RenderContext, value::VariableManager};
+use crate::{error::Result, renderer::RenderContext, value::VariableManager, TemplateKey};
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
@@ -35,29 +35,37 @@ pub struct Template {
 }
 
 impl Render for Template {
-    fn render<VM: VariableManager>(
+    fn render<'a, VM: VariableManager, TK>(
         &self,
-        context: &mut RenderContext<VM>,
+        context: &mut RenderContext<VM, TK>,
         buf: &mut String,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        TK: TemplateKey,
+    {
         self.tpl.render(context, buf)
     }
 }
 
 pub trait Render {
-    fn render<VM: VariableManager>(
+    fn render<VM: VariableManager, TK>(
         &self,
-        context: &mut RenderContext<VM>,
+        context: &mut RenderContext<VM, TK>,
         buf: &mut String,
-    ) -> Result<()>;
+    ) -> Result<()>
+    where
+        TK: TemplateKey;
 }
 
 impl Render for Vec<Statement> {
-    fn render<VM: VariableManager>(
+    fn render<VM: VariableManager, TK>(
         &self,
-        context: &mut RenderContext<VM>,
+        context: &mut RenderContext<VM, TK>,
         buf: &mut String,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        TK: TemplateKey,
+    {
         for statement in self {
             match statement {
                 Statement::Literal(literal) =>

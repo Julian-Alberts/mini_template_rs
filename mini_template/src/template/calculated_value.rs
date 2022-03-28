@@ -4,6 +4,7 @@ use crate::template::modifier::Modifier;
 use crate::{
     renderer::RenderContext,
     value::{StorageMethod, Value, VariableManager},
+    TemplateKey,
 };
 
 #[derive(Debug, PartialEq)]
@@ -17,10 +18,13 @@ impl CalculatedValue {
         Self { value, modifiers }
     }
 
-    pub fn calc<VM: VariableManager>(
+    pub fn calc<VM: VariableManager, TK>(
         &self,
-        context: &RenderContext<VM>,
-    ) -> crate::error::Result<Value> {
+        context: &RenderContext<VM, TK>,
+    ) -> crate::error::Result<Value>
+    where
+        TK: TemplateKey,
+    {
         let mut var = match &self.value {
             StorageMethod::Const(var) => Cow::Borrowed(var),
             StorageMethod::Variable(ident) => {

@@ -1,5 +1,5 @@
 use crate::template::CalculatedValue;
-use crate::{Render, RenderContext, VariableManager};
+use crate::{Render, RenderContext, TemplateKey, VariableManager};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -9,17 +9,21 @@ pub struct Include {
 }
 
 impl Render for Include {
-    fn render<VM: VariableManager>(
+    fn render<'a, VM: VariableManager, TK>(
         &self,
-        context: &mut RenderContext<VM>,
+        context: &mut RenderContext<VM, TK>,
         buf: &mut String,
-    ) -> crate::error::Result<()> {
-        let mut hasher = DefaultHasher::default();
-        self.template_name.calc(context)?.hash(&mut hasher);
-        let hash = hasher.finish();
+    ) -> crate::error::Result<()>
+    where
+        TK: TemplateKey,
+    {
+        let key = match self.template_name.calc(context)?.try_into() {
+            Ok(key) => key,
+            Err(e) => return Err(crate::error::Error::IncludeError(e)),
+        };
         let template = context
             .templates
-            .get(&hash)
+            .get(&key)
             .ok_or(crate::error::Error::UnknownTemplate)?;
         template.render(context, buf)
     }

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{renderer::RenderContext, value::VariableManager};
+use crate::{renderer::RenderContext, value::VariableManager, TemplateKey};
 
 use super::{
     condition::{Condition, ConditionEval},
@@ -15,11 +15,14 @@ pub struct Conditional {
 }
 
 impl Render for Conditional {
-    fn render<VM: VariableManager>(
+    fn render<VM: VariableManager, TK>(
         &self,
-        context: &mut RenderContext<VM>,
+        context: &mut RenderContext<VM, TK>,
         buf: &mut String,
-    ) -> crate::error::Result<()> {
+    ) -> crate::error::Result<()>
+    where
+        TK: TemplateKey,
+    {
         if self.condition.eval(context)? {
             self.then_case.render(context, buf)
         } else {
@@ -53,7 +56,7 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::new(
+            .eval(&RenderContext::<_, String>::new(
                 &HashMap::new(),
                 HashMap::new(),
                 &HashMap::new()
@@ -77,25 +80,41 @@ mod tests {
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(true));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(false));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(true));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(false));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 
@@ -115,25 +134,41 @@ mod tests {
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(true));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(true));
         vars.insert("b".to_owned(), Value::Bool(false));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(true));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("a".to_owned(), Value::Bool(false));
         vars.insert("b".to_owned(), Value::Bool(false));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 
@@ -146,7 +181,11 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 
@@ -159,7 +198,11 @@ mod tests {
             vec![],
         ));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 
@@ -172,7 +215,11 @@ mod tests {
             vec![],
         ));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 
@@ -185,7 +232,11 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 
@@ -198,7 +249,11 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &HashMap::new(),
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 
@@ -227,56 +282,88 @@ mod tests {
         vars.insert("var2".to_owned(), Value::Bool(false));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(false));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("var1".to_owned(), Value::Bool(false));
         vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(false));
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("var1".to_owned(), Value::Bool(false));
         vars.insert("var2".to_owned(), Value::Bool(false));
         vars.insert("var3".to_owned(), Value::Bool(true));
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(false));
         vars.insert("var3".to_owned(), Value::Bool(true));
         assert!(condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("var1".to_owned(), Value::Bool(false));
         vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(true));
         assert!(condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
         let mut vars = HashMap::new();
         vars.insert("var1".to_owned(), Value::Bool(true));
         vars.insert("var2".to_owned(), Value::Bool(true));
         vars.insert("var3".to_owned(), Value::Bool(true));
         assert!(condition
-            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::<_, String>::new(
+                &mods,
+                vars,
+                &HashMap::new()
+            ))
             .unwrap());
     }
 }

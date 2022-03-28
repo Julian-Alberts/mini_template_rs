@@ -12,6 +12,7 @@
 * Some errors give better error messages
 * Removed unused log dependency
 * Improved error reporting
+* TemplateKeys must implement the TemplateKey trait
 
 ### Deprecated
 * `defaults::` attributes for `create_modifier` are deprecated and will be removed in a future version

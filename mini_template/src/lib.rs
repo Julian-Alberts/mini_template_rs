@@ -13,11 +13,11 @@ mod value_container;
 #[macro_use]
 extern crate pest_derive;
 
+use crate::value::{TypeError, Value};
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::RenderContext;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hasher;
+use std::marker::PhantomData;
 use std::{collections::HashMap, hash::Hash};
 use template::{Render, Template};
 use value::VariableManager;
@@ -26,12 +26,15 @@ use value::VariableManager;
 ///
 /// A MiniTemplate instance is used to parse, save and render templates.
 #[derive(Default)]
-pub struct MiniTemplate {
+pub struct MiniTemplate<K: TemplateKey> {
     modifier: HashMap<&'static str, &'static Modifier>,
-    template: HashMap<u64, Template>,
+    template: HashMap<K, Template>,
 }
 
-impl MiniTemplate {
+impl<K> MiniTemplate<K>
+where
+    K: TemplateKey,
+{
     /// Creates a new instance.
     /// Use [`MiniTemplate::default`] instead.
     #[deprecated]
@@ -74,15 +77,8 @@ impl MiniTemplate {
     }
 
     /// Register a new Template for a give key
-    pub fn add_template<K: Eq + Hash>(
-        &mut self,
-        key: K,
-        tpl: String,
-    ) -> Result<Option<Template>, ParseError> {
+    pub fn add_template(&mut self, key: K, tpl: String) -> Result<Option<Template>, ParseError> {
         let tpl = parse(tpl)?;
-        let mut hasher = DefaultHasher::new();
-        key.hash(&mut hasher);
-        let key = hasher.finish();
         Ok(self.template.insert(key, tpl))
     }
 
@@ -93,14 +89,7 @@ impl MiniTemplate {
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render<VM: VariableManager, K: Eq + Hash>(
-        &self,
-        key: &K,
-        data: VM,
-    ) -> crate::error::Result<String> {
-        let mut hasher = DefaultHasher::new();
-        key.hash(&mut hasher);
-        let key = hasher.finish();
+    pub fn render<VM: VariableManager>(&self, key: &K, data: VM) -> crate::error::Result<String> {
         let tpl = match self.template.get(&key) {
             Some(t) => t,
             None => return Err(crate::error::Error::UnknownTemplate),
@@ -111,3 +100,23 @@ impl MiniTemplate {
         Ok(buf)
     }
 }
+
+#[cfg(feature = "include")]
+pub trait TemplateKey:
+    Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError>
+{
+}
+#[cfg(not(feature = "include"))]
+pub trait TemplateKey: Hash + Eq + TryFrom<crate::value::Value> {}
+
+impl TemplateKey for String {}
+impl TemplateKey for u8 {}
+impl TemplateKey for i8 {}
+impl TemplateKey for u16 {}
+impl TemplateKey for i16 {}
+impl TemplateKey for u32 {}
+impl TemplateKey for i32 {}
+impl TemplateKey for u64 {}
+impl TemplateKey for i64 {}
+impl TemplateKey for usize {}
+impl TemplateKey for isize {}

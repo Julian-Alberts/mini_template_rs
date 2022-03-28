@@ -1,6 +1,7 @@
 use crate::{
     renderer::RenderContext,
     value::{ident::Ident, VariableManager},
+    TemplateKey,
 };
 
 use super::CalculatedValue;
@@ -16,10 +17,13 @@ impl Assign {
         Self { identifier, calc }
     }
 
-    pub fn assign<VM: VariableManager>(
+    pub fn assign<VM: VariableManager, TK>(
         &self,
-        context: &mut RenderContext<VM>,
-    ) -> crate::error::Result<()> {
+        context: &mut RenderContext<VM, TK>,
+    ) -> crate::error::Result<()>
+    where
+        TK: TemplateKey,
+    {
         let v = self.calc.calc(context)?;
         context.variables.set(&self.identifier, v)
     }
@@ -54,7 +58,7 @@ mod tests {
             .unwrap();
         let modifiers = HashMap::default();
         let templates = HashMap::new();
-        let mut rc = RenderContext::new(&modifiers, vars, &templates);
+        let mut rc = RenderContext::<_, String>::new(&modifiers, vars, &templates);
 
         let assign = Assign::new(
             Ident::new_static("output"),
@@ -73,7 +77,7 @@ mod tests {
         let add_modifier: &crate::modifier::Modifier = &crate::modifier::add;
         modifiers.insert("add", add_modifier);
         let templates = HashMap::new();
-        let mut rc = RenderContext::new(&modifiers, vars, &templates);
+        let mut rc = RenderContext::<_, String>::new(&modifiers, vars, &templates);
 
         let assign = Assign::new(
             Ident::new_static("output"),
