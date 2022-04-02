@@ -39,6 +39,27 @@ impl Ident {
             span: self.span.clone(),
         })
     }
+
+    pub fn new(part: IdentPart) -> Self {
+        Self {
+            next: None,
+            part: Box::new(part),
+            span: Span::default(),
+        }
+    }
+
+    pub fn new_with_span(part: IdentPart, span: Span) -> Self {
+        Self {
+            next: None,
+            part: Box::new(part),
+            span,
+        }
+    }
+
+    pub fn chain(&mut self, next: Ident) -> &mut Self {
+        self.next = Some(Box::new(next));
+        self.next.as_mut().unwrap()
+    }
 }
 
 #[cfg(test)]
@@ -83,6 +104,39 @@ pub struct ResolvedIdent {
     pub span: Span,
 }
 
+impl ResolvedIdent {
+    pub fn new(part: ResolvedIdentPart) -> Self {
+        Self {
+            next: None,
+            part: Box::new(part),
+            span: Span::default(),
+        }
+    }
+
+    pub fn chain(&mut self, next: ResolvedIdent) -> &mut Self {
+        self.next = Some(Box::new(next));
+        self.next.as_mut().unwrap()
+    }
+}
+
+impl From<*const str> for ResolvedIdent {
+    fn from(static_path: *const str) -> Self {
+        Self::new(static_path.into())
+    }
+}
+
+impl<'a> From<&'a str> for ResolvedIdent {
+    fn from(static_path: &'a str) -> Self {
+        Self::new((static_path as *const str).into())
+    }
+}
+
+impl From<Value> for ResolvedIdent {
+    fn from(dynamic: Value) -> Self {
+        Self::new(dynamic.into())
+    }
+}
+
 impl PartialEq for ResolvedIdent {
     fn eq(&self, other: &Self) -> bool {
         self.next == other.next && self.part == other.part
@@ -116,6 +170,18 @@ impl Display for ResolvedIdent {
 pub enum ResolvedIdentPart {
     Static(*const str),
     Dynamic(Value),
+}
+
+impl From<*const str> for ResolvedIdentPart {
+    fn from(static_path: *const str) -> Self {
+        Self::Static(static_path)
+    }
+}
+
+impl From<Value> for ResolvedIdentPart {
+    fn from(dynamic: Value) -> Self {
+        Self::Dynamic(dynamic)
+    }
 }
 
 impl PartialEq for ResolvedIdentPart {

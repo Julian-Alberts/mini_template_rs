@@ -18,7 +18,7 @@ impl ValueManager {
         ident: &ResolvedIdent,
         full_ident: &ResolvedIdent,
     ) -> crate::error::Result<&Value> {
-        let k = get_ident_key(ident)?;
+        let k = &get_ident_key(ident)?;
 
         let value = match self.values.get(k) {
             Some(v) => v,
@@ -44,7 +44,7 @@ impl ValueManager {
         ident: &ResolvedIdent,
         full_ident: &ResolvedIdent,
     ) -> crate::error::Result<&mut Value> {
-        let k = get_ident_key(ident)?;
+        let k = &get_ident_key(ident)?;
 
         let value = match self.values.get_mut(k) {
             Some(v) => v,
@@ -71,7 +71,7 @@ impl ValueManager {
         value: Value,
         full_ident: &ResolvedIdent,
     ) -> crate::error::Result<()> {
-        let k = get_ident_key(ident)?;
+        let k = &get_ident_key(ident)?;
 
         use None as EndOfPath;
         use None as EmptyValue;
@@ -111,12 +111,85 @@ impl ValueManager {
     }
 }
 
-fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<&str> {
+fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
     match &*ident.part {
-        ResolvedIdentPart::Static(s) => unsafe { Ok(s.as_ref().unwrap()) },
+        ResolvedIdentPart::Static(s) => unsafe { Ok(s.as_ref().unwrap().to_owned()) },
         ResolvedIdentPart::Dynamic(d) => match d.try_into() {
             Ok(s) => Ok(s),
             Err(_) => Err(Error::UnsupportedIdentifier),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::value::ident::ResolvedIdent;
+    use crate::{value_iter, Value, ValueManager};
+
+    #[test]
+    fn simple_static_access() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "yay": Value::Bool(true)
+        ])
+        .unwrap();
+        assert_eq!(vm.get_value("yay".into()), Ok(&Value::Bool(true)))
+    }
+
+    #[test]
+    fn simple_dynamic_access() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "yay": Value::Bool(true)
+        ])
+        .unwrap();
+        assert_eq!(
+            vm.get_value(Value::String("yay".to_string()).into()),
+            Ok(&Value::Bool(true))
+        )
+    }
+
+    #[test]
+    fn static_object_access() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "obj.val": Value::Bool(true)
+        ])
+        .unwrap();
+
+        let mut ident: ResolvedIdent = "obj".into();
+        ident.chain("val".into());
+
+        assert_eq!(vm.get_value(ident), Ok(&Value::Bool(true)))
+    }
+
+    #[test]
+    fn dynamic_object_access() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "obj.val": Value::Bool(true)
+        ])
+        .unwrap();
+
+        let mut ident: ResolvedIdent = "obj".into();
+        ident.chain("val".into());
+
+        assert_eq!(vm.get_value(ident), Ok(&Value::Bool(true)))
+    }
+
+    #[test]
+    fn access_trough_ident() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "val": Value::String("hi".to_owned()),
+            // I don't know why any body should ever do this,
+            // but it is supported by the ident parser so why not.
+            "obj[val]": Value::Bool(true),
+            "obj[\"foo\"]": Value::Number(33.)
+        ])
+        .unwrap();
+
+        let mut ident_42: ResolvedIdent = "obj".into();
+        let mut ident_32 = ident_42.clone();
+        ident_42.chain("hi".into());
+        ident_32.chain("foo".into());
+
+        assert_eq!(vm.get_value(ident_32), Ok(&Value::Number(33.)));
+        assert_eq!(vm.get_value(ident_42), Ok(&Value::Bool(true)))
     }
 }

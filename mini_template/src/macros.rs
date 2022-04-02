@@ -76,7 +76,7 @@ macro_rules! value_iter {
     ) => {
         [
             $(
-                (crate::value::ident::Ident::try_from($ident).unwrap(), $value)
+                ($crate::value::ident::Ident::try_from($ident).unwrap(), $value)
             ),*
         ]
     };

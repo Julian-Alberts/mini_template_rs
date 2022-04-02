@@ -6,9 +6,13 @@ calculated_value = { value ~ modifier* }
 identifier = {
     (ident_static|ident_dynamic) ~
     (
-        ("."~ident_static)|
-        ident_dynamic
+        ("."~ident_static)|ident_dynamic
     )*
+}
+full_ident = {
+    SOI ~ 
+    identifier ~
+    EOI
 }
 ident_static = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
 ident_dynamic = {"[" ~ value ~ "]"}

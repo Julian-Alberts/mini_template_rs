@@ -314,17 +314,22 @@ impl<'i> TryFrom<&'i str> for Ident {
     type Error = ParseError;
 
     fn try_from(ident: &str) -> Result<Self, Self::Error> {
-        let ident = match TemplateParser::parse(Rule::identifier, ident) {
+        let ident = match TemplateParser::parse(Rule::full_ident, ident) {
             Ok(t) => t,
-            Err(e) => match e.line_col {
-                LineColLocation::Pos(pos) => {
-                    return Err(ParseError::Syntax(pos, pos, ident.to_string()));
+            Err(e) => {
+                return match e.line_col {
+                    LineColLocation::Pos(pos) => {
+                        Err(ParseError::Syntax(pos, pos, ident.to_string()))
+                    }
+                    LineColLocation::Span(start, end) => {
+                        Err(ParseError::Syntax(start, end, ident.to_string()))
+                    }
                 }
-                LineColLocation::Span(start, end) => {
-                    return Err(ParseError::Syntax(start, end, ident.to_string()));
-                }
-            },
+            }
         }
+        .next()
+        .unwrap()
+        .into_inner()
         .next()
         .unwrap();
         parse_identifier(ident)
