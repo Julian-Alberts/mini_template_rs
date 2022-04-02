@@ -1,6 +1,6 @@
 use crate::template::Span;
 use crate::value::{StorageMethod, Value};
-use crate::{RenderContext, TemplateKey, VariableManager};
+use crate::{RenderContext, TemplateKey, ValueManager};
 
 #[derive(Debug)]
 pub struct Modifier {
@@ -10,24 +10,22 @@ pub struct Modifier {
 }
 
 impl Modifier {
-    pub fn eval<VM: VariableManager, TK>(
+    pub fn eval<TK>(
         &self,
         value: &Value,
-        context: &RenderContext<VM, TK>,
+        context: &RenderContext<TK>,
     ) -> crate::error::Result<Value>
     where
         TK: TemplateKey,
     {
         // Safety: modifier_name points to tpl.tpl_str and should never be null
         let modifier_name = unsafe { self.name.as_ref().unwrap() };
-        let modifier =
-            *context
-                .modifier
-                .get(modifier_name)
-                .ok_or(crate::error::Error::UnknownModifier(UnknownModifierError {
-                    name: modifier_name.to_string(),
-                    span: self.span.clone(),
-                }))?;
+        let modifier = *context.modifier.get(modifier_name).ok_or_else(|| {
+            crate::error::Error::UnknownModifier(UnknownModifierError {
+                name: modifier_name.to_string(),
+                span: self.span.clone(),
+            })
+        })?;
 
         let args = storage_methods_to_values(&self.args, &context.variables)?;
         match modifier(value, args) {
@@ -57,14 +55,16 @@ impl PartialEq for UnknownModifierError {
 
 fn storage_methods_to_values<'a>(
     args: &'a [StorageMethod],
-    variables: &'a dyn VariableManager,
+    variables: &'a ValueManager,
 ) -> crate::error::Result<Vec<&'a Value>> {
     let mut real_args = Vec::with_capacity(args.len());
 
     for arg in args {
         let arg = match arg {
             StorageMethod::Const(value) => value,
-            StorageMethod::Variable(ident) => variables.get(ident)?,
+            StorageMethod::Variable(ident) => {
+                variables.get_value(ident.resolve_ident(variables)?)?
+            }
         };
         real_args.push(arg);
     }

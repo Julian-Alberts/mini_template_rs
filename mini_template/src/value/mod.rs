@@ -1,12 +1,10 @@
 pub mod ident;
 mod storage_method;
 mod traits;
-mod variable_manager;
+mod value_manager;
 
 pub use storage_method::StorageMethod;
-pub use variable_manager::VariableManager;
-
-use std::convert::TryFrom;
+pub use value_manager::ValueManager;
 
 /// Values are used as variables inside a template.
 #[derive(Debug, Clone)]
@@ -19,6 +17,7 @@ pub enum Value {
     Bool(bool),
     /// Null value
     Null,
+    Object(ValueManager),
 }
 
 impl Value {
@@ -29,6 +28,7 @@ impl Value {
             Self::Number(n) => *n != 0.,
             Self::String(s) => !s.is_empty(),
             Self::Null => false,
+            Self::Object(_) => true,
         }
     }
 }
@@ -45,7 +45,7 @@ impl PartialEq for Value {
             (Self::Number(s), Self::String(o)) => &s.to_string() == o,
             (Self::Null, Self::Null) => true,
             (Self::Null, _) | (_, Self::Null) => false,
-            //(Self::Object(s), Self::Object(o)) => s == o
+            (Self::Object(s), Self::Object(o)) => s == o,
             _ => false,
         }
     }
@@ -62,7 +62,7 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() < *o,
             (Self::String(s), Self::Number(o)) => s < &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() < o,
-
+            (Self::Object(_), _) | (_, Self::Object(_)) => false,
             (Self::Null, _) => true,
             (_, Self::Null) => false,
         }
@@ -77,6 +77,7 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() >= *o,
             (Self::String(s), Self::Number(o)) => s >= &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() >= o,
+            (Self::Object(_), _) | (_, Self::Object(_)) => false,
 
             (Self::Null, _) => false,
             (_, Self::Null) => true,
@@ -92,6 +93,7 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() > *o,
             (Self::String(s), Self::Number(o)) => s > &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() > o,
+            (Self::Object(_), _) | (_, Self::Object(_)) => false,
 
             (Self::Null, _) => false,
             (_, Self::Null) => true,
@@ -107,6 +109,7 @@ impl PartialOrd for Value {
             (s, Self::Bool(o)) => s.as_bool() <= *o,
             (Self::String(s), Self::Number(o)) => s <= &o.to_string(),
             (Self::Number(s), Self::String(o)) => &s.to_string() <= o,
+            (Self::Object(_), _) | (_, Self::Object(_)) => false,
 
             (Self::Null, _) => true,
             (_, Self::Null) => false,
@@ -146,6 +149,7 @@ impl ToString for Value {
                 }
             }
             Self::Null => String::from("null"),
+            Self::Object(o) => format!("{:#?}", o),
         }
     }
 }

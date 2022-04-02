@@ -288,6 +288,7 @@ fn parse_assign(assign: Pair<Rule>) -> Result<Assign, ParseError> {
     Ok(Assign::new(ident, calc_val))
 }
 
+#[cfg(feature = "include")]
 fn parse_include(include: Pair<Rule>) -> Result<Include, ParseError> {
     assert_eq!(include.as_rule(), Rule::include);
     let mut inner = include.into_inner();
@@ -307,6 +308,27 @@ fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
         .filter_map(parse_template_content)
         .collect::<Result<Vec<_>, _>>()?;
     Ok(Loop::new(condition, template))
+}
+
+impl<'i> TryFrom<&'i str> for Ident {
+    type Error = ParseError;
+
+    fn try_from(ident: &str) -> Result<Self, Self::Error> {
+        let ident = match TemplateParser::parse(Rule::identifier, ident) {
+            Ok(t) => t,
+            Err(e) => match e.line_col {
+                LineColLocation::Pos(pos) => {
+                    return Err(ParseError::Syntax(pos, pos, ident.to_string()));
+                }
+                LineColLocation::Span(start, end) => {
+                    return Err(ParseError::Syntax(start, end, ident.to_string()));
+                }
+            },
+        }
+        .next()
+        .unwrap();
+        parse_identifier(ident)
+    }
 }
 
 fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {

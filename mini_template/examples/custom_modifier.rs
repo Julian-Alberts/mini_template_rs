@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
-use mini_template::{value::Value, MiniTemplate};
+use mini_template::value::ident::Ident;
+use mini_template::{value::Value, MiniTemplate, ValueManager};
 
 #[macro_use]
 extern crate mini_template;
@@ -16,13 +15,16 @@ fn main() {
     mini_template.add_modifier("nth_upper", &modifiers::nth_upper);
     mini_template.add_modifier("nth_lower", &modifiers::nth_lower);
 
-    mini_template.add_template(0, TEMPLATE.to_owned()).unwrap();
+    mini_template
+        .add_template(0_usize, TEMPLATE.to_owned())
+        .unwrap();
     let render = mini_template.render(
         &0,
-        HashMap::from_iter([
-            (String::from("even"), Value::Number(4.)),
-            (String::from("zeros"), Value::Number(4.)),
-        ]),
+        ValueManager::try_from_iter([
+            (Ident::try_from("even").unwrap(), Value::Number(4.)),
+            (Ident::try_from("zeros").unwrap(), Value::Number(4.)),
+        ])
+        .unwrap(),
     );
 
     println!("{}", render.unwrap())

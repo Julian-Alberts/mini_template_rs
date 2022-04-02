@@ -1,8 +1,4 @@
-use crate::{
-    renderer::RenderContext,
-    value::{ident::Ident, VariableManager},
-    TemplateKey,
-};
+use crate::{renderer::RenderContext, value::ident::Ident, TemplateKey};
 
 use super::CalculatedValue;
 
@@ -17,15 +13,13 @@ impl Assign {
         Self { identifier, calc }
     }
 
-    pub fn assign<VM: VariableManager, TK>(
-        &self,
-        context: &mut RenderContext<VM, TK>,
-    ) -> crate::error::Result<()>
+    pub fn assign<TK>(&self, context: &mut RenderContext<TK>) -> crate::error::Result<()>
     where
         TK: TemplateKey,
     {
         let v = self.calc.calc(context)?;
-        context.variables.set(&self.identifier, v)
+        let ident = self.identifier.resolve_ident(&context.variables)?;
+        context.variables.set_value(ident, v)
     }
 }
 
@@ -46,38 +40,50 @@ mod tests {
         renderer::RenderContext,
         template::CalculatedValue,
         value::{StorageMethod, Value},
-        VariableManager,
+        value_iter, ValueManager,
     };
 
     use super::Assign;
 
     #[test]
     fn simple_assign() {
-        let mut vars = HashMap::default();
-        vars.set(&Ident::new_static("input"), Value::Number(42.))
-            .unwrap();
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "input": Value::Number(42.)
+        ))
+        .unwrap();
+
         let modifiers = HashMap::default();
-        let templates = HashMap::new();
-        let mut rc = RenderContext::<_, String>::new(&modifiers, vars, &templates);
+        let templates = HashMap::<String, _>::new();
+        let mut rc = RenderContext::new(&modifiers, vars, &templates);
 
         let assign = Assign::new(
             Ident::new_static("output"),
             CalculatedValue::new(StorageMethod::Variable(Ident::new_static("input")), vec![]),
         );
         assert!(assign.assign(&mut rc).is_ok());
-        assert_eq!(rc.variables.get("output"), Some(&Value::Number(42.)))
+        assert_eq!(
+            rc.variables.get_value(
+                Ident::try_from("output")
+                    .unwrap()
+                    .resolve_ident(&rc.variables)
+                    .unwrap()
+            ),
+            Ok(&Value::Number(42.))
+        )
     }
 
     #[test]
     fn assign_calculated() {
-        let mut vars = HashMap::default();
-        vars.set(&Ident::new_static("input"), Value::Number(42.))
-            .unwrap();
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "input": Value::Number(42.)
+        ))
+        .unwrap();
+
         let mut modifiers = HashMap::new();
         let add_modifier: &crate::modifier::Modifier = &crate::modifier::add;
         modifiers.insert("add", add_modifier);
-        let templates = HashMap::new();
-        let mut rc = RenderContext::<_, String>::new(&modifiers, vars, &templates);
+        let templates = HashMap::<String, _>::new();
+        let mut rc = RenderContext::new(&modifiers, vars, &templates);
 
         let assign = Assign::new(
             Ident::new_static("output"),
@@ -91,6 +97,14 @@ mod tests {
             ),
         );
         assert!(assign.assign(&mut rc).is_ok());
-        assert_eq!(rc.variables.get("output"), Some(&Value::Number(44.)))
+        assert_eq!(
+            rc.variables.get_value(
+                Ident::try_from("output")
+                    .unwrap()
+                    .resolve_ident(&rc.variables)
+                    .unwrap()
+            ),
+            Ok(&Value::Number(44.))
+        )
     }
 }

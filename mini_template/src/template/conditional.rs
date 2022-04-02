@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{renderer::RenderContext, value::VariableManager, TemplateKey};
+use crate::{renderer::RenderContext, TemplateKey};
 
 use super::{
     condition::{Condition, ConditionEval},
@@ -15,9 +15,9 @@ pub struct Conditional {
 }
 
 impl Render for Conditional {
-    fn render<VM: VariableManager, TK>(
+    fn render<TK>(
         &self,
-        context: &mut RenderContext<VM, TK>,
+        context: &mut RenderContext<TK>,
         buf: &mut String,
     ) -> crate::error::Result<()>
     where
@@ -25,12 +25,10 @@ impl Render for Conditional {
     {
         if self.condition.eval(context)? {
             self.then_case.render(context, buf)
+        } else if let Some(e) = &self.else_case {
+            e.render(context, buf)
         } else {
-            if let Some(e) = &self.else_case {
-                e.render(context, buf)
-            } else {
-                Ok(())
-            }
+            Ok(())
         }
     }
 }
@@ -47,6 +45,7 @@ mod tests {
             CalculatedValue,
         },
         value::{StorageMethod, Value},
+        value_iter, ValueManager,
     };
 
     #[test]
@@ -56,9 +55,9 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
+            .eval::<String>(&RenderContext::new(
                 &HashMap::new(),
-                HashMap::new(),
+                ValueManager::default(),
                 &HashMap::new()
             ))
             .unwrap())
@@ -76,45 +75,37 @@ mod tests {
                 vec![],
             )),
         ]);
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(true));
-        vars.insert("b".to_owned(), Value::Bool(true));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(true),
+            "b": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(true));
-        vars.insert("b".to_owned(), Value::Bool(false));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(true),
+            "b": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(false));
-        vars.insert("b".to_owned(), Value::Bool(true));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(false),
+            "b": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(false));
-        vars.insert("b".to_owned(), Value::Bool(false));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(false),
+            "b": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -130,130 +121,113 @@ mod tests {
                 vec![],
             )),
         ]);
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(true));
-        vars.insert("b".to_owned(), Value::Bool(true));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(true),
+            "b": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(true));
-        vars.insert("b".to_owned(), Value::Bool(false));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(true),
+            "b": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(false));
-        vars.insert("b".to_owned(), Value::Bool(true));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(false),
+            "b": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("a".to_owned(), Value::Bool(false));
-        vars.insert("b".to_owned(), Value::Bool(false));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "a": Value::Bool(false),
+            "b": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
     #[test]
     fn eval_simple_bool_true() {
-        let mut vars = HashMap::new();
-        vars.insert("my_var".to_owned(), Value::Bool(true));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "my_var": Value::Bool(true)
+        ))
+        .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
     #[test]
     fn eval_simple_bool_false() {
-        let mut vars = HashMap::new();
-        vars.insert("my_var".to_owned(), Value::Bool(false));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "my_var": Value::Bool(false)
+        ))
+        .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
     #[test]
     fn eval_simple_int_false() {
-        let mut vars = HashMap::new();
-        vars.insert("my_var".to_owned(), Value::Number(0.));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "my_var": Value::Number(0.)
+        ))
+        .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
     #[test]
     fn eval_simple_int_true_1_0() {
-        let mut vars = HashMap::new();
-        vars.insert("my_var".to_owned(), Value::Number(1.));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "my_var": Value::Number(1.)
+        ))
+        .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
     #[test]
     fn eval_simple_int_true_10() {
-        let mut vars = HashMap::new();
-        vars.insert("my_var".to_owned(), Value::Number(10.));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "my_var": Value::Number(10.)
+        ))
+        .unwrap();
+
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &HashMap::new(),
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -277,93 +251,84 @@ mod tests {
             )),
         ]);
         let mods = HashMap::default();
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(false));
-        vars.insert("var2".to_owned(), Value::Bool(false));
-        vars.insert("var3".to_owned(), Value::Bool(false));
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(false),
+            "var2": Value::Bool(false),
+            "var3": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(true));
-        vars.insert("var2".to_owned(), Value::Bool(false));
-        vars.insert("var3".to_owned(), Value::Bool(false));
+
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(true),
+            "var2": Value::Bool(false),
+            "var3": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(false));
-        vars.insert("var2".to_owned(), Value::Bool(true));
-        vars.insert("var3".to_owned(), Value::Bool(false));
+
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(false),
+            "var2": Value::Bool(true),
+            "var3": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(true));
-        vars.insert("var2".to_owned(), Value::Bool(true));
-        vars.insert("var3".to_owned(), Value::Bool(false));
+
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(true),
+            "var2": Value::Bool(true),
+            "var3": Value::Bool(false)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(false));
-        vars.insert("var2".to_owned(), Value::Bool(false));
-        vars.insert("var3".to_owned(), Value::Bool(true));
+
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(false),
+            "var2": Value::Bool(false),
+            "var3": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(!condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(true));
-        vars.insert("var2".to_owned(), Value::Bool(false));
-        vars.insert("var3".to_owned(), Value::Bool(true));
+
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(true),
+            "var2": Value::Bool(false),
+            "var3": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(false));
-        vars.insert("var2".to_owned(), Value::Bool(true));
-        vars.insert("var3".to_owned(), Value::Bool(true));
+
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(false),
+            "var2": Value::Bool(true),
+            "var3": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
-        let mut vars = HashMap::new();
-        vars.insert("var1".to_owned(), Value::Bool(true));
-        vars.insert("var2".to_owned(), Value::Bool(true));
-        vars.insert("var3".to_owned(), Value::Bool(true));
+
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var1": Value::Bool(true),
+            "var2": Value::Bool(true),
+            "var3": Value::Bool(true)
+        ))
+        .unwrap();
         assert!(condition
-            .eval(&RenderContext::<_, String>::new(
-                &mods,
-                vars,
-                &HashMap::new()
-            ))
+            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
     }
 }

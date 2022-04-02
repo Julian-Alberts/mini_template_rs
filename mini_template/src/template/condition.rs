@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, value::VariableManager, TemplateKey};
+use crate::{renderer::RenderContext, TemplateKey};
 
 use super::CalculatedValue;
 
@@ -22,10 +22,7 @@ impl Condition {
 }
 
 impl ConditionEval for Condition {
-    fn eval<VM: VariableManager, TK>(
-        &self,
-        context: &RenderContext<VM, TK>,
-    ) -> crate::error::Result<bool>
+    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
     where
         TK: TemplateKey,
     {
@@ -39,10 +36,7 @@ impl ConditionEval for Condition {
 }
 
 pub trait ConditionEval {
-    fn eval<VM: VariableManager, TK>(
-        &self,
-        context: &RenderContext<VM, TK>,
-    ) -> crate::error::Result<bool>
+    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
     where
         TK: TemplateKey;
 }
@@ -59,10 +53,7 @@ impl OrCondition {
 }
 
 impl ConditionEval for OrCondition {
-    fn eval<VM: VariableManager, TK>(
-        &self,
-        context: &RenderContext<VM, TK>,
-    ) -> crate::error::Result<bool>
+    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
     where
         TK: TemplateKey,
     {
@@ -87,10 +78,7 @@ impl AndCondition {
 }
 
 impl ConditionEval for AndCondition {
-    fn eval<VM: VariableManager, TK>(
-        &self,
-        context: &RenderContext<VM, TK>,
-    ) -> crate::error::Result<bool>
+    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
     where
         TK: TemplateKey,
     {
@@ -111,10 +99,7 @@ pub struct CompareCondition {
 }
 
 impl ConditionEval for CompareCondition {
-    fn eval<VC: VariableManager, TK>(
-        &self,
-        context: &RenderContext<VC, TK>,
-    ) -> crate::error::Result<bool>
+    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
     where
         TK: TemplateKey,
     {

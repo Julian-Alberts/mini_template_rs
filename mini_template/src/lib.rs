@@ -8,7 +8,6 @@ mod renderer;
 mod template;
 mod util;
 pub mod value;
-mod value_container;
 
 #[macro_use]
 extern crate pest_derive;
@@ -17,11 +16,10 @@ use crate::value::{TypeError, Value};
 use modifier::Modifier;
 use parser::{parse, ParseError};
 use renderer::RenderContext;
-use std::marker::PhantomData;
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 use template::{Render, Template};
 pub use template_key::TemplateKey;
-use value::VariableManager;
+pub use value::ValueManager;
 
 /// A Storage for Templates
 ///
@@ -90,8 +88,8 @@ where
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render<VM: VariableManager>(&self, key: &K, data: VM) -> crate::error::Result<String> {
-        let tpl = match self.template.get(&key) {
+    pub fn render(&self, key: &K, data: ValueManager) -> crate::error::Result<String> {
+        let tpl = match self.template.get(key) {
             Some(t) => t,
             None => return Err(crate::error::Error::UnknownTemplate),
         };
@@ -111,8 +109,10 @@ mod template_key {
     {
     }
 
-    impl <T> TemplateKey for T where T: Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError> {}
-
+    impl<T> TemplateKey for T where
+        T: Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError>
+    {
+    }
 }
 #[cfg(not(feature = "include"))]
 mod template_key {
@@ -120,5 +120,5 @@ mod template_key {
 
     pub trait TemplateKey: Hash + Eq {}
 
-    impl <T> TemplateKey for T where T: Hash + Eq {}
+    impl<T> TemplateKey for T where T: Hash + Eq {}
 }

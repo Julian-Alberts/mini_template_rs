@@ -18,7 +18,7 @@ impl<'a> From<pest::Span<'a>> for Span {
 impl Default for Span {
     fn default() -> Self {
         Self {
-            input: "",
+            input: "" as *const _,
             start: 0,
             end: 0,
         }

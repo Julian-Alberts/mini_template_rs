@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, value::VariableManager, TemplateKey};
+use crate::{renderer::RenderContext, TemplateKey};
 
 #[cfg(feature = "condition")]
 use super::condition::{Condition, ConditionEval};
@@ -20,9 +20,9 @@ impl Loop {
 }
 
 impl Render for Loop {
-    fn render<VM: VariableManager, TK>(
+    fn render<TK>(
         &self,
-        context: &mut RenderContext<VM, TK>,
+        context: &mut RenderContext<TK>,
         buf: &mut String,
     ) -> crate::error::Result<()>
     where
@@ -45,6 +45,7 @@ mod tests {
         renderer::RenderContext,
         template::{condition::Condition, Assign, CalculatedValue, Render, Statement},
         value::{StorageMethod, Value},
+        value_iter, ValueManager,
     };
 
     use super::Loop;
@@ -78,12 +79,12 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
-        let templates = HashMap::new();
-        let mut ctx = RenderContext::<_, String>::new(
-            &modifiers,
-            HashMap::from_iter([("var".to_owned(), Value::Number(1.))]),
-            &templates,
-        );
+        let templates = HashMap::<String, _>::new();
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var": Value::Number(1.)
+        ))
+        .unwrap();
+        let mut ctx = RenderContext::new(&modifiers, vars, &templates);
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
         assert_eq!(buffer.as_str(), "1")
@@ -118,12 +119,12 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
-        let templates = HashMap::new();
-        let mut ctx = RenderContext::<_, String>::new(
-            &modifiers,
-            HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
-            &templates,
-        );
+        let templates = HashMap::<String, _>::new();
+        let vars = ValueManager::try_from_iter(value_iter!(
+            "var": Value::Number(5.)
+        ))
+        .unwrap();
+        let mut ctx = RenderContext::new(&modifiers, vars, &templates);
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
         assert_eq!(buffer.as_str(), "54321")
@@ -140,12 +141,12 @@ mod tests {
         );
 
         let modifiers = HashMap::new();
-        let templates = HashMap::new();
-        let mut ctx = RenderContext::<_, String>::new(
-            &modifiers,
-            HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
-            &templates,
-        );
+        let templates = HashMap::<String, _>::new();
+        let vars = ValueManager::try_from_iter(value_iter![
+            "var": Value::Number(5.)
+        ])
+        .unwrap();
+        let mut ctx = RenderContext::new(&modifiers, vars, &templates);
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
         assert!(buffer.is_empty())

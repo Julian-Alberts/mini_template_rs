@@ -1,6 +1,7 @@
 use super::StorageMethod;
 use crate::template::Span;
 use crate::value::Value;
+use crate::ValueManager;
 use std::fmt::{Debug, Display, Formatter, Write};
 
 #[derive(Debug)]
@@ -8,6 +9,36 @@ pub struct Ident {
     pub next: Option<Box<Ident>>,
     pub part: Box<IdentPart>,
     pub span: Span,
+}
+
+impl Ident {
+    pub fn resolve_ident(
+        &self,
+        value_manager: &ValueManager,
+    ) -> crate::error::Result<ResolvedIdent> {
+        let part = match &*self.part {
+            IdentPart::Static(ident) => ResolvedIdentPart::Static(*ident),
+            IdentPart::Dynamic(StorageMethod::Const(v)) => ResolvedIdentPart::Dynamic(v.clone()),
+            IdentPart::Dynamic(StorageMethod::Variable(ident)) => {
+                let value = value_manager.get_value(ident.resolve_ident(value_manager)?)?;
+                ResolvedIdentPart::Dynamic(value.clone())
+            }
+        };
+
+        let part = Box::new(part);
+
+        let next = if let Some(next) = &self.next {
+            Some(Box::new(next.resolve_ident(value_manager)?))
+        } else {
+            None
+        };
+
+        Ok(ResolvedIdent {
+            part,
+            next,
+            span: self.span.clone(),
+        })
+    }
 }
 
 #[cfg(test)]
@@ -45,7 +76,7 @@ impl PartialEq for IdentPart {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ResolvedIdent {
     pub next: Option<Box<ResolvedIdent>>,
     pub part: Box<ResolvedIdentPart>,
@@ -65,13 +96,10 @@ impl Display for ResolvedIdent {
             ResolvedIdentPart::Static(ident) => {
                 let ident = unsafe { ident.as_ref().unwrap() };
                 f.write_str(ident)?;
-                match self.next.as_ref() {
-                    Some(ident) => {
-                        if let ResolvedIdentPart::Static(_) = *ident.part {
-                            f.write_char('.')?
-                        }
+                if let Some(ident) = self.next.as_ref() {
+                    if let ResolvedIdentPart::Static(_) = *ident.part {
+                        f.write_char('.')?
                     }
-                    _ => {}
                 }
             }
         }
@@ -84,7 +112,7 @@ impl Display for ResolvedIdent {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResolvedIdentPart {
     Static(*const str),
     Dynamic(Value),

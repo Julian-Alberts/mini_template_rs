@@ -68,3 +68,16 @@ macro_rules! fn_as_modifier {
         }
     }
 }
+
+#[macro_export]
+macro_rules! value_iter {
+    (
+        $($ident:literal: $value: expr),*
+    ) => {
+        [
+            $(
+                (crate::value::ident::Ident::try_from($ident).unwrap(), $value)
+            ),*
+        ]
+    };
+}

@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use crate::template::modifier::Modifier;
 use crate::{
     renderer::RenderContext,
-    value::{StorageMethod, Value, VariableManager},
+    value::{StorageMethod, Value},
     TemplateKey,
 };
 
@@ -18,17 +18,16 @@ impl CalculatedValue {
         Self { value, modifiers }
     }
 
-    pub fn calc<VM: VariableManager, TK>(
-        &self,
-        context: &RenderContext<VM, TK>,
-    ) -> crate::error::Result<Value>
+    pub fn calc<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<Value>
     where
         TK: TemplateKey,
     {
         let mut var = match &self.value {
             StorageMethod::Const(var) => Cow::Borrowed(var),
             StorageMethod::Variable(ident) => {
-                let var = context.variables.get(ident)?;
+                let var = context
+                    .variables
+                    .get_value(ident.resolve_ident(&context.variables)?)?;
                 Cow::Borrowed(var)
             }
         };

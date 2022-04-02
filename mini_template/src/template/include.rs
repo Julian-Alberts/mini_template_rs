@@ -1,7 +1,5 @@
 use crate::template::CalculatedValue;
-use crate::{Render, RenderContext, TemplateKey, VariableManager};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use crate::{Render, RenderContext, TemplateKey};
 
 #[derive(PartialEq, Debug)]
 pub struct Include {
@@ -9,9 +7,9 @@ pub struct Include {
 }
 
 impl Render for Include {
-    fn render<'a, VM: VariableManager, TK>(
+    fn render<'a, TK>(
         &self,
-        context: &mut RenderContext<VM, TK>,
+        context: &mut RenderContext<TK>,
         buf: &mut String,
     ) -> crate::error::Result<()>
     where
@@ -19,7 +17,7 @@ impl Render for Include {
     {
         let key = match self.template_name.calc(context)?.try_into() {
             Ok(key) => key,
-            Err(e) => return Err(crate::error::Error::IncludeError(e)),
+            Err(e) => return Err(crate::error::Error::Include(e)),
         };
         let template = context
             .templates
