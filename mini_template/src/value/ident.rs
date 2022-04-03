@@ -1,5 +1,5 @@
 use super::StorageMethod;
-use crate::template::Span;
+use crate::{template::Span, util::TemplateString};
 use crate::value::Value;
 use crate::ValueManager;
 use std::fmt::{Debug, Display, Formatter, Write};
@@ -17,7 +17,7 @@ impl Ident {
         value_manager: &ValueManager,
     ) -> crate::error::Result<ResolvedIdent> {
         let part = match &*self.part {
-            IdentPart::Static(ident) => ResolvedIdentPart::Static(*ident),
+            IdentPart::Static(ident) => ResolvedIdentPart::Static(ident.clone()),
             IdentPart::Dynamic(StorageMethod::Const(v)) => ResolvedIdentPart::Dynamic(v.clone()),
             IdentPart::Dynamic(StorageMethod::Variable(ident)) => {
                 let value = value_manager.get_value(ident.resolve_ident(value_manager)?)?;
@@ -64,10 +64,10 @@ impl Ident {
 
 #[cfg(test)]
 impl Ident {
-    pub fn new_static(ident: &str) -> Self {
+    pub fn new_static(ident: &'static str) -> Self {
         Self {
             next: None,
-            part: Box::new(IdentPart::Static(ident)),
+            part: Box::new(IdentPart::Static(TemplateString::Ptr(ident))),
             span: Default::default(),
         }
     }
@@ -81,16 +81,14 @@ impl PartialEq for Ident {
 
 #[derive(Debug)]
 pub enum IdentPart {
-    Static(*const str),
+    Static(TemplateString),
     Dynamic(StorageMethod),
 }
 
 impl PartialEq for IdentPart {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (IdentPart::Static(s), IdentPart::Static(o)) => unsafe {
-                s.as_ref().unwrap() == o.as_ref().unwrap()
-            },
+            (IdentPart::Static(s), IdentPart::Static(o)) => s == o,
             (IdentPart::Dynamic(s), IdentPart::Dynamic(o)) => s == o,
             _ => false,
         }
@@ -119,15 +117,15 @@ impl ResolvedIdent {
     }
 }
 
-impl From<*const str> for ResolvedIdent {
-    fn from(static_path: *const str) -> Self {
+impl From<String> for ResolvedIdent {
+    fn from(static_path: String) -> Self {
         Self::new(static_path.into())
     }
 }
 
-impl<'a> From<&'a str> for ResolvedIdent {
-    fn from(static_path: &'a str) -> Self {
-        Self::new((static_path as *const str).into())
+impl From<&'static str> for ResolvedIdent {
+    fn from(static_path: &'static str) -> Self {
+        Self::new(static_path.into())
     }
 }
 
@@ -148,7 +146,7 @@ impl Display for ResolvedIdent {
         match &*self.part {
             ResolvedIdentPart::Dynamic(d) => write!(f, "[{}]", d.to_string())?,
             ResolvedIdentPart::Static(ident) => {
-                let ident = unsafe { ident.as_ref().unwrap() };
+                let ident = ident.get_string();
                 f.write_str(ident)?;
                 if let Some(ident) = self.next.as_ref() {
                     if let ResolvedIdentPart::Static(_) = *ident.part {
@@ -168,13 +166,19 @@ impl Display for ResolvedIdent {
 
 #[derive(Debug, Clone)]
 pub enum ResolvedIdentPart {
-    Static(*const str),
+    Static(TemplateString),
     Dynamic(Value),
 }
 
-impl From<*const str> for ResolvedIdentPart {
-    fn from(static_path: *const str) -> Self {
-        Self::Static(static_path)
+impl From<&'static str> for ResolvedIdentPart {
+    fn from(static_path: &'static str) -> Self {
+        Self::Static(TemplateString::Ptr(static_path))
+    }
+}
+
+impl From<String> for ResolvedIdentPart {
+    fn from(path: String) -> Self {
+        Self::Static(TemplateString::Owned(path))
     }
 }
 
@@ -188,9 +192,7 @@ impl PartialEq for ResolvedIdentPart {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (ResolvedIdentPart::Dynamic(s), ResolvedIdentPart::Dynamic(o)) => s == o,
-            (ResolvedIdentPart::Static(s), ResolvedIdentPart::Static(o)) => unsafe {
-                s.as_ref() == o.as_ref()
-            },
+            (ResolvedIdentPart::Static(s), ResolvedIdentPart::Static(o)) => s == o,
             _ => false,
         }
     }
@@ -199,7 +201,7 @@ impl PartialEq for ResolvedIdentPart {
 impl Display for ResolvedIdentPart {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResolvedIdentPart::Static(s) => unsafe { f.write_str(s.as_ref().unwrap()) },
+            ResolvedIdentPart::Static(s) => f.write_str(s.get_string()),
             ResolvedIdentPart::Dynamic(d) => f.write_str(&d.to_string()),
         }
     }

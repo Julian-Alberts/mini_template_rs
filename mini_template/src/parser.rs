@@ -14,6 +14,7 @@ use crate::template::Include;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
 use crate::template::Modifier;
+use crate::util::TemplateString;
 use crate::value::ident::{Ident, IdentPart};
 use crate::{
     template::{CalculatedValue, Statement},
@@ -25,7 +26,7 @@ use crate::{
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Parser)]
 #[grammar = "template.pest"]
-pub struct TemplateParser;
+struct TemplateParser;
 
 pub fn parse(input: String) -> Result<Template, ParseError> {
     let mut compiled_template = Template {
@@ -343,7 +344,7 @@ fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
 
     fn ident_to_part(ident: Pair<Rule>) -> Result<IdentPart, ParseError> {
         let ident = match ident.as_rule() {
-            Rule::ident_static => IdentPart::Static(ident.as_str()),
+            Rule::ident_static => IdentPart::Static(TemplateString::Ptr(ident.as_str())),
             Rule::ident_dynamic => {
                 IdentPart::Dynamic(parse_value(ident.into_inner().next().unwrap())?)
             }
@@ -886,6 +887,7 @@ mod tests {
 
     mod ident {
         use crate::parser::{Rule, TemplateParser};
+        use crate::util::TemplateString;
         use crate::value::ident::{Ident, IdentPart};
         use crate::value::StorageMethod;
         use pest::Parser;
@@ -912,7 +914,7 @@ mod tests {
             assert_eq!(
                 value,
                 Ident {
-                    part: Box::new(IdentPart::Static("var")),
+                    part: Box::new(IdentPart::Static(TemplateString::Ptr("var"))),
                     next: Some(Box::new(Ident::new_static("my"))),
                     span: Default::default()
                 }
@@ -930,7 +932,7 @@ mod tests {
             assert_eq!(
                 value,
                 Ident {
-                    part: Box::new(IdentPart::Static("var")),
+                    part: Box::new(IdentPart::Static(TemplateString::Ptr("var"))),
                     next: Some(Box::new(Ident {
                         part: Box::new(IdentPart::Dynamic(StorageMethod::Variable(
                             Ident::new_static("my")

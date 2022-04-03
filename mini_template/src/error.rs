@@ -57,6 +57,7 @@ impl<'t> Display for Error {
 #[cfg(test)]
 mod tests {
     use crate::template::Span;
+    use crate::util::TemplateString;
     use crate::value::ident::{ResolvedIdent, ResolvedIdentPart};
 
     #[test]
@@ -67,7 +68,7 @@ mod tests {
                 start: 5,
                 input: "0123456789",
             },
-            part: Box::new(ResolvedIdentPart::Static("wasd")),
+            part: Box::new(ResolvedIdentPart::Static(TemplateString::Ptr("wasd"))),
             next: None,
         });
         assert_eq!(&format!("{}", error), "1> 0123456789\n        ^^^\n")
@@ -81,7 +82,7 @@ mod tests {
                 start: 14,
                 input: "0123456789\nABCDEFGHIJ\nKLMNOPQRST",
             },
-            part: Box::new(ResolvedIdentPart::Static("wasd")),
+            part: Box::new(ResolvedIdentPart::Static(TemplateString::Ptr("wasd"))),
             next: None,
         });
         assert_eq!(&format!("{}", error), "2> ABCDEFGHIJ\n      ^^\n")

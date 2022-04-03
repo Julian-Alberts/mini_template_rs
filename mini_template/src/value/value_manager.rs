@@ -113,7 +113,7 @@ impl ValueManager {
 
 fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
     match &*ident.part {
-        ResolvedIdentPart::Static(s) => unsafe { Ok(s.as_ref().unwrap().to_owned()) },
+        ResolvedIdentPart::Static(s) => Ok(s.get_string().to_owned()),
         ResolvedIdentPart::Dynamic(d) => match d.try_into() {
             Ok(s) => Ok(s),
             Err(_) => Err(Error::UnsupportedIdentifier),
