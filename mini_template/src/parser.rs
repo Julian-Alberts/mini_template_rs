@@ -1,4 +1,6 @@
+use core::panic;
 use pest::{error::LineColLocation, iterators::Pair, Parser};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 #[cfg(feature = "condition")]
@@ -13,7 +15,7 @@ use crate::template::Conditional;
 use crate::template::Include;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
-use crate::template::Modifier;
+use crate::template::{CustomBlock, CustomBlockParser, Modifier};
 use crate::util::TemplateString;
 use crate::value::ident::{Ident, IdentPart};
 use crate::{
@@ -28,7 +30,7 @@ use crate::{
 #[grammar = "template.pest"]
 struct TemplateParser;
 
-pub fn parse(input: String) -> Result<Template, ParseError> {
+pub fn parse(input: String, context: ParseContext) -> Result<Template, ParseError> {
     let mut compiled_template = Template {
         tpl: Vec::new(),
         tpl_str: input,
@@ -95,6 +97,7 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
         },
         #[cfg(not(feature = "loop"))]
         Rule::while_loop => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Loop))),
+        Rule::custom_block => todo!(),
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
@@ -311,6 +314,31 @@ fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
     Ok(Loop::new(condition, template))
 }
 
+fn parse_custom_block<'a>(
+    cm: Pair<Rule>,
+    context: &ParseContext<'a>,
+) -> Result<Box<dyn CustomBlock>, ParseError> {
+    assert_eq!(cm.as_rule(), Rule::custom_block);
+    let mut inner = cm.into_inner();
+    let name = inner.next().unwrap().as_str();
+
+    let mut args = None;
+    let mut body = None;
+
+    for i in inner {
+        match i.as_rule() {
+            Rule::custom_block_args => args = Some(i.as_str()),
+            Rule::custom_block_content => body = Some(i.as_str()),
+            _ => panic!(),
+        }
+    }
+
+    match context.get_custom_block(name) {
+        Some(cb) => cb.parse(args.unwrap_or(""), body.unwrap_or("")),
+        None => Err(ParseError::UnknownCustomBlock(name.to_string())),
+    }
+}
+
 impl<'i> TryFrom<&'i str> for Ident {
     type Error = ParseError;
 
@@ -389,6 +417,7 @@ fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
     Syntax((usize, usize), (usize, usize), String),
+    UnknownCustomBlock(String),
     DisabledFeature(UnsupportedFeature),
 }
 
@@ -399,6 +428,7 @@ impl Display for ParseError {
                 util::mark_between_points(*start, *end, template, f)
             }
             ParseError::DisabledFeature(u) => write!(f, "{:#?}", u),
+            ParseError::UnknownCustomBlock(name) => write!(f, "Unknown custom block \"{name}\""),
         }
     }
 }
@@ -415,6 +445,49 @@ pub enum UnsupportedFeature {
     DynamicGlobalAccess,
     #[cfg(not(feature = "include"))]
     Include,
+}
+
+pub struct ParseContext<'a> {
+    custom_block: Option<&'a HashMap<String, Box<dyn CustomBlockParser>>>,
+}
+
+impl<'a> ParseContext<'a> {
+    pub fn get_custom_block(&self, k: &str) -> Option<&Box<dyn CustomBlockParser>> {
+        self.custom_block?.get(k)
+    }
+}
+
+pub struct ParseContextBuilder<'a> {
+    custom_block: Option<&'a HashMap<String, Box<dyn CustomBlockParser>>>,
+}
+
+impl<'a> ParseContextBuilder<'a> {
+    pub fn set_custom_blocks(
+        &mut self,
+        custom_blocks: &'a HashMap<String, Box<dyn CustomBlockParser>>,
+    ) {
+        self.custom_block.insert(custom_blocks);
+    }
+
+    pub fn custom_blocks(
+        mut self,
+        custom_blocks: &'a HashMap<String, Box<dyn CustomBlockParser>>,
+    ) -> Self {
+        self.custom_block.insert(custom_blocks);
+        self
+    }
+
+    pub fn build(&self) -> ParseContext<'a> {
+        ParseContext {
+            custom_block: self.custom_block,
+        }
+    }
+}
+
+impl<'a> Default for ParseContextBuilder<'a> {
+    fn default() -> Self {
+        Self { custom_block: None }
+    }
 }
 
 #[cfg(test)]
@@ -438,7 +511,7 @@ mod tests {
     #[test]
     fn parse_template_single_literal() {
         let template = String::from("test literal");
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -471,7 +544,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed() {
         let template = String::from("{var}");
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -489,7 +562,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier() {
         let template = String::from("{var|modifier}");
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -511,7 +584,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_multiple_modifier() {
         let template = String::from("{var|modifier1|modifier2}");
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -540,7 +613,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_var_param() {
         let template = String::from("{var|modifier:var2}");
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -562,7 +635,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_number_param() {
         let template = String::from(r#"{var|modifier:-32.09}"#);
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -584,7 +657,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_null_param() {
         let template = String::from(r#"{var|modifier:null}"#);
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -606,7 +679,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_null_value() {
         let template = String::from(r#"{null|modifier:-32.09}"#);
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -628,7 +701,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_literal_before_modifier() {
         let template = String::from(r#"{10|modifier:-32.09}"#);
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -650,7 +723,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_multiple_args() {
         let template = String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#);
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok(), "{:#?}", template);
         let template = template.unwrap();
         assert_eq!(
@@ -677,7 +750,7 @@ mod tests {
     #[test]
     fn parse_template_multi_line() {
         let template = String::from("{var|modifier}\n{10|modifier:-32.09}");
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -711,7 +784,7 @@ mod tests {
     #[test]
     fn parse_template_assign() {
         let template = String::from("{var = 10|modifier:-32.09}");
-        let template = parse(template);
+        let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok(), "{template:#?}");
         let template = template.unwrap();
         assert_eq!(
@@ -735,7 +808,13 @@ mod tests {
 
     #[cfg(feature = "conditional")]
     mod conditional {
-        use super::*;
+        use pest::Parser;
+
+        use crate::parser::{parse_conditional, Rule, TemplateParser};
+        use crate::template::condition::{CompareCondition, CompareOperator, Condition};
+        use crate::template::{CalculatedValue, Conditional, Statement};
+        use crate::value::ident::Ident;
+        use crate::value::{StorageMethod, Value};
 
         #[test]
         fn parse_simple() {
@@ -1318,6 +1397,135 @@ mod tests {
         }
     }
 
+    mod custom_block {
+        use std::collections::HashMap;
+
+        use pest::Parser;
+
+        use crate::{
+            parser::{parse_custom_block, ParseContextBuilder, Rule, TemplateParser},
+            renderer::RenderContext,
+            template::{CustomBlock, CustomBlockParser, Render},
+            ValueManager,
+        };
+
+        struct MyCustmBlockParser;
+        #[derive(Debug)]
+        struct MyCustomBlockData {
+            args: String,
+            input: String,
+        }
+
+        impl CustomBlock for MyCustomBlockData {}
+        impl Render for MyCustomBlockData {
+            fn render(
+                &self,
+                _context: &mut crate::renderer::RenderContext,
+                buf: &mut String,
+            ) -> crate::error::Result<()> {
+                buf.push_str(self.args.as_str());
+                buf.push_str(self.input.as_str());
+                Ok(())
+            }
+        }
+
+        impl CustomBlockParser for MyCustmBlockParser {
+            fn name(&self) -> &str {
+                "my_custom_block"
+            }
+
+            fn parse(
+                &self,
+                args: &str,
+                input: &str,
+            ) -> Result<Box<dyn crate::template::CustomBlock>, crate::parser::ParseError>
+            {
+                Ok(Box::new(MyCustomBlockData {
+                    args: args.to_string(),
+                    input: input.to_string(),
+                }))
+            }
+        }
+
+        #[test]
+        fn parse_custom_block_without_content() {
+            let mut custom_blocks = HashMap::with_capacity(1);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
+            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
+
+            let tpl = "{% my_custom_block %}{% endmy_custom_block %}";
+            let cm = TemplateParser::parse(Rule::custom_block, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+            let cb = parse_custom_block(cm, &builder.build()).unwrap();
+            let mut buf = String::default();
+            cb.render(
+                &mut RenderContext::new(
+                    &HashMap::default(),
+                    ValueManager::default(),
+                    &HashMap::default(),
+                ),
+                &mut buf,
+            )
+            .unwrap();
+            assert_eq!(&buf, "")
+        }
+
+        #[test]
+        fn parse_custom_block_with_content() {
+            let mut custom_blocks = HashMap::with_capacity(1);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
+            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
+
+            let tpl = "{% my_custom_block %}MY content{% endmy_custom_block %}";
+            let cm = TemplateParser::parse(Rule::custom_block, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+            let cb = parse_custom_block(cm, &builder.build()).unwrap();
+            let mut buf = String::default();
+            cb.render(
+                &mut RenderContext::new(
+                    &HashMap::default(),
+                    ValueManager::default(),
+                    &HashMap::default(),
+                ),
+                &mut buf,
+            )
+            .unwrap();
+            assert_eq!(&buf, "MY content")
+        }
+
+        #[test]
+        fn parse_custom_block_with_args() {
+            let mut custom_blocks = HashMap::with_capacity(1);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
+            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
+
+            let tpl = "{% my_custom_block MY ARGS%}{% endmy_custom_block %}";
+            let cm = TemplateParser::parse(Rule::custom_block, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+            let cb = parse_custom_block(cm, &builder.build()).unwrap();
+            let mut buf = String::default();
+            cb.render(
+                &mut RenderContext::new(
+                    &HashMap::default(),
+                    ValueManager::default(),
+                    &HashMap::default(),
+                ),
+                &mut buf,
+            )
+            .unwrap();
+            assert_eq!(&buf, "MY ARGS")
+        }
+    }
+
     #[cfg(feature = "loop")]
     mod while_loop {
         use crate::value::ident::Ident;
@@ -1519,6 +1727,17 @@ mod pest_tests {
         )
     }
 
+    #[test]
+    fn test_custom_block() {
+        test_cases(
+            &[
+                "{% my_block %}{%endmy_block%}",
+                "{% my_block_with_content %}asdsadfasdf{%endmy_block_with_content%}",
+            ],
+            Rule::custom_block,
+        )
+    }
+
     fn test_cases(cases: &[&str], rule: Rule) {
         cases.iter().for_each(|input| {
             let parsed = TemplateParser::parse(rule, input);
@@ -1538,7 +1757,11 @@ mod legacy_tests {
 
     #[test]
     fn simple_compile() {
-        let tpl = parse("Simple template string".to_owned()).unwrap();
+        let tpl = parse(
+            "Simple template string".to_owned(),
+            ParseContextBuilder::default().build(),
+        )
+        .unwrap();
         assert_eq!(
             vec![Statement::Literal("Simple template string" as *const _)],
             tpl.tpl
@@ -1547,7 +1770,11 @@ mod legacy_tests {
 
     #[test]
     fn variable_value() {
-        let tpl = parse("Simple more {var} template {foo}".to_owned()).unwrap();
+        let tpl = parse(
+            "Simple more {var} template {foo}".to_owned(),
+            ParseContextBuilder::default().build(),
+        )
+        .unwrap();
         assert_eq!(
             vec![
                 Statement::Literal("Simple more " as *const _),
@@ -1567,7 +1794,11 @@ mod legacy_tests {
 
     #[test]
     fn variable_value_simple_modifier() {
-        let tpl = parse("Simple {var|test} template".to_owned()).unwrap();
+        let tpl = parse(
+            "Simple {var|test} template".to_owned(),
+            ParseContextBuilder::default().build(),
+        )
+        .unwrap();
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
@@ -1587,7 +1818,11 @@ mod legacy_tests {
 
     #[test]
     fn variable_value_modifier_string_value() {
-        let tpl = parse(r#"Simple {var|test:"test value"} template"#.to_owned()).unwrap();
+        let tpl = parse(
+            r#"Simple {var|test:"test value"} template"#.to_owned(),
+            ParseContextBuilder::default().build(),
+        )
+        .unwrap();
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
@@ -1609,7 +1844,11 @@ mod legacy_tests {
 
     #[test]
     fn variable_value_modifier_num_value() {
-        let tpl = parse(r#"Simple {var|test:42} template"#.to_owned()).unwrap();
+        let tpl = parse(
+            r#"Simple {var|test:42} template"#.to_owned(),
+            ParseContextBuilder::default().build(),
+        )
+        .unwrap();
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),
@@ -1629,7 +1868,11 @@ mod legacy_tests {
 
     #[test]
     fn variable_value_modifier_var_value() {
-        let tpl = parse(r#"Simple {var|test:foobar} template"#.to_owned()).unwrap();
+        let tpl = parse(
+            r#"Simple {var|test:foobar} template"#.to_owned(),
+            ParseContextBuilder::default().build(),
+        )
+        .unwrap();
         assert_eq!(
             vec![
                 Statement::Literal("Simple " as *const _),

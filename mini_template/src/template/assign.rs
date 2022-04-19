@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, value::ident::Ident, TemplateKey};
+use crate::{renderer::RenderContext, value::ident::Ident};
 
 use super::CalculatedValue;
 
@@ -13,10 +13,7 @@ impl Assign {
         Self { identifier, calc }
     }
 
-    pub fn assign<TK>(&self, context: &mut RenderContext<TK>) -> crate::error::Result<()>
-    where
-        TK: TemplateKey,
-    {
+    pub fn assign(&self, context: &mut RenderContext) -> crate::error::Result<()> {
         let v = self.calc.calc(context)?;
         let ident = self.identifier.resolve_ident(&context.variables)?;
         context.variables.set_value(ident, v)

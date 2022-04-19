@@ -1,27 +1,21 @@
-use crate::{Template, TemplateKey};
+use crate::Template;
 use std::collections::HashMap;
 
 use crate::value::ValueManager;
 
 use super::modifier::Modifier;
 
-pub struct RenderContext<'a, TK = String>
-where
-    TK: TemplateKey,
-{
+pub struct RenderContext<'a> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
     pub variables: ValueManager,
-    pub templates: &'a HashMap<TK, Template>,
+    pub templates: &'a HashMap<String, Template>,
 }
 
-impl<'a, 'b, TK> RenderContext<'a, TK>
-where
-    TK: TemplateKey,
-{
+impl<'a, 'b> RenderContext<'a> {
     pub fn new(
         modifier: &'a HashMap<&'static str, &'a Modifier>,
         variables: ValueManager,
-        templates: &'a HashMap<TK, Template>,
+        templates: &'a HashMap<String, Template>,
     ) -> Self {
         Self {
             modifier,
@@ -33,7 +27,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::UnsupportedFeature;
+    use crate::parser::{ParseContextBuilder, UnsupportedFeature};
     use crate::{
         modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
         value_iter, ValueManager,
@@ -54,9 +48,9 @@ mod tests {
     #[test]
     fn literal() {
         let tpl = String::from("Simple template string");
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
         let mut rendered = String::new();
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&HashMap::new(), ValueManager::default(), &HashMap::new()),
             &mut rendered,
         )
@@ -67,14 +61,14 @@ mod tests {
     #[test]
     fn replace_variables() {
         let tpl = String::from("Simple {foo} template string");
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
         let variables = ValueManager::try_from_iter(value_iter!(
             "foo": Value::String("my test value".to_owned())
         ))
         .unwrap();
         let mut rendered = String::new();
 
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&HashMap::new(), variables, &HashMap::new()),
             &mut rendered,
         )
@@ -89,7 +83,7 @@ mod tests {
     #[cfg(feature = "dynamic_global_access")]
     fn dynamic_global_access() {
         let tpl = String::from("Simple {[foo]} template string");
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
         let variables = ValueManager::try_from_iter(value_iter!(
             "foo": Value::String("my_var".to_owned()),
             "my_var": Value::String("BAR".to_owned())
@@ -98,7 +92,7 @@ mod tests {
 
         let mut rendered = String::new();
 
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&HashMap::new(), variables, &HashMap::new()),
             &mut rendered,
         )
@@ -110,7 +104,7 @@ mod tests {
     #[cfg(not(feature = "dynamic_global_access"))]
     fn dynamic_global_access_disabled() {
         let tpl = String::from("Simple {[foo]} template string");
-        let tpl = parse(tpl);
+        let tpl = parse(tpl, ParseContextBuilder::default().build());
         assert_eq!(
             tpl,
             Err(crate::parser::ParseError::DisabledFeature(
@@ -122,7 +116,7 @@ mod tests {
     #[test]
     fn modifier() {
         let tpl = String::from("Simple {foo|upper} template string");
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
             "foo": Value::String("my test value".to_owned())
@@ -133,7 +127,7 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
         let mut rendered = String::new();
 
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
@@ -147,7 +141,7 @@ mod tests {
     #[test]
     fn modifier_values() {
         let tpl = String::from(r#"Simple {foo|args:"BAR":42} template string"#);
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
             "foo": Value::String("my test value".to_owned())
@@ -158,7 +152,7 @@ mod tests {
         modifiers.insert("args", &args_modifier);
         let mut rendered = String::new();
 
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
@@ -172,7 +166,7 @@ mod tests {
     #[test]
     fn modifier_list() {
         let tpl = String::from(r#"Simple {foo|upper|args:"bar":42} template string"#);
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
             "foo": Value::String("my test value".to_owned())
@@ -184,7 +178,7 @@ mod tests {
         modifiers.insert("upper", &upper_case_modifier);
 
         let mut rendered = String::new();
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
@@ -202,7 +196,7 @@ mod tests {
 {if var1}Bar {endif}
 Baz"#,
         );
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
             "var1": Value::Bool(true)
@@ -212,7 +206,7 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
@@ -223,7 +217,7 @@ Baz"#,
     #[test]
     fn condition2() {
         let tpl = String::from("Foo\n{if var1}\nBar\n{endif}\nBaz");
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
             "var1": Value::Bool(true)
@@ -233,7 +227,7 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
@@ -244,7 +238,7 @@ Baz"#,
     #[test]
     fn condition3() {
         let tpl = String::from("Foo{if var1}Bar{else}Fizz{endif}Baz");
-        let tpl = parse(tpl).unwrap();
+        let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
             "var1": Value::Bool(true)
@@ -254,7 +248,7 @@ Baz"#,
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
         let mut rendered = String::new();
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )
@@ -266,7 +260,7 @@ Baz"#,
         ))
         .unwrap();
         let mut rendered = String::new();
-        tpl.render::<String>(
+        tpl.render(
             &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
             &mut rendered,
         )

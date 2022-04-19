@@ -5,6 +5,7 @@ mod calculated_value;
 pub mod condition;
 #[cfg(feature = "conditional")]
 mod conditional;
+mod custom_block;
 #[cfg(feature = "include")]
 mod include;
 #[cfg(feature = "loop")]
@@ -18,6 +19,7 @@ pub use assign::Assign;
 pub use calculated_value::CalculatedValue;
 #[cfg(feature = "conditional")]
 pub use conditional::*;
+pub use custom_block::*;
 #[cfg(feature = "include")]
 pub use include::Include;
 #[cfg(feature = "loop")]
@@ -26,7 +28,7 @@ pub use modifier::{Modifier, UnknownModifierError};
 pub use span::Span;
 pub use statement::Statement;
 
-use crate::{error::Result, renderer::RenderContext, TemplateKey};
+use crate::{error::Result, renderer::RenderContext};
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
@@ -35,25 +37,17 @@ pub struct Template {
 }
 
 impl Render for Template {
-    fn render<'a, TK>(&self, context: &mut RenderContext<TK>, buf: &mut String) -> Result<()>
-    where
-        TK: TemplateKey,
-    {
+    fn render<'a>(&self, context: &mut RenderContext, buf: &mut String) -> Result<()> {
         self.tpl.render(context, buf)
     }
 }
 
 pub trait Render {
-    fn render<TK>(&self, context: &mut RenderContext<TK>, buf: &mut String) -> Result<()>
-    where
-        TK: TemplateKey;
+    fn render(&self, context: &mut RenderContext, buf: &mut String) -> Result<()>;
 }
 
 impl Render for Vec<Statement> {
-    fn render<TK>(&self, context: &mut RenderContext<TK>, buf: &mut String) -> Result<()>
-    where
-        TK: TemplateKey,
-    {
+    fn render(&self, context: &mut RenderContext, buf: &mut String) -> Result<()> {
         for statement in self {
             match statement {
                 Statement::Literal(literal) =>
@@ -71,6 +65,7 @@ impl Render for Vec<Statement> {
                 Statement::Loop(l) => l.render(context, buf)?,
                 #[cfg(feature = "include")]
                 Statement::Include(i) => i.render(context, buf)?,
+                Statement::CustomBlock(cb) => cb.render(context, buf)?,
             }
         }
 

@@ -1,5 +1,5 @@
 use crate::template::CalculatedValue;
-use crate::{Render, RenderContext, TemplateKey};
+use crate::{Render, RenderContext};
 
 #[derive(PartialEq, Debug)]
 pub struct Include {
@@ -7,15 +7,12 @@ pub struct Include {
 }
 
 impl Render for Include {
-    fn render<'a, TK>(
+    fn render<'a>(
         &self,
-        context: &mut RenderContext<TK>,
+        context: &mut RenderContext,
         buf: &mut String,
-    ) -> crate::error::Result<()>
-    where
-        TK: TemplateKey,
-    {
-        let key = match self.template_name.calc(context)?.try_into() {
+    ) -> crate::error::Result<()> {
+        let key: String = match self.template_name.calc(context)?.try_into() {
             Ok(key) => key,
             Err(e) => return Err(crate::error::Error::Include(e)),
         };

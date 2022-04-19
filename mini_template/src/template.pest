@@ -24,6 +24,21 @@ assign = !{"{" ~ identifier ~ "=" ~ calculated_value ~ "}"}
 template = {SOI ~ template_content ~ EOI}
 template_content = ${ (include|while_loop|assign|calculated|text|conditional)* }
 
+custom_block = {
+    "{%" ~ PUSH(ident_static) ~ custom_block_args ~ "%}" ~
+    	custom_block_content ~ 
+    "{%" ~ "end" ~ POP ~ "%}"
+}
+
+
+custom_block_args = {
+    (!"%}" ~ ANY)*
+}
+
+custom_block_content = {
+    (!("{%" ~ "end" ~ PEEK ~ "%}") ~ ANY)*
+}
+
 // Values
 string = { "\"" ~ inner_string ~ "\"" }
 inner_string = {(!"\"" ~ ( "\\\""| ANY))*}

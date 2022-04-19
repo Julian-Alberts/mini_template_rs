@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, TemplateKey};
+use crate::renderer::RenderContext;
 
 #[cfg(feature = "condition")]
 use super::condition::{Condition, ConditionEval};
@@ -20,14 +20,7 @@ impl Loop {
 }
 
 impl Render for Loop {
-    fn render<TK>(
-        &self,
-        context: &mut RenderContext<TK>,
-        buf: &mut String,
-    ) -> crate::error::Result<()>
-    where
-        TK: TemplateKey,
-    {
+    fn render(&self, context: &mut RenderContext, buf: &mut String) -> crate::error::Result<()> {
         while self.condition.eval(context)? {
             self.template.render(context, buf)?
         }

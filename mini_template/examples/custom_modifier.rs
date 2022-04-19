@@ -16,10 +16,10 @@ fn main() {
     mini_template.add_modifier("nth_lower", &modifiers::nth_lower);
 
     mini_template
-        .add_template(0_usize, TEMPLATE.to_owned())
+        .add_template("".to_owned(), TEMPLATE.to_owned())
         .unwrap();
     let render = mini_template.render(
-        &0,
+        "0",
         ValueManager::try_from_iter([
             (Ident::try_from("even").unwrap(), Value::Number(4.)),
             (Ident::try_from("zeros").unwrap(), Value::Number(4.)),

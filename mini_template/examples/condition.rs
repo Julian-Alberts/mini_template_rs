@@ -7,7 +7,7 @@ fn main() {
     let mut mini_template = MiniTemplate::default();
     mini_template.add_default_modifiers();
     mini_template
-        .add_template(0_usize, TEMPLATE.to_owned())
+        .add_template("0".to_owned(), TEMPLATE.to_owned())
         .unwrap();
 
     let mut variables = ValueManager::default();
@@ -29,7 +29,7 @@ fn main() {
             Value::Number(9.),
         )
         .unwrap();
-    let render = mini_template.render(&0, variables);
+    let render = mini_template.render("0", variables);
     println!("{}", render.unwrap());
 
     let mut variables = ValueManager::default();
@@ -51,7 +51,7 @@ fn main() {
             Value::Number(10.),
         )
         .unwrap();
-    let render = mini_template.render(&0, variables);
+    let render = mini_template.render("0", variables);
     println!("{}", render.unwrap());
 
     let mut variables = ValueManager::default();
@@ -73,6 +73,6 @@ fn main() {
             Value::Number(20.),
         )
         .unwrap();
-    let render = mini_template.render(&0, variables);
+    let render = mini_template.render("0", variables);
     println!("{}", render.unwrap());
 }

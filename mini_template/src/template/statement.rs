@@ -1,10 +1,10 @@
 #[cfg(feature = "assign")]
 use super::assign::Assign;
-use super::CalculatedValue;
 #[cfg(feature = "conditional")]
 use super::Conditional;
 #[cfg(feature = "loop")]
 use super::Loop;
+use super::{custom_block::CustomBlock, CalculatedValue};
 use crate::template::Include;
 
 #[derive(Debug)]
@@ -13,6 +13,7 @@ pub enum Statement {
     Calculated(CalculatedValue),
     #[cfg(feature = "conditional")]
     Condition(Conditional),
+    CustomBlock(Box<dyn CustomBlock>),
     #[cfg(feature = "assign")]
     Assign(Assign),
     #[cfg(feature = "loop")]
@@ -33,6 +34,7 @@ impl PartialEq for Statement {
             (Statement::Assign(s), Statement::Assign(o)) => s == o,
             #[cfg(feature = "loop")]
             (Statement::Loop(s), Statement::Loop(o)) => s == o,
+            (Statement::CustomBlock(_s), Statement::CustomBlock(_o)) => todo!(),
             _ => false,
         }
     }

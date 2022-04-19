@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{renderer::RenderContext, TemplateKey};
+use crate::renderer::RenderContext;
 
 use super::{
     condition::{Condition, ConditionEval},
@@ -15,14 +15,7 @@ pub struct Conditional {
 }
 
 impl Render for Conditional {
-    fn render<TK>(
-        &self,
-        context: &mut RenderContext<TK>,
-        buf: &mut String,
-    ) -> crate::error::Result<()>
-    where
-        TK: TemplateKey,
-    {
+    fn render(&self, context: &mut RenderContext, buf: &mut String) -> crate::error::Result<()> {
         if self.condition.eval(context)? {
             self.then_case.render(context, buf)
         } else if let Some(e) = &self.else_case {
@@ -55,7 +48,7 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval::<String>(&RenderContext::new(
+            .eval(&RenderContext::new(
                 &HashMap::new(),
                 ValueManager::default(),
                 &HashMap::new()
@@ -81,7 +74,7 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(true),
@@ -89,7 +82,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -97,7 +90,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -105,7 +98,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -127,7 +120,7 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(true),
@@ -135,7 +128,7 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -143,7 +136,7 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -151,7 +144,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -166,7 +159,7 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -181,7 +174,7 @@ mod tests {
             vec![],
         ));
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -196,7 +189,7 @@ mod tests {
             vec![],
         ));
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -211,7 +204,7 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -227,7 +220,7 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval::<String>(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
+            .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
     }
 
@@ -258,7 +251,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -268,7 +261,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -278,7 +271,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -288,7 +281,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -298,7 +291,7 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -308,7 +301,7 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -318,7 +311,7 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -328,7 +321,7 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval::<String>(&RenderContext::new(&mods, vars, &HashMap::new()))
+            .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
     }
 }

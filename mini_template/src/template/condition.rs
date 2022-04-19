@@ -1,4 +1,4 @@
-use crate::{renderer::RenderContext, TemplateKey};
+use crate::renderer::RenderContext;
 
 use super::CalculatedValue;
 
@@ -22,10 +22,7 @@ impl Condition {
 }
 
 impl ConditionEval for Condition {
-    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
-    where
-        TK: TemplateKey,
-    {
+    fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         match self {
             Self::Or(c) => c.eval(context),
             Self::And(c) => c.eval(context),
@@ -36,9 +33,7 @@ impl ConditionEval for Condition {
 }
 
 pub trait ConditionEval {
-    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
-    where
-        TK: TemplateKey;
+    fn eval(&self, context: &RenderContext) -> crate::error::Result<bool>;
 }
 
 #[derive(Debug, PartialEq)]
@@ -53,10 +48,7 @@ impl OrCondition {
 }
 
 impl ConditionEval for OrCondition {
-    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
-    where
-        TK: TemplateKey,
-    {
+    fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         for condition in &self.conditions {
             if condition.eval(context)? {
                 return Ok(true);
@@ -78,10 +70,7 @@ impl AndCondition {
 }
 
 impl ConditionEval for AndCondition {
-    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
-    where
-        TK: TemplateKey,
-    {
+    fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         for condition in &self.conditions {
             if !condition.eval(context)? {
                 return Ok(false);
@@ -99,10 +88,7 @@ pub struct CompareCondition {
 }
 
 impl ConditionEval for CompareCondition {
-    fn eval<TK>(&self, context: &RenderContext<TK>) -> crate::error::Result<bool>
-    where
-        TK: TemplateKey,
-    {
+    fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
         let left = self.left.calc(context)?;
         let right = self.right.calc(context)?;
         let r = match self.operator {

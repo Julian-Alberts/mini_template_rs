@@ -1,7 +1,7 @@
 use super::StorageMethod;
-use crate::{template::Span, util::TemplateString};
 use crate::value::Value;
 use crate::ValueManager;
+use crate::{template::Span, util::TemplateString};
 use std::fmt::{Debug, Display, Formatter, Write};
 
 #[derive(Debug)]

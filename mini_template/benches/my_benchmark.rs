@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use mini_template::{value::Value, MiniTemplate, ValueManager, value_iter};
+use mini_template::{value::Value, value_iter, MiniTemplate, ValueManager};
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("simple template", |b| b.iter(|| {

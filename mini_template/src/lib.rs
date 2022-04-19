@@ -14,26 +14,22 @@ extern crate pest_derive;
 
 use crate::value::{TypeError, Value};
 use modifier::Modifier;
-use parser::{parse, ParseError};
+use parser::{parse, ParseContextBuilder, ParseError};
 use renderer::RenderContext;
 use std::collections::HashMap;
 use template::{Render, Template};
-pub use template_key::TemplateKey;
 pub use value::ValueManager;
 
 /// A Storage for Templates
 ///
 /// A MiniTemplate instance is used to parse, save and render templates.
 #[derive(Default)]
-pub struct MiniTemplate<K: TemplateKey> {
+pub struct MiniTemplate {
     modifier: HashMap<&'static str, &'static Modifier>,
-    template: HashMap<K, Template>,
+    template: HashMap<String, Template>,
 }
 
-impl<K> MiniTemplate<K>
-where
-    K: TemplateKey,
-{
+impl MiniTemplate {
     /// Creates a new instance.
     /// Use [`MiniTemplate::default`] instead.
     #[deprecated]
@@ -76,8 +72,15 @@ where
     }
 
     /// Register a new Template for a give key
-    pub fn add_template(&mut self, key: K, tpl: String) -> Result<Option<Template>, ParseError> {
-        let tpl = parse(tpl)?;
+    pub fn add_template(
+        &mut self,
+        key: String,
+        tpl: String,
+    ) -> Result<Option<Template>, ParseError> {
+        let context = ParseContextBuilder::default()
+            .custom_blocks(todo!("Add custom blocks to MiniTemplate"))
+            .build();
+        let tpl = parse(tpl, context)?;
         Ok(self.template.insert(key, tpl))
     }
 
@@ -88,7 +91,7 @@ where
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render(&self, key: &K, data: ValueManager) -> crate::error::Result<String> {
+    pub fn render(&self, key: &str, data: ValueManager) -> crate::error::Result<String> {
         let tpl = match self.template.get(key) {
             Some(t) => t,
             None => return Err(crate::error::Error::UnknownTemplate),
@@ -98,27 +101,4 @@ where
         tpl.render(&mut context, &mut buf)?;
         Ok(buf)
     }
-}
-
-#[cfg(feature = "include")]
-mod template_key {
-    use std::hash::Hash;
-
-    pub trait TemplateKey:
-        Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError>
-    {
-    }
-
-    impl<T> TemplateKey for T where
-        T: Hash + Eq + TryFrom<crate::value::Value, Error = crate::value::TypeError>
-    {
-    }
-}
-#[cfg(not(feature = "include"))]
-mod template_key {
-    use std::hash::Hash;
-
-    pub trait TemplateKey: Hash + Eq {}
-
-    impl<T> TemplateKey for T where T: Hash + Eq {}
 }
