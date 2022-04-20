@@ -19,6 +19,7 @@ use renderer::RenderContext;
 use std::collections::HashMap;
 use template::{Render, Template};
 pub use value::ValueManager;
+pub use template::{CustomBlockParser, CustomBlock};
 
 /// A Storage for Templates
 ///
@@ -26,6 +27,7 @@ pub use value::ValueManager;
 #[derive(Default)]
 pub struct MiniTemplate {
     modifier: HashMap<&'static str, &'static Modifier>,
+    custom_blocks: HashMap<String, Box<dyn CustomBlockParser>>,
     template: HashMap<String, Template>,
 }
 
@@ -37,6 +39,7 @@ impl MiniTemplate {
         MiniTemplate {
             modifier: HashMap::new(),
             template: HashMap::new(),
+            custom_blocks: HashMap::new(),
         }
     }
 
@@ -63,6 +66,12 @@ impl MiniTemplate {
         self.add_modifier("div", &div);
     }
 
+    /// Register a new custom block
+    pub fn add_custom_block(&mut self, custom_block: Box<dyn CustomBlockParser>) {
+        self.custom_blocks
+            .insert(custom_block.name().to_owned(), custom_block);
+    }
+
     /// Register a new modifier
     ///
     /// You can implement modifiers by hand. But that will result quite complex setup code.
@@ -78,7 +87,7 @@ impl MiniTemplate {
         tpl: String,
     ) -> Result<Option<Template>, ParseError> {
         let context = ParseContextBuilder::default()
-            .custom_blocks(todo!("Add custom blocks to MiniTemplate"))
+            .custom_blocks(&self.custom_blocks)
             .build();
         let tpl = parse(tpl, context)?;
         Ok(self.template.insert(key, tpl))

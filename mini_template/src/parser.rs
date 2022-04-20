@@ -53,17 +53,20 @@ pub fn parse(input: String, context: ParseContext) -> Result<Template, ParseErro
         .next()
         .unwrap()
         .into_inner()
-        .filter_map(parse_template_content)
+        .filter_map(|i| parse_template_content(i, &context))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(compiled_template)
 }
 
-fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseError>> {
+fn parse_template_content(
+    item: Pair<Rule>,
+    context: &ParseContext,
+) -> Option<Result<Statement, ParseError>> {
     match item.as_rule() {
         Rule::text => Some(Ok(Statement::Literal(item.as_str()))),
         Rule::calculated => Some(parse_calculated(item)),
         #[cfg(feature = "conditional")]
-        Rule::conditional => Some(parse_conditional(item)),
+        Rule::conditional => Some(parse_conditional(item, &context)),
         #[cfg(not(feature = "conditional"))]
         Rule::conditional => Some(Err(ParseError::DisabledFeature(
             UnsupportedFeature::Conditional,
@@ -91,20 +94,26 @@ fn parse_template_content(item: Pair<Rule>) -> Option<Result<Statement, ParseErr
         #[cfg(not(feature = "assign"))]
         Rule::assign => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Assign))),
         #[cfg(feature = "loop")]
-        Rule::while_loop => match parse_loop(item) {
+        Rule::while_loop => match parse_loop(item, &context) {
             Ok(l) => Some(Ok(Statement::Loop(l))),
             Err(e) => Some(Err(e)),
         },
         #[cfg(not(feature = "loop"))]
         Rule::while_loop => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Loop))),
-        Rule::custom_block => todo!(),
+        Rule::custom_block => match parse_custom_block(item, context) {
+            Ok(cb) => Some(Ok(Statement::CustomBlock(cb))),
+            Err(e) => Some(Err(e)),
+        },
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
 }
 
 #[cfg(feature = "conditional")]
-fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
+fn parse_conditional(
+    conditional: Pair<Rule>,
+    context: &ParseContext,
+) -> Result<Statement, ParseError> {
     assert_eq!(conditional.as_rule(), Rule::conditional);
     let mut conditional = conditional.into_inner();
 
@@ -114,12 +123,12 @@ fn parse_conditional(conditional: Pair<Rule>) -> Result<Statement, ParseError> {
         .next()
         .unwrap()
         .into_inner()
-        .filter_map(parse_template_content)
+        .filter_map(|i| parse_template_content(i, context))
         .collect::<Result<Vec<_>, _>>()?;
     let else_case = conditional.next().map(|else_case| {
         else_case
             .into_inner()
-            .filter_map(parse_template_content)
+            .filter_map(|i| parse_template_content(i, context))
             .collect::<Result<Vec<_>, _>>()
     });
 
@@ -301,7 +310,7 @@ fn parse_include(include: Pair<Rule>) -> Result<Include, ParseError> {
 }
 
 #[cfg(feature = "loop")]
-fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
+fn parse_loop(l: Pair<Rule>, context: &ParseContext) -> Result<Loop, ParseError> {
     assert_eq!(l.as_rule(), Rule::while_loop);
     let mut inner = l.into_inner();
     let condition = parse_condition(inner.next().unwrap())?;
@@ -309,7 +318,7 @@ fn parse_loop(l: Pair<Rule>) -> Result<Loop, ParseError> {
         .next()
         .unwrap()
         .into_inner()
-        .filter_map(parse_template_content)
+        .filter_map(|i| parse_template_content(i, context))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(Loop::new(condition, template))
 }
@@ -327,8 +336,8 @@ fn parse_custom_block<'a>(
 
     for i in inner {
         match i.as_rule() {
-            Rule::custom_block_args => args = Some(i.as_str()),
-            Rule::custom_block_content => body = Some(i.as_str()),
+            Rule::custom_block_args => args = Some(i.as_str().trim()),
+            Rule::custom_block_content => body = Some(i.as_str().trim()),
             _ => panic!(),
         }
     }
@@ -504,7 +513,9 @@ mod tests {
         let item = item.unwrap().next();
         assert!(item.is_some());
         let item = item.unwrap();
-        let statement = parse_template_content(item).unwrap().unwrap();
+        let statement = parse_template_content(item, &ParseContextBuilder::default().build())
+            .unwrap()
+            .unwrap();
         assert_eq!(statement, Statement::Literal("test literal"))
     }
 
@@ -810,7 +821,7 @@ mod tests {
     mod conditional {
         use pest::Parser;
 
-        use crate::parser::{parse_conditional, Rule, TemplateParser};
+        use crate::parser::{parse_conditional, ParseContextBuilder, Rule, TemplateParser};
         use crate::template::condition::{CompareCondition, CompareOperator, Condition};
         use crate::template::{CalculatedValue, Conditional, Statement};
         use crate::value::ident::Ident;
@@ -823,7 +834,8 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional).unwrap();
+            let context = ParseContextBuilder::default().build();
+            let conditional_statement = parse_conditional(conditional, &context).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -855,7 +867,8 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional).unwrap();
+            let context = ParseContextBuilder::default().build();
+            let conditional_statement = parse_conditional(conditional, &context).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -892,7 +905,8 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional).unwrap();
+            let context = ParseContextBuilder::default().build();
+            let conditional_statement = parse_conditional(conditional, &context).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -924,7 +938,8 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap();
-            let conditional_statement = parse_conditional(conditional).unwrap();
+            let context = ParseContextBuilder::default().build();
+            let conditional_statement = parse_conditional(conditional, &context).unwrap();
             if let Statement::Condition(conditional) = conditional_statement {
                 assert_eq!(
                     conditional,
@@ -1403,9 +1418,9 @@ mod tests {
         use pest::Parser;
 
         use crate::{
-            parser::{parse_custom_block, ParseContextBuilder, Rule, TemplateParser},
+            parser::{parse, parse_custom_block, ParseContextBuilder, Rule, TemplateParser},
             renderer::RenderContext,
-            template::{CustomBlock, CustomBlockParser, Render},
+            template::{CustomBlock, CustomBlockParser, Render, Statement, Template},
             ValueManager,
         };
 
@@ -1524,10 +1539,60 @@ mod tests {
             .unwrap();
             assert_eq!(&buf, "MY ARGS")
         }
+
+        #[test]
+        fn parse_custom_block_without_body() {
+            let mut custom_blocks = HashMap::with_capacity(1);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
+            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
+
+            let tpl = "{% my_custom_block %}";
+            let cm = TemplateParser::parse(Rule::custom_block, tpl)
+                .unwrap()
+                .next()
+                .unwrap();
+            let cb = parse_custom_block(cm, &builder.build()).unwrap();
+            let mut buf = String::default();
+            cb.render(
+                &mut RenderContext::new(
+                    &HashMap::default(),
+                    ValueManager::default(),
+                    &HashMap::default(),
+                ),
+                &mut buf,
+            )
+            .unwrap();
+            assert_eq!(&buf, "")
+        }
+
+        #[test]
+        fn parse_in_template() {
+            let mut custom_blocks = HashMap::with_capacity(1);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
+            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
+            let template = parse(
+                "text text {%my_custom_block args%} more text".to_owned(),
+                builder.build(),
+            )
+            .unwrap();
+            let mut buf = String::default();
+            template.render(
+                &mut RenderContext {
+                    variables: ValueManager::default(),
+                    modifier: &HashMap::default(),
+                    templates: &HashMap::default(),
+                },
+                &mut buf,
+            );
+            assert_eq!(buf.as_str(), "text text args more text")
+        }
     }
 
     #[cfg(feature = "loop")]
     mod while_loop {
+        use crate::parser::ParseContextBuilder;
         use crate::value::ident::Ident;
         use crate::{
             parser::{Parser, Rule, TemplateParser},
@@ -1540,13 +1605,14 @@ mod tests {
 
         #[test]
         fn parse_loop() {
+            let context = ParseContextBuilder::default().build();
             let template = "{while var==0}Foo{endwhile}";
 
             let l = TemplateParser::parse(Rule::while_loop, template)
                 .unwrap()
                 .next()
                 .unwrap();
-            let l = crate::parser::parse_loop(l).unwrap();
+            let l = crate::parser::parse_loop(l, &context).unwrap();
             assert_eq!(
                 l,
                 Loop::new(
