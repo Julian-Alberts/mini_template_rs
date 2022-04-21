@@ -475,14 +475,14 @@ impl<'a> ParseContextBuilder<'a> {
         &mut self,
         custom_blocks: &'a HashMap<String, Box<dyn CustomBlockParser>>,
     ) {
-        self.custom_block.insert(custom_blocks);
+        self.custom_block = Some(custom_blocks);
     }
 
     pub fn custom_blocks(
         mut self,
         custom_blocks: &'a HashMap<String, Box<dyn CustomBlockParser>>,
     ) -> Self {
-        self.custom_block.insert(custom_blocks);
+        self.custom_block = Some(custom_blocks);
         self
     }
 

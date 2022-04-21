@@ -15,11 +15,11 @@ extern crate pest_derive;
 use crate::value::{TypeError, Value};
 use modifier::Modifier;
 use parser::{parse, ParseContextBuilder, ParseError};
-use renderer::RenderContext;
+pub use renderer::RenderContext;
 use std::collections::HashMap;
-use template::{Render, Template};
+use template::Template;
 pub use value::ValueManager;
-pub use template::{CustomBlockParser, CustomBlock, Render, RenderContext};
+pub use template::{CustomBlockParser, CustomBlock, Render};
 
 /// A Storage for Templates
 ///
