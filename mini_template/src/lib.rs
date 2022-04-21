@@ -1,6 +1,6 @@
 //#![deny(clippy::undocumented_unsafe_blocks)]
 
-mod error;
+pub mod error;
 pub mod macros;
 pub mod modifier;
 mod parser;
