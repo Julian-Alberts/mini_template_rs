@@ -19,7 +19,7 @@ use renderer::RenderContext;
 use std::collections::HashMap;
 use template::{Render, Template};
 pub use value::ValueManager;
-pub use template::{CustomBlockParser, CustomBlock};
+pub use template::{CustomBlockParser, CustomBlock, Render, RenderContext};
 
 /// A Storage for Templates
 ///
