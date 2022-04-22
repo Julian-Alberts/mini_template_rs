@@ -427,6 +427,7 @@ fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
 pub enum ParseError {
     Syntax((usize, usize), (usize, usize), String),
     UnknownCustomBlock(String),
+    CustomBlockError(String),
     DisabledFeature(UnsupportedFeature),
 }
 
@@ -436,6 +437,7 @@ impl Display for ParseError {
             ParseError::Syntax(start, end, template) => {
                 util::mark_between_points(*start, *end, template, f)
             }
+            ParseError::CustomBlockError(s) => write!(f, "{}", s),
             ParseError::DisabledFeature(u) => write!(f, "{:#?}", u),
             ParseError::UnknownCustomBlock(name) => write!(f, "Unknown custom block \"{name}\""),
         }
