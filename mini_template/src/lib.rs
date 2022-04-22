@@ -16,11 +16,10 @@ use crate::value::{TypeError, Value};
 use modifier::Modifier;
 use parser::{parse, ParseContextBuilder};
 pub use parser::{ParseError, UnsupportedFeature};
-pub use renderer::RenderContext;
 use std::collections::HashMap;
 use template::Template;
 pub use value::ValueManager;
-pub use template::{CustomBlockParser, CustomBlock, Render};
+pub use template::{CustomBlockParser, CustomBlock, Render, RenderContext};
 
 /// A Storage for Templates
 ///
