@@ -1422,7 +1422,7 @@ mod tests {
         use crate::{
             parser::{parse, parse_custom_block, ParseContextBuilder, Rule, TemplateParser},
             renderer::RenderContext,
-            template::{CustomBlock, CustomBlockParser, Render, Statement, Template},
+            template::{CustomBlock, CustomBlockParser, Render},
             ValueManager,
         };
 
@@ -1587,7 +1587,7 @@ mod tests {
                     templates: &HashMap::default(),
                 },
                 &mut buf,
-            );
+            ).unwrap();
             assert_eq!(buf.as_str(), "text text args more text")
         }
     }

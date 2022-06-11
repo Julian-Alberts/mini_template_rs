@@ -19,7 +19,8 @@ pub use parser::{ParseError, UnsupportedFeature};
 use std::collections::HashMap;
 use template::Template;
 pub use value::ValueManager;
-pub use template::{CustomBlockParser, CustomBlock, Render, RenderContext};
+pub use template::{CustomBlockParser, CustomBlock, Render};
+pub use renderer::RenderContext;
 
 /// A Storage for Templates
 ///
