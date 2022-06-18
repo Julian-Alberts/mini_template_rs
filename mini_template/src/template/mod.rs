@@ -28,7 +28,7 @@ pub use modifier::{Modifier, UnknownModifierError};
 pub use span::Span;
 pub use statement::Statement;
 
-use crate::{error::Result, renderer::RenderContext};
+use crate::{error::Result, renderer::RenderContext, prelude::ValueAs};
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
@@ -55,7 +55,7 @@ impl Render for Vec<Statement> {
                 unsafe { buf.push_str(literal.as_ref().unwrap()) },
                 Statement::Calculated(cv) => {
                     let var = cv.calc(context)?;
-                    buf.push_str(&var.to_string()[..])
+                    buf.push_str(&ValueAs::as_string(&var)[..])
                 }
                 #[cfg(feature = "conditional")]
                 Statement::Condition(c) => c.render(context, buf)?,

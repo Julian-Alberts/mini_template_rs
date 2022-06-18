@@ -1,4 +1,7 @@
-use crate::renderer::RenderContext;
+use crate::{
+    prelude::{TplPartialEq, TplPartialOrd},
+    renderer::RenderContext,
+};
 
 use super::CalculatedValue;
 
@@ -23,11 +26,12 @@ impl Condition {
 
 impl ConditionEval for Condition {
     fn eval(&self, context: &RenderContext) -> crate::error::Result<bool> {
+        use crate::prelude::ValueAs;
         match self {
             Self::Or(c) => c.eval(context),
             Self::And(c) => c.eval(context),
             Self::Compare(c) => c.eval(context),
-            Self::CalculatedValue(c) => Ok(c.calc(context)?.as_bool()),
+            Self::CalculatedValue(c) => Ok(ValueAs::as_bool(&c.calc(context)?)),
         }
     }
 }
@@ -92,12 +96,12 @@ impl ConditionEval for CompareCondition {
         let left = self.left.calc(context)?;
         let right = self.right.calc(context)?;
         let r = match self.operator {
-            CompareOperator::EQ => left == right,
-            CompareOperator::NE => left != right,
-            CompareOperator::LT => left < right,
-            CompareOperator::LE => left <= right,
-            CompareOperator::GT => left > right,
-            CompareOperator::GE => left >= right,
+            CompareOperator::EQ => TplPartialEq::eq(&left, &right),
+            CompareOperator::NE => TplPartialEq::ne(&left, &right),
+            CompareOperator::LT => TplPartialOrd::lt(&left, &right),
+            CompareOperator::LE => TplPartialOrd::le(&left, &right),
+            CompareOperator::GT => TplPartialOrd::gt(&left, &right),
+            CompareOperator::GE => TplPartialOrd::ge(&left, &right),
         };
         Ok(r)
     }

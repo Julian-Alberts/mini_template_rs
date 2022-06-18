@@ -10,7 +10,7 @@ pub use mini_template_macro::create_modifier;
 ///
 /// # Example
 /// ```
-/// use mini_template::value::Value;
+/// use mini_template::Value;
 /// use mini_template::fn_as_modifier;
 ///
 /// fn repeat_n_times(s: &str, n: usize) -> String {
@@ -26,7 +26,7 @@ pub use mini_template_macro::create_modifier;
 /// );
 ///
 /// assert_eq!(
-///     repeat_n_times_modifier(&Value::String("17".to_owned()), vec![&Value::Number(2.)]),
+///     repeat_n_times_modifier(&Value::String("17".to_owned()), vec![&serde_json::json!(2)]),
 ///     Ok(Value::String("1717".to_owned()))
 /// );
 /// ```
@@ -36,7 +36,7 @@ pub use mini_template_macro::create_modifier;
 macro_rules! fn_as_modifier {
     (fn $modifier_name: ident ($first_name:ident: $first_t: ty $($(,$name: ident: $t: ty $(= $default: expr)?)+)?) -> $return: ty => $func: path) => {
         #[allow(unused_variables)]
-        pub fn $modifier_name(value: &$crate::value::Value, args: Vec<&$crate::value::Value>) -> $crate::modifier::error::Result<$crate::value::Value> {
+        pub fn $modifier_name(value: &$crate::Value, args: Vec<&$crate::Value>) -> $crate::modifier::error::Result<$crate::Value> {
             use $crate::modifier::error::Error;
 
             let $first_name: $first_t = fn_as_modifier!(try_into value: $first_t);
@@ -62,7 +62,7 @@ macro_rules! fn_as_modifier {
         $default
     };
     (try_into $value: ident: $type: ty) => {
-        match $value.try_into() {
+        match $crate::prelude::TplTryInto::try_into($value) {
             Ok(inner) => inner,
             Err(e) => return Err(Error::Type{value: $value.to_string(), type_error: e})
         }

@@ -1,7 +1,7 @@
 use super::StorageMethod;
-use crate::value::Value;
 use crate::ValueManager;
 use crate::{template::Span, util::TemplateString};
+use serde_json::Value;
 use std::fmt::{Debug, Display, Formatter, Write};
 
 #[derive(Debug)]
@@ -60,6 +60,34 @@ impl Ident {
         self.next = Some(Box::new(next));
         self.next.as_mut().unwrap()
     }
+
+    pub fn iter(&self) -> IdentIter {
+        IdentIter { ident: Some(&self) }
+    }
+}
+
+pub struct IdentIter<'a> {
+    ident: Option<&'a Ident>,
+}
+
+impl<'a> Iterator for IdentIter<'a> {
+    type Item = &'a Ident;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ident = if let Some(ident) = self.ident {
+            ident
+        } else {
+            return None;
+        };
+
+        if let Some(next_ident) = &ident.next {
+            self.ident = Some(&next_ident)
+        } else {
+            self.ident = None
+        }
+
+        Some(ident)
+    }
 }
 
 #[cfg(test)]
@@ -114,6 +142,10 @@ impl ResolvedIdent {
     pub fn chain(&mut self, next: ResolvedIdent) -> &mut Self {
         self.next = Some(Box::new(next));
         self.next.as_mut().unwrap()
+    }
+
+    pub fn iter(&self) -> ResolvedIdentIter {
+        ResolvedIdentIter { ident: Some(&self) }
     }
 }
 
@@ -204,5 +236,29 @@ impl Display for ResolvedIdentPart {
             ResolvedIdentPart::Static(s) => f.write_str(s.get_string()),
             ResolvedIdentPart::Dynamic(d) => f.write_str(&d.to_string()),
         }
+    }
+}
+
+pub struct ResolvedIdentIter<'a> {
+    ident: Option<&'a ResolvedIdent>,
+}
+
+impl<'a> Iterator for ResolvedIdentIter<'a> {
+    type Item = &'a ResolvedIdent;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ident = if let Some(ident) = self.ident {
+            ident
+        } else {
+            return None;
+        };
+
+        if let Some(next_ident) = &ident.next {
+            self.ident = Some(&next_ident)
+        } else {
+            self.ident = None
+        }
+
+        Some(ident)
     }
 }

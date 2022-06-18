@@ -32,14 +32,16 @@ impl Render for Loop {
 mod tests {
     use std::collections::HashMap;
 
+    use serde_json::json;
+
     use crate::template::Modifier;
     use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
         template::{condition::Condition, Assign, CalculatedValue, Render, Statement},
-        value::{StorageMethod, Value},
-        value_iter, ValueManager,
+        value::StorageMethod,
     };
+    use serde_json::Value;
 
     use super::Loop;
 
@@ -59,11 +61,18 @@ mod tests {
                     Ident::new_static("var"),
                     CalculatedValue::new(
                         StorageMethod::Variable(Ident::new_static("var")),
-                        vec![Modifier {
-                            name: "sub",
-                            args: vec![StorageMethod::Const(Value::Number(1.))],
-                            span: Default::default(),
-                        }],
+                        vec![
+                            Modifier {
+                                name: "sub",
+                                args: vec![StorageMethod::Const(json!(1_f64))],
+                                span: Default::default(),
+                            },
+                            Modifier {
+                                name: "floor",
+                                args: vec![],
+                                span: Default::default()
+                            }
+                        ],
                     ),
                 )),
             ],
@@ -72,10 +81,13 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
+        let floor: &'static crate::modifier::Modifier = &crate::modifier::floor;
+        modifiers.insert("floor", floor);
         let templates = HashMap::<String, _>::new();
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "var": Value::Number(1.)
-        ))
+        let vars = json!({
+            "var": 1
+        })
+        .try_into()
         .unwrap();
         let mut ctx = RenderContext::new(&modifiers, vars, &templates);
         let mut buffer = String::new();
@@ -101,8 +113,13 @@ mod tests {
                         StorageMethod::Variable(Ident::new_static("var")),
                         vec![Modifier {
                             name: "sub",
-                            args: vec![StorageMethod::Const(Value::Number(1.))],
+                            args: vec![StorageMethod::Const(json!(1))],
                             span: Default::default(),
+                        },
+                        Modifier {
+                            name: "floor",
+                            args: vec![],
+                            span: Default::default()
                         }],
                     ),
                 )),
@@ -112,10 +129,13 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
+        let floor: &'static crate::modifier::Modifier = &crate::modifier::floor;
+        modifiers.insert("floor", floor);
         let templates = HashMap::<String, _>::new();
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "var": Value::Number(5.)
-        ))
+        let vars = json!({
+            "var": 5
+        })
+        .try_into()
         .unwrap();
         let mut ctx = RenderContext::new(&modifiers, vars, &templates);
         let mut buffer = String::new();
@@ -135,9 +155,10 @@ mod tests {
 
         let modifiers = HashMap::new();
         let templates = HashMap::<String, _>::new();
-        let vars = ValueManager::try_from_iter(value_iter![
-            "var": Value::Number(5.)
-        ])
+        let vars = json!({
+            "var": 5_f64
+        })
+        .try_into()
         .unwrap();
         let mut ctx = RenderContext::new(&modifiers, vars, &templates);
         let mut buffer = String::new();

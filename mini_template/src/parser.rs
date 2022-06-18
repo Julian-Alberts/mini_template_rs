@@ -21,9 +21,10 @@ use crate::value::ident::{Ident, IdentPart};
 use crate::{
     template::{CalculatedValue, Statement},
     util,
-    value::{StorageMethod, Value},
+    value::StorageMethod,
     Template,
 };
+use serde_json::Value;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Parser)]
@@ -505,6 +506,8 @@ impl<'a> Default for ParseContextBuilder<'a> {
 mod tests {
     use std::vec;
 
+    use serde_json::json;
+
     use super::*;
 
     #[test]
@@ -659,7 +662,7 @@ mod tests {
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
                         name: "modifier",
-                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        args: vec![StorageMethod::Const(json! {-32.09})],
                         span: Default::default()
                     }]
                 ))]
@@ -703,7 +706,7 @@ mod tests {
                     StorageMethod::Const(Value::Null),
                     vec![Modifier {
                         name: "modifier",
-                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        args: vec![StorageMethod::Const(json! {-32.09})],
                         span: Default::default()
                     }]
                 ))]
@@ -722,10 +725,10 @@ mod tests {
             Template {
                 tpl_str: String::from(r#"{10|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Const(Value::Number(10.0)),
+                    StorageMethod::Const(json! {10}),
                     vec![Modifier {
                         name: "modifier",
-                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        args: vec![StorageMethod::Const(json!(-32.09_f64))],
                         span: Default::default()
                     }]
                 ))]
@@ -748,7 +751,7 @@ mod tests {
                     vec![Modifier {
                         name: "modifier",
                         args: vec![
-                            StorageMethod::Const(Value::Number(-32.09)),
+                            StorageMethod::Const(json!(-32.09_f64)),
                             StorageMethod::Const(Value::String(String::from("argument"))),
                             StorageMethod::Variable(Ident::new_static("var2")),
                             StorageMethod::Const(Value::Bool(true))
@@ -781,10 +784,10 @@ mod tests {
                     )),
                     Statement::Literal("\n"),
                     Statement::Calculated(CalculatedValue::new(
-                        StorageMethod::Const(Value::Number(10.0)),
+                        StorageMethod::Const(json!(10)),
                         vec![Modifier {
                             name: "modifier",
-                            args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                            args: vec![StorageMethod::Const(json!(-32.09_f64))],
                             span: Default::default()
                         }]
                     ))
@@ -807,10 +810,10 @@ mod tests {
                 tpl: vec![Statement::Assign(Assign::new(
                     Ident::new_static("var"),
                     CalculatedValue::new(
-                        StorageMethod::Const(Value::Number(10.0)),
+                        StorageMethod::Const(json!(10)),
                         vec![Modifier {
                             name: "modifier",
-                            args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                            args: vec![StorageMethod::Const(json!(-32.09_f64))],
                             span: Default::default()
                         }]
                     )
@@ -822,12 +825,14 @@ mod tests {
     #[cfg(feature = "conditional")]
     mod conditional {
         use pest::Parser;
+        use serde_json::json;
 
         use crate::parser::{parse_conditional, ParseContextBuilder, Rule, TemplateParser};
         use crate::template::condition::{CompareCondition, CompareOperator, Condition};
         use crate::template::{CalculatedValue, Conditional, Statement};
         use crate::value::ident::Ident;
-        use crate::value::{StorageMethod, Value};
+        use crate::value::StorageMethod;
+        use serde_json::Value;
 
         #[test]
         fn parse_simple() {
@@ -848,10 +853,7 @@ mod tests {
                                 vec![]
                             ),
                             operator: CompareOperator::LT,
-                            right: CalculatedValue::new(
-                                StorageMethod::Const(Value::Number(10.)),
-                                vec![]
-                            )
+                            right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
                         }),
                         then_case: vec![Statement::Literal("HI")],
                         else_case: None
@@ -919,10 +921,7 @@ mod tests {
                                 vec![]
                             ),
                             operator: CompareOperator::LT,
-                            right: CalculatedValue::new(
-                                StorageMethod::Const(Value::Number(10.)),
-                                vec![]
-                            )
+                            right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
                         }),
                         then_case: vec![Statement::Literal("HI")],
                         else_case: Some(vec![Statement::Literal("TEST")])
@@ -952,10 +951,7 @@ mod tests {
                                 vec![]
                             ),
                             operator: CompareOperator::LT,
-                            right: CalculatedValue::new(
-                                StorageMethod::Const(Value::Number(10.)),
-                                vec![]
-                            )
+                            right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
                         }),
                         then_case: vec![Statement::Literal("HI")],
                         else_case: Some(vec![Statement::Condition(Conditional {
@@ -1044,9 +1040,9 @@ mod tests {
 
     mod value {
         use crate::parser::{Rule, TemplateParser};
-        use crate::value::Value;
         use crate::value::{ident::Ident, StorageMethod};
         use pest::Parser;
+        use serde_json::{json, Value};
 
         #[test]
         fn parse_bool_true() {
@@ -1085,17 +1081,20 @@ mod tests {
 
         #[test]
         fn parse_number() {
-            let templates = ["12", "-5", "-5.23", "+12.3", "0.2135"];
-            templates.iter().for_each(|template| {
+            let templates = [
+                ("12", json!(12_u64)),
+                ("-5", json!(-5_i64)),
+                ("-5.23", json!(-5.23_f64)),
+                ("12.3", json!(12.3_f64)),
+                ("0.2135", json!(0.2135_f64)),
+            ];
+            templates.iter().for_each(|(template, exp)| {
                 let value = TemplateParser::parse(Rule::value, template)
                     .unwrap()
                     .next()
                     .unwrap();
                 let value = super::parse_value(value).unwrap();
-                assert_eq!(
-                    value,
-                    StorageMethod::Const(Value::Number(template.parse::<f64>().unwrap()))
-                );
+                assert_eq!(value, StorageMethod::Const(exp.clone()));
             })
         }
 
@@ -1136,8 +1135,9 @@ mod tests {
         use crate::parser::{Rule, TemplateParser};
         use crate::template::{CalculatedValue, Include, Modifier, Span};
         use crate::value::ident::Ident;
-        use crate::value::{StorageMethod, Value};
+        use crate::value::StorageMethod;
         use pest::Parser;
+        use serde_json::Value;
 
         #[test]
         fn parse_include_string() {
@@ -1221,7 +1221,7 @@ mod tests {
                         vec![]
                     ),
                     operator: CompareOperator::EQ,
-                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                    right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
                 })
             );
         }
@@ -1242,7 +1242,7 @@ mod tests {
                         vec![]
                     ),
                     operator: CompareOperator::EQ,
-                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                    right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
                 })
             );
         }
@@ -1387,11 +1387,13 @@ mod tests {
 
     #[cfg(feature = "assign")]
     mod assign {
+        use serde_json::json;
+
         use crate::value::ident::Ident;
         use crate::{
             parser::{parse_assign, Parser, Rule, TemplateParser},
             template::{Assign, CalculatedValue},
-            value::{StorageMethod, Value},
+            value::StorageMethod,
         };
 
         //r#"{my_var = "test"|modifier:arg}"#,
@@ -1408,7 +1410,7 @@ mod tests {
                 assign,
                 Assign::new(
                     Ident::new_static("my_var"),
-                    CalculatedValue::new(StorageMethod::Const(Value::Number(12.)), vec![])
+                    CalculatedValue::new(StorageMethod::Const(json!(12)), vec![])
                 )
             )
         }
@@ -1580,20 +1582,24 @@ mod tests {
             )
             .unwrap();
             let mut buf = String::default();
-            template.render(
-                &mut RenderContext {
-                    variables: ValueManager::default(),
-                    modifier: &HashMap::default(),
-                    templates: &HashMap::default(),
-                },
-                &mut buf,
-            ).unwrap();
+            template
+                .render(
+                    &mut RenderContext {
+                        variables: ValueManager::default(),
+                        modifier: &HashMap::default(),
+                        templates: &HashMap::default(),
+                    },
+                    &mut buf,
+                )
+                .unwrap();
             assert_eq!(buf.as_str(), "text text args more text")
         }
     }
 
     #[cfg(feature = "loop")]
     mod while_loop {
+        use serde_json::json;
+
         use crate::parser::ParseContextBuilder;
         use crate::value::ident::Ident;
         use crate::{
@@ -1602,7 +1608,7 @@ mod tests {
                 condition::{CompareCondition, CompareOperator, Condition},
                 CalculatedValue, Loop, Statement,
             },
-            value::{StorageMethod, Value},
+            value::StorageMethod,
         };
 
         #[test]
@@ -1624,10 +1630,7 @@ mod tests {
                             vec![]
                         ),
                         operator: CompareOperator::EQ,
-                        right: CalculatedValue::new(
-                            StorageMethod::Const(Value::Number(0.)),
-                            vec![]
-                        )
+                        right: CalculatedValue::new(StorageMethod::Const(json!(0)), vec![])
                     }),
                     vec![Statement::Literal("Foo")]
                 )
@@ -1641,7 +1644,7 @@ mod pest_tests {
 
     use super::*;
 
-    const NUMBER_CASES: [&str; 5] = ["42", "42.0", "0.815", "-0.815", "+0.815"];
+    const NUMBER_CASES: [&str; 5] = ["42", "42.0", "0.815", "-0.815", "0.815"];
 
     const IDENTIFIER_CASES: [&str; 5] = [
         "onlylowercase",
@@ -1821,6 +1824,8 @@ mod pest_tests {
 #[cfg(test)]
 mod legacy_tests {
 
+    use serde_json::json;
+
     use super::*;
 
     #[test]
@@ -1924,7 +1929,7 @@ mod legacy_tests {
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
                         name: "test",
-                        args: vec![StorageMethod::Const(Value::Number(42_f64))],
+                        args: vec![StorageMethod::Const(json!(42))],
                         span: Default::default()
                     }]
                 )),

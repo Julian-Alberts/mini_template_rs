@@ -16,6 +16,7 @@ pub enum Error {
     UnknownProperty(ResolvedIdent),
     #[cfg(feature = "include")]
     Include(TypeError),
+    CanNotUseAsObject(ResolvedIdent),
 }
 
 impl std::error::Error for Error {}
@@ -45,6 +46,12 @@ impl<'t> Display for Error {
                 e.storage_type
             ),
             Self::UnknownProperty(ident) => crate::util::mark_area_in_string(
+                unsafe { ident.span.input.as_ref().unwrap() },
+                ident.span.start,
+                ident.span.end,
+                f,
+            ),
+            Self::CanNotUseAsObject(ident) => crate::util::mark_area_in_string(
                 unsafe { ident.span.input.as_ref().unwrap() },
                 ident.span.start,
                 ident.span.end,

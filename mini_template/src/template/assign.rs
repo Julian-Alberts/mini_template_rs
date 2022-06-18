@@ -31,24 +31,21 @@ impl PartialEq for Assign {
 mod tests {
     use std::collections::HashMap;
 
+    use serde_json::json;
+
     use crate::template::Modifier;
     use crate::value::ident::Ident;
-    use crate::{
-        renderer::RenderContext,
-        template::CalculatedValue,
-        value::{StorageMethod, Value},
-        value_iter, ValueManager,
-    };
+    use crate::{renderer::RenderContext, template::CalculatedValue, value::StorageMethod};
 
     use super::Assign;
 
     #[test]
     fn simple_assign() {
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "input": Value::Number(42.)
-        ))
+        let vars = json!({
+            "input": 42_f64
+        })
+        .try_into()
         .unwrap();
-
         let modifiers = HashMap::default();
         let templates = HashMap::<String, _>::new();
         let mut rc = RenderContext::new(&modifiers, vars, &templates);
@@ -65,15 +62,16 @@ mod tests {
                     .resolve_ident(&rc.variables)
                     .unwrap()
             ),
-            Ok(&Value::Number(42.))
+            Ok(&json!(42_f64))
         )
     }
 
     #[test]
     fn assign_calculated() {
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "input": Value::Number(42.)
-        ))
+        let vars = json!({
+            "input": 42_f64
+        })
+        .try_into()
         .unwrap();
 
         let mut modifiers = HashMap::new();
@@ -88,7 +86,7 @@ mod tests {
                 StorageMethod::Variable(Ident::new_static("input")),
                 vec![Modifier {
                     name: "add",
-                    args: vec![StorageMethod::Const(Value::Number(2.))],
+                    args: vec![StorageMethod::Const(json!(2_f64))],
                     span: Default::default(),
                 }],
             ),
@@ -101,7 +99,7 @@ mod tests {
                     .resolve_ident(&rc.variables)
                     .unwrap()
             ),
-            Ok(&Value::Number(44.))
+            Ok(&json!(44_f64))
         )
     }
 }

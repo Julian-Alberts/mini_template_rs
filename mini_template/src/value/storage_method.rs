@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
-use crate::value::{ident::Ident, Value};
+use crate::value::ident::Ident;
+use serde_json::Value;
 
 pub enum StorageMethod {
     Const(Value),

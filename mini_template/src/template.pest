@@ -44,7 +44,7 @@ custom_block_content = {
 // Values
 string = { "\"" ~ inner_string ~ "\"" }
 inner_string = {(!"\"" ~ ( "\\\""| ANY))*}
-number = { ("+"|"-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+number = { "-"? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 boolean = {true_key_word|false_key_word}
 value = { boolean|identifier|number|string|null_literal }
 

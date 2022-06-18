@@ -1,5 +1,6 @@
 use mini_template::value::ident::Ident;
-use mini_template::{value::Value, MiniTemplate, ValueManager};
+use mini_template::{MiniTemplate, Value, ValueManager};
+use serde_json::json;
 
 const TEMPLATE: &str = include_str!("./condition.tpl");
 
@@ -26,7 +27,7 @@ fn main() {
                 .unwrap()
                 .resolve_ident(&variables)
                 .unwrap(),
-            Value::Number(9.),
+            json!(9_f64),
         )
         .unwrap();
     let render = mini_template.render("0", variables);
@@ -48,7 +49,7 @@ fn main() {
                 .unwrap()
                 .resolve_ident(&variables)
                 .unwrap(),
-            Value::Number(10.),
+            json!(10_f64),
         )
         .unwrap();
     let render = mini_template.render("0", variables);
@@ -70,7 +71,7 @@ fn main() {
                 .unwrap()
                 .resolve_ident(&variables)
                 .unwrap(),
-            Value::Number(20.),
+            json!(20_f64),
         )
         .unwrap();
     let render = mini_template.render("0", variables);

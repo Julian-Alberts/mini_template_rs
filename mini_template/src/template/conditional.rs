@@ -30,6 +30,8 @@ impl Render for Conditional {
 mod tests {
     use std::collections::HashMap;
 
+    use serde_json::json;
+
     use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
@@ -37,9 +39,10 @@ mod tests {
             condition::{AndCondition, Condition, ConditionEval, OrCondition},
             CalculatedValue,
         },
-        value::{StorageMethod, Value},
-        value_iter, ValueManager,
+        value::StorageMethod,
+        ValueManager,
     };
+    use serde_json::Value;
 
     #[test]
     fn eval_condition() {
@@ -68,34 +71,38 @@ mod tests {
                 vec![],
             )),
         ]);
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(true),
             "b": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(true),
             "b": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(false),
             "b": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(false),
             "b": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
@@ -114,34 +121,38 @@ mod tests {
                 vec![],
             )),
         ]);
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(true),
             "b": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(true),
             "b": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(false),
             "b": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
             .unwrap());
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "a": Value::Bool(false),
             "b": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&HashMap::new(), vars, &HashMap::new()))
@@ -150,9 +161,10 @@ mod tests {
 
     #[test]
     fn eval_simple_bool_true() {
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Bool(true)
-        ))
+        let vars = json!({
+            "my_var": true
+        })
+        .try_into()
         .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
@@ -165,9 +177,10 @@ mod tests {
 
     #[test]
     fn eval_simple_bool_false() {
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Bool(false)
-        ))
+        let vars = json!({
+            "my_var": false
+        })
+        .try_into()
         .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
@@ -180,9 +193,10 @@ mod tests {
 
     #[test]
     fn eval_simple_int_false() {
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Number(0.)
-        ))
+        let vars = json!({
+            "my_var": 0_f64
+        })
+        .try_into()
         .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
@@ -195,9 +209,10 @@ mod tests {
 
     #[test]
     fn eval_simple_int_true_1_0() {
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Number(1.)
-        ))
+        let vars = json!({
+            "my_var": 1_f64
+        })
+        .try_into()
         .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
             StorageMethod::Variable(Ident::new_static("my_var")),
@@ -210,9 +225,10 @@ mod tests {
 
     #[test]
     fn eval_simple_int_true_10() {
-        let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Number(10.)
-        ))
+        let vars = json!({
+            "my_var": 10_f64
+        })
+        .try_into()
         .unwrap();
 
         let condition = Condition::CalculatedValue(CalculatedValue::new(
@@ -244,81 +260,89 @@ mod tests {
             )),
         ]);
         let mods = HashMap::default();
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(false),
             "var2": Value::Bool(false),
             "var3": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(true),
             "var2": Value::Bool(false),
             "var3": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(false),
             "var2": Value::Bool(true),
             "var3": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(true),
             "var2": Value::Bool(true),
             "var3": Value::Bool(false)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(false),
             "var2": Value::Bool(false),
             "var3": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(true),
             "var2": Value::Bool(false),
             "var3": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(false),
             "var2": Value::Bool(true),
             "var3": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))
             .unwrap());
 
-        let vars = ValueManager::try_from_iter(value_iter!(
+        let vars = json!({
             "var1": Value::Bool(true),
             "var2": Value::Bool(true),
             "var3": Value::Bool(true)
-        ))
+        })
+        .try_into()
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(&mods, vars, &HashMap::new()))

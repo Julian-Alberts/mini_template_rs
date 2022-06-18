@@ -1,10 +1,8 @@
 use std::borrow::Cow;
 
 use crate::template::modifier::Modifier;
-use crate::{
-    renderer::RenderContext,
-    value::{StorageMethod, Value},
-};
+use crate::{renderer::RenderContext, value::StorageMethod};
+use serde_json::Value;
 
 #[derive(Debug, PartialEq)]
 pub struct CalculatedValue {

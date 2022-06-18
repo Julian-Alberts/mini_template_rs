@@ -12,7 +12,8 @@ impl Render for Include {
         context: &mut RenderContext,
         buf: &mut String,
     ) -> crate::error::Result<()> {
-        let key: String = match self.template_name.calc(context)?.try_into() {
+        use crate::prelude::TplTryInto;
+        let key: String = match TplTryInto::try_into(self.template_name.calc(context)?) {
             Ok(key) => key,
             Err(e) => return Err(crate::error::Error::Include(e)),
         };

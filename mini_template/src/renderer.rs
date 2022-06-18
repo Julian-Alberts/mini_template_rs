@@ -29,10 +29,10 @@ impl<'a, 'b> RenderContext<'a> {
 mod tests {
     use crate::parser::{ParseContextBuilder, UnsupportedFeature};
     use crate::{
-        modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
-        value_iter, ValueManager,
+        modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, ValueManager,
     };
     use mini_template_macro::create_modifier;
+    use serde_json::json;
     use std::collections::HashMap;
 
     #[create_modifier]
@@ -62,9 +62,10 @@ mod tests {
     fn replace_variables() {
         let tpl = String::from("Simple {foo} template string");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "foo": Value::String("my test value".to_owned())
-        ))
+        let variables = json!({
+            "foo": "my test value"
+        })
+        .try_into()
         .unwrap();
         let mut rendered = String::new();
 
@@ -118,9 +119,10 @@ mod tests {
         let tpl = String::from("Simple {foo|upper} template string");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "foo": Value::String("my test value".to_owned())
-        ))
+        let variables = json!({
+            "foo": "my test value"
+        })
+        .try_into()
         .unwrap();
 
         let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
@@ -143,9 +145,10 @@ mod tests {
         let tpl = String::from(r#"Simple {foo|args:"BAR":42} template string"#);
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "foo": Value::String("my test value".to_owned())
-        ))
+        let variables = json!({
+            "foo": "my test value"
+        })
+        .try_into()
         .unwrap();
 
         let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
@@ -168,9 +171,10 @@ mod tests {
         let tpl = String::from(r#"Simple {foo|upper|args:"bar":42} template string"#);
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "foo": Value::String("my test value".to_owned())
-        ))
+        let variables = json!({
+            "foo": "my test value"
+        })
+        .try_into()
         .unwrap();
 
         let mut modifiers: HashMap<&str, &Modifier> = HashMap::new();
@@ -198,9 +202,10 @@ Baz"#,
         );
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "var1": Value::Bool(true)
-        ))
+        let variables = json!({
+            "var1": true
+        })
+        .try_into()
         .unwrap();
 
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
@@ -219,9 +224,10 @@ Baz"#,
         let tpl = String::from("Foo\n{if var1}\nBar\n{endif}\nBaz");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "var1": Value::Bool(true)
-        ))
+        let variables = json!({
+            "var1": true
+        })
+        .try_into()
         .unwrap();
 
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
@@ -240,9 +246,10 @@ Baz"#,
         let tpl = String::from("Foo{if var1}Bar{else}Fizz{endif}Baz");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "var1": Value::Bool(true)
-        ))
+        let variables = json!({
+            "var1": true
+        })
+        .try_into()
         .unwrap();
 
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
@@ -255,9 +262,10 @@ Baz"#,
         .unwrap();
         assert_eq!(rendered, String::from("FooBarBaz"));
 
-        let variables = ValueManager::try_from_iter(value_iter!(
-            "var1": Value::Bool(false)
-        ))
+        let variables = json!({
+            "var1": false
+        })
+        .try_into()
         .unwrap();
         let mut rendered = String::new();
         tpl.render(

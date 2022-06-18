@@ -4,6 +4,7 @@ pub mod error;
 pub mod macros;
 pub mod modifier;
 mod parser;
+pub mod prelude;
 mod renderer;
 mod template;
 mod util;
@@ -12,15 +13,16 @@ pub mod value;
 #[macro_use]
 extern crate pest_derive;
 
-use crate::value::{TypeError, Value};
+use crate::value::TypeError;
 use modifier::Modifier;
 use parser::{parse, ParseContextBuilder};
 pub use parser::{ParseError, UnsupportedFeature};
+pub use renderer::RenderContext;
+pub use serde_json::Value;
 use std::collections::HashMap;
 use template::Template;
+pub use template::{CustomBlock, CustomBlockParser, Render};
 pub use value::ValueManager;
-pub use template::{CustomBlockParser, CustomBlock, Render};
-pub use renderer::RenderContext;
 
 /// A Storage for Templates
 ///

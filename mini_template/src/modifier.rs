@@ -9,10 +9,10 @@ use {
     },
 };
 
-use super::value::Value;
 use crate::fn_as_modifier;
 use core::ops::{Add, Div, Mul, Sub};
 pub use error::*;
+use serde_json::Value;
 
 #[cfg(feature = "regex")]
 static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
@@ -65,6 +65,11 @@ fn replace_regex_modifier(
 ) -> std::result::Result<String, String> {
     let count = count.unwrap_or(0);
     with_regex_from_cache(regex, |regex| regex.replacen(&input, count, to).to_string())
+}
+
+#[mini_template_macro::create_modifier]
+fn floor(num: f64) -> usize {
+    num.floor() as usize
 }
 
 fn_as_modifier!(fn upper(input: &str) -> String => str::to_uppercase);
@@ -155,6 +160,8 @@ pub mod error {
 #[cfg(test)]
 mod tests {
 
+    use serde_json::json;
+
     use crate::value::TypeError;
 
     use super::*;
@@ -162,11 +169,13 @@ mod tests {
     #[cfg(feature = "regex")]
     #[test]
     fn match_modifier() {
+        use serde_json::json;
+
         let input = Value::String(String::from("My 2test2 string"));
         let regex = Value::String(String::from(r#"(\d[a-z]+\d) string"#));
         let invalid_regex = Value::String(String::from(r#"(\d[a-z]+\d string"#));
-        let full_match = Value::Number(0.0);
-        let group = Value::Number(1.0);
+        let full_match = json!(0);
+        let group = json!(1);
         let args = vec![&regex, &full_match];
 
         let result = super::match_modifier(&input, args);
@@ -195,9 +204,9 @@ mod tests {
     #[test]
     fn slice_modifier() {
         let input = Value::String(String::from("Hello World!!!"));
-        let start_in = Value::Number(6f64);
-        let start_out = Value::Number(14f64);
-        let length_5 = Value::Number(5f64);
+        let start_in = json!(6f64);
+        let start_out = json!(14f64);
+        let length_5 = json!(5f64);
 
         let args = vec![&start_in, &length_5];
 

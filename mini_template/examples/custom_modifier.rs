@@ -1,5 +1,5 @@
-use mini_template::value::ident::Ident;
-use mini_template::{value::Value, MiniTemplate, ValueManager};
+use mini_template::{MiniTemplate, ValueManager};
+use serde_json::json;
 
 #[macro_use]
 extern crate mini_template;
@@ -20,10 +20,10 @@ fn main() {
         .unwrap();
     let render = mini_template.render(
         "0",
-        ValueManager::try_from_iter([
-            (Ident::try_from("even").unwrap(), Value::Number(4.)),
-            (Ident::try_from("zeros").unwrap(), Value::Number(4.)),
-        ])
+        ValueManager::try_from(json!({
+            "even": 4_f64,
+            "zeros": 4_f64,
+        }))
         .unwrap(),
     );
 
@@ -31,6 +31,7 @@ fn main() {
 }
 
 mod modifiers {
+    use serde_json::json;
 
     #[mini_template::macros::create_modifier(mini_template_crate = "mini_template")]
     fn is_even(num: usize) -> bool {
@@ -67,24 +68,21 @@ mod modifiers {
     }
 
     pub fn nth_lower(
-        input: &mini_template::value::Value,
-        args: Vec<&mini_template::value::Value>,
-    ) -> mini_template::modifier::Result<mini_template::value::Value> {
-        let input: String = match input.try_into() {
+        input: &mini_template::Value,
+        args: Vec<&mini_template::Value>,
+    ) -> mini_template::modifier::Result<mini_template::Value> {
+        use mini_template::prelude::*;
+        let input: String = match TplTryInto::try_into(input) {
             Ok(inner) => inner,
             Err(e) => {
                 return Err(mini_template::modifier::Error::Type {
-                    value: input.to_string(),
+                    value: input.as_string(),
                     type_error: e,
                 })
             }
         };
 
-        let n: usize = match (*args
-            .get(0)
-            .unwrap_or(&&mini_template::value::Value::Number(2.)))
-        .try_into()
-        {
+        let n: usize = match TplTryInto::try_into(*args.get(0).unwrap_or(&&json!(2_f64))) {
             Ok(inner) => inner,
             Err(e) => {
                 return Err(mini_template::modifier::Error::Type {
@@ -102,6 +100,6 @@ mod modifiers {
                 buf.push(c)
             }
         }
-        Ok(mini_template::value::Value::String(buf))
+        Ok(mini_template::Value::String(buf))
     }
 }

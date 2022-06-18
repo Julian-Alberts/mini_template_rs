@@ -6,7 +6,7 @@ use syn::spanned::Spanned;
 
 ///## With body
 /// ```
-/// use mini_template::value::Value;
+/// use mini_template::Value;
 /// use mini_template_macro::create_modifier;
 ///
 /// #[create_modifier]
@@ -30,7 +30,7 @@ use syn::spanned::Spanned;
 /// ```
 /// ## Returns Result
 /// ```
-/// use mini_template::value::Value;
+/// use mini_template::Value;
 /// use mini_template_macro::create_modifier;
 ///
 /// #[create_modifier(returns_result = true)]
@@ -71,13 +71,14 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
     if attrs.modifier_ident.is_some() {
         Ok(quote::quote! {
             pub fn #modifier_ident(
-                value: &#mini_template_crate_name::value::Value,
-                args: Vec<&#mini_template_crate_name::value::Value>
-            ) -> #mini_template_crate_name::modifier::error::Result<#mini_template_crate_name::value::Value> {
+                value: &#mini_template_crate_name::Value,
+                args: Vec<&#mini_template_crate_name::Value>
+            ) -> #mini_template_crate_name::modifier::error::Result<#mini_template_crate_name::Value> {
                 use #mini_template_crate_name::modifier::error::Error;
+                use #mini_template_crate_name::prelude::From;
                 #vars
                 let result: #mini_template_crate_name::modifier::error::Result<_> = #modifier_code_call;
-                result.map(#mini_template_crate_name::value::Value::from)
+                result.map(#mini_template_crate_name::Value::from)
             }
             #use_of_deprecated_feature
             #inner_fn
@@ -86,14 +87,14 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
         Ok(quote::quote! {
             #use_of_deprecated_feature
             pub fn #modifier_ident(
-                value: &#mini_template_crate_name::value::Value,
-                args: Vec<&#mini_template_crate_name::value::Value>
-            ) -> #mini_template_crate_name::modifier::error::Result<#mini_template_crate_name::value::Value> {
+                value: &#mini_template_crate_name::Value,
+                args: Vec<&#mini_template_crate_name::Value>
+            ) -> #mini_template_crate_name::modifier::error::Result<#mini_template_crate_name::Value> {
                 use #mini_template_crate_name::modifier::error::Error;
                 #vars
                 #inner_fn
                 let result: #mini_template_crate_name::modifier::error::Result<_> = #modifier_code_call;
-                result.map(#mini_template_crate_name::value::Value::from)
+                result.map(#mini_template_crate_name::Value::from)
             }
         })
     }
@@ -143,7 +144,7 @@ fn create_var_init_code(
         if value.is_option {
             quote::quote! {
                 let #ident: #ty = match value {
-                    #mini_template_crate_name::value::Value::Null => None,
+                    #mini_template_crate_name::Value::Null => None,
                     value => Some(#into)
                 };
             }
@@ -163,7 +164,7 @@ fn create_var_init_code(
                     if value.allow_missing {
                         return quote::quote! {
                             let #ident: #ty = match args.next() {
-                                Some(#mini_template_crate_name::value::Value::Null) | None => None,
+                                Some(#mini_template_crate_name::Value::Null) | None => None,
                                 Some(v) => Some(#into),
                             };
                         }
@@ -171,7 +172,7 @@ fn create_var_init_code(
                     let ident_str = syn::LitStr::new(&ident.to_string(), ident.span());
                     return quote::quote! {
                         let #ident: #ty = match args.next() {
-                            Some(#mini_template_crate_name::value::Value::Null) => None,
+                            Some(#mini_template_crate_name::Value::Null) => None,
                             Some(v) => Some(#into),
                             None => return Err(#mini_template_crate_name::modifier::error::Error::MissingArgument{argument_name: #ident_str})
                         };
@@ -211,9 +212,9 @@ fn var_init_default(ident: &syn::Ident, default: Option<&syn::Lit>, mini_templat
 
 fn into_value(value: TokenStream, mini_template_crate_name: &syn::Ident) -> TokenStream {
     quote::quote! {
-        match #value.try_into() {
+        match #mini_template_crate_name::prelude::TplTryInto::try_into(#value) {
             Ok(inner) => inner,
-            Err(e) => return Err(#mini_template_crate_name::modifier::Error::Type{value: #value.to_string(), type_error: e})
+            Err(e) => return Err(#mini_template_crate_name::modifier::Error::Type{value: #mini_template_crate_name::prelude::ValueAs::as_string(#value), type_error: e})
         }
     }
 }
