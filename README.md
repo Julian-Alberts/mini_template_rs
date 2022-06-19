@@ -1,3 +1,4 @@
+# :warning: I am currently working on 0.2.0. Please expect breaking changes.
 # mini_template
 mini_template is a template engine written in Rust and is inspired by [smarty](https://smarty.net) and [twig](https://twig.symfony.com/). You can use this crate in production, but it is still missing some basic features.
 ## Motivation
