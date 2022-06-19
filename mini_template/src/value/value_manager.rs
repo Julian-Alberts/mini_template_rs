@@ -1,4 +1,5 @@
-use serde_json::{Map, Value};
+use serde::Serialize;
+use serde_json::{Map, Value, json};
 
 use crate::prelude::*;
 
@@ -25,6 +26,13 @@ impl ValueManager {
         self.values.set(&ident, value)
     }
 
+    pub fn from_serde<T>(value: T) -> Result<Self, ()>
+        where T: Serialize
+    {
+        let value = json!(value);
+        Self::try_from(value)
+    }
+
 }
 
 impl TryFrom<Value> for ValueManager {
@@ -38,6 +46,7 @@ impl TryFrom<Value> for ValueManager {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
