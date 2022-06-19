@@ -62,7 +62,7 @@ impl Ident {
     }
 
     pub fn iter(&self) -> IdentIter {
-        IdentIter { ident: Some(&self) }
+        IdentIter { ident: Some(self) }
     }
 }
 
@@ -74,14 +74,10 @@ impl<'a> Iterator for IdentIter<'a> {
     type Item = &'a Ident;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ident = if let Some(ident) = self.ident {
-            ident
-        } else {
-            return None;
-        };
+        let ident = self.ident?;
 
         if let Some(next_ident) = &ident.next {
-            self.ident = Some(&next_ident)
+            self.ident = Some(next_ident)
         } else {
             self.ident = None
         }
@@ -145,7 +141,7 @@ impl ResolvedIdent {
     }
 
     pub fn iter(&self) -> ResolvedIdentIter {
-        ResolvedIdentIter { ident: Some(&self) }
+        ResolvedIdentIter { ident: Some(self) }
     }
 }
 
@@ -176,7 +172,7 @@ impl PartialEq for ResolvedIdent {
 impl Display for ResolvedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &*self.part {
-            ResolvedIdentPart::Dynamic(d) => write!(f, "[{}]", d.to_string())?,
+            ResolvedIdentPart::Dynamic(d) => write!(f, "[{}]", d)?,
             ResolvedIdentPart::Static(ident) => {
                 let ident = ident.get_string();
                 f.write_str(ident)?;
@@ -247,14 +243,10 @@ impl<'a> Iterator for ResolvedIdentIter<'a> {
     type Item = &'a ResolvedIdent;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ident = if let Some(ident) = self.ident {
-            ident
-        } else {
-            return None;
-        };
+        let ident = self.ident?;
 
         if let Some(next_ident) = &ident.next {
-            self.ident = Some(&next_ident)
+            self.ident = Some(next_ident)
         } else {
             self.ident = None
         }

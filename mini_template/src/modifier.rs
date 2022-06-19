@@ -151,7 +151,7 @@ pub mod error {
                     "Can not convert {} to type {} value of type {} found",
                     value, type_error.expected_type, type_error.storage_type
                 ),
-                Self::Modifier(e) => write!(f, "{}", e.to_owned()),
+                Self::Modifier(e) => write!(f, "{}", e),
             }
         }
     }

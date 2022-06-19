@@ -92,7 +92,7 @@ impl PartialEq for TemplateString {
 impl TemplateString {
     pub fn get_string(&self) -> &str {
         match self {
-            TemplateString::Owned(s) => &s,
+            TemplateString::Owned(s) => s,
             TemplateString::Ptr(s) => unsafe {
                 s.as_ref()
                     .expect("Values in TemplateString::Prt should point to a valid string")

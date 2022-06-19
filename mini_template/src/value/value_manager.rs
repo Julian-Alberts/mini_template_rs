@@ -15,10 +15,10 @@ impl ValueManager {
         IdentifiableValue::get(&self.values, &ident)
     }
 
-    pub fn get_value_mut<'a>(
-        &'a mut self,
+    pub fn get_value_mut(
+        &mut self,
         ident: ResolvedIdent,
-    ) -> crate::error::Result<&'a mut Value> {
+    ) -> crate::error::Result<&mut Value> {
         IdentifiableValue::get_mut(&mut self.values, &ident)
     }
 
@@ -26,7 +26,7 @@ impl ValueManager {
         self.values.set(&ident, value)
     }
 
-    pub fn from_serde<T>(value: T) -> Result<Self, ()>
+    pub fn from_serde<T>(value: T) -> Result<Self, &'static str>
         where T: Serialize
     {
         let value = json!(value);
@@ -36,16 +36,18 @@ impl ValueManager {
 }
 
 impl TryFrom<Value> for ValueManager {
-    type Error = ();
+    type Error = &'static str;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Object(values) = value {
             Ok(ValueManager { values })
         } else {
-            Err(())
+            Err("value needs to be an object")
         }
     }
 }
+
+
 
 
 #[cfg(test)]

@@ -122,7 +122,7 @@ impl ValueAs for Value {
             Self::String(s) => !s.is_empty(),
             Self::Null => false,
             Self::Object(_) => true,
-            Self::Array(a) => a.len() > 0,
+            Self::Array(a) => !a.is_empty(),
         }
     }
 
@@ -166,7 +166,7 @@ impl IdentifiableValue for Map<String, Value> {
         } else if let Some(value) = value {
             Ok(value)
         } else {
-            return Err(Error::UnknownVariable(ident.clone()));
+            Err(Error::UnknownVariable(ident.clone()))
         }
     }
 
@@ -182,7 +182,7 @@ impl IdentifiableValue for Map<String, Value> {
         } else if let Some(value) = value {
             Ok(value)
         } else {
-            return Err(Error::UnknownVariable(ident.clone()));
+            Err(Error::UnknownVariable(ident.clone()))
         }
     }
 

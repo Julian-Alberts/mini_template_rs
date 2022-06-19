@@ -67,7 +67,7 @@ fn parse_template_content(
         Rule::text => Some(Ok(Statement::Literal(item.as_str()))),
         Rule::calculated => Some(parse_calculated(item)),
         #[cfg(feature = "conditional")]
-        Rule::conditional => Some(parse_conditional(item, &context)),
+        Rule::conditional => Some(parse_conditional(item, context)),
         #[cfg(not(feature = "conditional"))]
         Rule::conditional => Some(Err(ParseError::DisabledFeature(
             UnsupportedFeature::Conditional,
@@ -95,7 +95,7 @@ fn parse_template_content(
         #[cfg(not(feature = "assign"))]
         Rule::assign => Some(Err(ParseError::DisabledFeature(UnsupportedFeature::Assign))),
         #[cfg(feature = "loop")]
-        Rule::while_loop => match parse_loop(item, &context) {
+        Rule::while_loop => match parse_loop(item, context) {
             Ok(l) => Some(Ok(Statement::Loop(l))),
             Err(e) => Some(Err(e)),
         },
@@ -464,11 +464,12 @@ pub struct ParseContext<'a> {
 }
 
 impl<'a> ParseContext<'a> {
-    pub fn get_custom_block(&self, k: &str) -> Option<&Box<dyn CustomBlockParser>> {
-        self.custom_block?.get(k)
+    pub fn get_custom_block(&self, k: &str) -> Option<&dyn CustomBlockParser> {
+        self.custom_block?.get(k).map(|cb| cb.as_ref())
     }
 }
 
+#[derive(Default)]
 pub struct ParseContextBuilder<'a> {
     custom_block: Option<&'a HashMap<String, Box<dyn CustomBlockParser>>>,
 }
@@ -493,12 +494,6 @@ impl<'a> ParseContextBuilder<'a> {
         ParseContext {
             custom_block: self.custom_block,
         }
-    }
-}
-
-impl<'a> Default for ParseContextBuilder<'a> {
-    fn default() -> Self {
-        Self { custom_block: None }
     }
 }
 
