@@ -1,0 +1,27 @@
+name: Rust
+
+on:
+  push:
+    branches: [ main, v0.2 ]
+  pull_request:
+    branches: [ main, v0.2 ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      working-directory: ./mini_template
+      run: cargo build --verbose
+    - name: Run tests mini_template default features
+      working-directory: ./mini_template
+      run: cargo test --verbose
+    - name: Run tests mini_template_macro
+      working-directory: ./mini_template_macro
+      run: cargo test --verbose

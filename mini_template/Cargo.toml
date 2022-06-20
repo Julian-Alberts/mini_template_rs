@@ -32,6 +32,7 @@ assign = []
 loop = [ "condition", "assign" ]
 dynamic_global_access = []
 include = []
+parser = []
 default = [ "loop", "assign", "conditional", "regex", "include" ]
 
 [[bench]]

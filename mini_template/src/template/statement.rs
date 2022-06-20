@@ -12,7 +12,7 @@ pub enum Statement {
     Literal(*const str),
     Calculated(CalculatedValue),
     #[cfg(feature = "conditional")]
-    Condition(Conditional),
+    Conditional(Conditional),
     CustomBlock(Box<dyn CustomBlock>),
     #[cfg(feature = "assign")]
     Assign(Assign),
@@ -29,7 +29,7 @@ impl PartialEq for Statement {
             // Safety: Both literals point to positions in the original template string.
             unsafe { s.as_ref() == o.as_ref() },
             #[cfg(feature = "conditional")]
-            (Statement::Condition(s), Statement::Condition(o)) => s == o,
+            (Statement::Conditional(s), Statement::Conditional(o)) => s == o,
             #[cfg(feature = "assign")]
             (Statement::Assign(s), Statement::Assign(o)) => s == o,
             #[cfg(feature = "loop")]

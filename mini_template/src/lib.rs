@@ -23,6 +23,8 @@ use std::collections::HashMap;
 use template::Template;
 pub use template::{CustomBlock, CustomBlockParser, Render};
 pub use value::ValueManager;
+#[cfg(feature = "parser")]
+pub use parser::parse_export as parse;
 
 /// A Storage for Templates
 ///

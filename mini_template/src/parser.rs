@@ -67,7 +67,12 @@ fn parse_template_content(
         Rule::text => Some(Ok(Statement::Literal(item.as_str()))),
         Rule::calculated => Some(parse_calculated(item)),
         #[cfg(feature = "conditional")]
-        Rule::conditional => Some(parse_conditional(item, context)),
+        Rule::conditional => {
+            match parse_conditional(item, context) {
+                Ok(conditional) => Some(Ok(Statement::Conditional(conditional))),
+                Err(e) => Some(Err(e))
+            }
+        }
         #[cfg(not(feature = "conditional"))]
         Rule::conditional => Some(Err(ParseError::DisabledFeature(
             UnsupportedFeature::Conditional,
@@ -114,7 +119,7 @@ fn parse_template_content(
 fn parse_conditional(
     conditional: Pair<Rule>,
     context: &ParseContext,
-) -> Result<Statement, ParseError> {
+) -> Result<Conditional, ParseError> {
     assert_eq!(conditional.as_rule(), Rule::conditional);
     let mut conditional = conditional.into_inner();
 
@@ -139,11 +144,11 @@ fn parse_conditional(
         None
     };
 
-    Ok(Statement::Condition(Conditional {
+    Ok(Conditional {
         condition,
         then_case,
         else_case,
-    }))
+    })
 }
 
 #[cfg(feature = "condition")]
@@ -497,6 +502,70 @@ impl<'a> ParseContextBuilder<'a> {
     }
 }
 
+#[cfg(feature = "parser")]
+pub mod parse_export {
+
+    use pest::Parser;
+    use pest::error::LineColLocation;
+    use pest::iterators::Pairs;
+
+    use crate::ParseError;
+
+    use super::{TemplateParser, Rule};
+    pub use super::{ParseContext, ParseContextBuilder};
+
+    pub use super::parse as parse_template;
+
+    #[cfg(feature = "conditional")]
+    pub fn parse_conditional(input: &str, context: &ParseContext) -> Result<crate::template::Conditional, crate::ParseError> {
+        let conditional = parse_rule(Rule::conditional, input)?.next().unwrap();
+        super::parse_conditional(conditional, context)
+    }
+
+    #[cfg(feature = "condition")]
+    pub fn parse_condition(input: &str) -> Result<crate::template::condition::Condition, crate::ParseError> {
+        let condition = parse_rule(Rule::condition, input)?.next().unwrap();
+        super::parse_condition(condition)
+    }
+
+    pub fn parse_calculated(input: &str) -> Result<crate::template::CalculatedValue, ParseError> {
+        let value = parse_rule(Rule::calculated_value, input)?.next().unwrap();
+        super::parse_calculated_value(value)
+    }
+
+    #[cfg(feature = "assign")]
+    pub fn parse_assign(input: &str) -> Result<crate::template::Assign, ParseError> {
+        let value = parse_rule(Rule::assign, input)?.next().unwrap();
+        super::parse_assign(value)
+    }
+
+    #[cfg(feature = "loop")]
+    pub fn parse_loop(input: &str, context: &ParseContext) -> Result<crate::template::Loop, ParseError> {
+        let value = parse_rule(Rule::while_loop, input)?.next().unwrap();
+        super::parse_loop(value, context)
+    }
+
+    pub fn parse_identifier(input: &str) -> Result<crate::value::ident::Ident, ParseError> {
+        let value = parse_rule(Rule::while_loop, input)?.next().unwrap();
+        super::parse_identifier(value)
+    }
+
+    fn parse_rule(rule: Rule, input: &str) -> Result<Pairs<Rule>, crate::ParseError> {
+        match TemplateParser::parse(rule, input) {
+            Ok(t) => Ok(t),
+            Err(e) => match e.line_col {
+                LineColLocation::Pos(pos) => {
+                    Err(ParseError::Syntax(pos, pos, input.to_owned()))
+                }
+                LineColLocation::Span(start, end) => {
+                    Err(ParseError::Syntax(start, end, input.to_owned()))
+                }
+            },
+        }
+    }
+
+}
+
 #[cfg(test)]
 mod tests {
     use std::vec;
@@ -837,26 +906,22 @@ mod tests {
                 .next()
                 .unwrap();
             let context = ParseContextBuilder::default().build();
-            let conditional_statement = parse_conditional(conditional, &context).unwrap();
-            if let Statement::Condition(conditional) = conditional_statement {
-                assert_eq!(
-                    conditional,
-                    Conditional {
-                        condition: Condition::Compare(CompareCondition {
-                            left: CalculatedValue::new(
-                                StorageMethod::Variable(Ident::new_static("i")),
-                                vec![]
-                            ),
-                            operator: CompareOperator::LT,
-                            right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
-                        }),
-                        then_case: vec![Statement::Literal("HI")],
-                        else_case: None
-                    }
-                )
-            } else {
-                panic!("Unexpected statement")
-            }
+            let conditional = parse_conditional(conditional, &context).unwrap();
+            assert_eq!(
+                conditional,
+                Conditional {
+                    condition: Condition::Compare(CompareCondition {
+                        left: CalculatedValue::new(
+                            StorageMethod::Variable(Ident::new_static("i")),
+                            vec![]
+                        ),
+                        operator: CompareOperator::LT,
+                        right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
+                    }),
+                    then_case: vec![Statement::Literal("HI")],
+                    else_case: None
+                }
+            )
         }
 
         #[test]
@@ -867,34 +932,30 @@ mod tests {
                 .next()
                 .unwrap();
             let context = ParseContextBuilder::default().build();
-            let conditional_statement = parse_conditional(conditional, &context).unwrap();
-            if let Statement::Condition(conditional) = conditional_statement {
-                assert_eq!(
-                    conditional,
-                    Conditional {
-                        condition: Condition::and(vec![
-                            Condition::or(vec![
-                                Condition::CalculatedValue(CalculatedValue::new(
-                                    StorageMethod::Variable(Ident::new_static("var1")),
-                                    vec![]
-                                )),
-                                Condition::CalculatedValue(CalculatedValue::new(
-                                    StorageMethod::Variable(Ident::new_static("var2")),
-                                    vec![]
-                                ))
-                            ]),
+            let conditional = parse_conditional(conditional, &context).unwrap();
+            assert_eq!(
+                conditional,
+                Conditional {
+                    condition: Condition::and(vec![
+                        Condition::or(vec![
                             Condition::CalculatedValue(CalculatedValue::new(
-                                StorageMethod::Variable(Ident::new_static("var3")),
+                                StorageMethod::Variable(Ident::new_static("var1")),
+                                vec![]
+                            )),
+                            Condition::CalculatedValue(CalculatedValue::new(
+                                StorageMethod::Variable(Ident::new_static("var2")),
                                 vec![]
                             ))
                         ]),
-                        then_case: vec![Statement::Literal("HI")],
-                        else_case: None
-                    }
-                )
-            } else {
-                panic!("Unexpected statement")
-            }
+                        Condition::CalculatedValue(CalculatedValue::new(
+                            StorageMethod::Variable(Ident::new_static("var3")),
+                            vec![]
+                        ))
+                    ]),
+                    then_case: vec![Statement::Literal("HI")],
+                    else_case: None
+                }
+            )
         }
 
         #[test]
@@ -905,26 +966,22 @@ mod tests {
                 .next()
                 .unwrap();
             let context = ParseContextBuilder::default().build();
-            let conditional_statement = parse_conditional(conditional, &context).unwrap();
-            if let Statement::Condition(conditional) = conditional_statement {
-                assert_eq!(
-                    conditional,
-                    Conditional {
-                        condition: Condition::Compare(CompareCondition {
-                            left: CalculatedValue::new(
-                                StorageMethod::Variable(Ident::new_static("i")),
-                                vec![]
-                            ),
-                            operator: CompareOperator::LT,
-                            right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
-                        }),
-                        then_case: vec![Statement::Literal("HI")],
-                        else_case: Some(vec![Statement::Literal("TEST")])
-                    }
-                )
-            } else {
-                panic!("Unexpected statement")
-            }
+            let conditional = parse_conditional(conditional, &context).unwrap();
+            assert_eq!(
+                conditional,
+                Conditional {
+                    condition: Condition::Compare(CompareCondition {
+                        left: CalculatedValue::new(
+                            StorageMethod::Variable(Ident::new_static("i")),
+                            vec![]
+                        ),
+                        operator: CompareOperator::LT,
+                        right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
+                    }),
+                    then_case: vec![Statement::Literal("HI")],
+                    else_case: Some(vec![Statement::Literal("TEST")])
+                }
+            )
         }
 
         #[test]
@@ -935,40 +992,36 @@ mod tests {
                 .next()
                 .unwrap();
             let context = ParseContextBuilder::default().build();
-            let conditional_statement = parse_conditional(conditional, &context).unwrap();
-            if let Statement::Condition(conditional) = conditional_statement {
-                assert_eq!(
-                    conditional,
-                    Conditional {
+            let conditional = parse_conditional(conditional, &context).unwrap();
+            assert_eq!(
+                conditional,
+                Conditional {
+                    condition: Condition::Compare(CompareCondition {
+                        left: CalculatedValue::new(
+                            StorageMethod::Variable(Ident::new_static("i")),
+                            vec![]
+                        ),
+                        operator: CompareOperator::LT,
+                        right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
+                    }),
+                    then_case: vec![Statement::Literal("HI")],
+                    else_case: Some(vec![Statement::Conditional(Conditional {
                         condition: Condition::Compare(CompareCondition {
                             left: CalculatedValue::new(
-                                StorageMethod::Variable(Ident::new_static("i")),
+                                StorageMethod::Variable(Ident::new_static("n")),
                                 vec![]
                             ),
-                            operator: CompareOperator::LT,
-                            right: CalculatedValue::new(StorageMethod::Const(json!(10)), vec![])
+                            operator: CompareOperator::EQ,
+                            right: CalculatedValue::new(
+                                StorageMethod::Const(Value::String("TEST".to_owned())),
+                                vec![]
+                            )
                         }),
-                        then_case: vec![Statement::Literal("HI")],
-                        else_case: Some(vec![Statement::Condition(Conditional {
-                            condition: Condition::Compare(CompareCondition {
-                                left: CalculatedValue::new(
-                                    StorageMethod::Variable(Ident::new_static("n")),
-                                    vec![]
-                                ),
-                                operator: CompareOperator::EQ,
-                                right: CalculatedValue::new(
-                                    StorageMethod::Const(Value::String("TEST".to_owned())),
-                                    vec![]
-                                )
-                            }),
-                            then_case: vec![Statement::Literal("HI2")],
-                            else_case: Some(vec![Statement::Literal("TEST")])
-                        })])
-                    }
-                )
-            } else {
-                panic!("Unexpected statement")
-            }
+                        then_case: vec![Statement::Literal("HI2")],
+                        else_case: Some(vec![Statement::Literal("TEST")])
+                    })])
+                }
+            )
         }
     }
 

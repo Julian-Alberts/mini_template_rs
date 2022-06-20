@@ -58,7 +58,7 @@ impl Render for Vec<Statement> {
                     buf.push_str(&ValueAs::as_string(&var)[..])
                 }
                 #[cfg(feature = "conditional")]
-                Statement::Condition(c) => c.render(context, buf)?,
+                Statement::Conditional(c) => c.render(context, buf)?,
                 #[cfg(feature = "assign")]
                 Statement::Assign(a) => a.assign(context)?,
                 #[cfg(feature = "loop")]
