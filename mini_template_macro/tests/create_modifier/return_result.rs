@@ -10,9 +10,9 @@ fn modifier(s: String) -> Result<String, String> {
 }
 
 fn main() {
-    let r = modifier(&mini_template::value::Value::String(String::from("FOO")), vec![]);
-    assert_eq!(r, Ok(mini_template::value::Value::String(String::from("FOO"))));
+    let r = modifier(&mini_template::Value::String(String::from("FOO")), vec![]);
+    assert_eq!(r, Ok(mini_template::Value::String(String::from("FOO"))));
 
-    let r = modifier(&mini_template::value::Value::String(String::from("BAR")), vec![]);
+    let r = modifier(&mini_template::Value::String(String::from("BAR")), vec![]);
     assert_eq!(r, Err(mini_template::modifier::Error::Modifier(String::from("BAR"))))
 }

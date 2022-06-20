@@ -7,28 +7,28 @@ fn modifier(s: String, r: usize, o: Option<bool>) -> String {
 
 fn main() {
     let r = modifier(
-        &mini_template::value::Value::String(String::from("FOO")),
+        &mini_template::Value::String(String::from("FOO")),
         vec![
-            &mini_template::value::Value::Number(42.),
-            &mini_template::value::Value::Bool(true),
+            &serde_json::json!(42),
+            &mini_template::Value::Bool(true),
         ]
     );
-    assert_eq!(r, Ok(mini_template::value::Value::String(String::from("FOO 42 Some(true)"))));
+    assert_eq!(r, Ok(mini_template::Value::String(String::from("FOO 42 Some(true)"))));
 
     let r = modifier(
-        &mini_template::value::Value::String(String::from("FOO")),
+        &mini_template::Value::String(String::from("FOO")),
         vec![
-            &mini_template::value::Value::Number(42.),
+            &serde_json::json!(42),
         ]
     );
-    assert_eq!(r, Ok(mini_template::value::Value::String(String::from("FOO 42 None"))));
+    assert_eq!(r, Ok(mini_template::Value::String(String::from("FOO 42 None"))));
 
     let r = modifier(
-        &mini_template::value::Value::String(String::from("FOO")),
+        &mini_template::Value::String(String::from("FOO")),
         vec![
-            &mini_template::value::Value::Number(42.),
-            &mini_template::value::Value::Null,
+            &serde_json::json!(42),
+            &mini_template::Value::Null,
         ]
     );
-    assert_eq!(r, Ok(mini_template::value::Value::String(String::from("FOO 42 None"))));
+    assert_eq!(r, Ok(mini_template::Value::String(String::from("FOO 42 None"))));
 }

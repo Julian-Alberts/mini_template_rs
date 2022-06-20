@@ -6,6 +6,6 @@ fn modifier(s: String) -> String {
 }
 
 fn main() {
-    let r = modifier(&mini_template::value::Value::String(String::from("FOO")), vec![]);
-    assert_eq!(r, Ok(mini_template::value::Value::String(String::from("FOO"))))
+    let r = modifier(&mini_template::Value::String(String::from("FOO")), vec![]);
+    assert_eq!(r, Ok(mini_template::Value::String(String::from("FOO"))))
 }

@@ -1,4 +1,5 @@
 use mini_template_macro::create_modifier;
+use serde_json::json;
 
 #[create_modifier]
 fn modifier(s: String, u: usize) -> String {
@@ -6,8 +7,8 @@ fn modifier(s: String, u: usize) -> String {
 }
 
 fn main() {
-    let r = modifier(&mini_template::value::Value::String(String::from("FOO")), vec![
-        &mini_template::value::Value::Number(42.)
+    let r = modifier(&mini_template::Value::String(String::from("FOO")), vec![
+        &json!(42)
     ]);
-    assert_eq!(r, Ok(mini_template::value::Value::String(String::from("FOO 42"))))
+    assert_eq!(r, Ok(mini_template::Value::String(String::from("FOO 42"))))
 }

@@ -22,7 +22,7 @@ use syn::spanned::Spanned;
 ///
 /// assert_eq!(
 ///     fizz_buzz(
-///         &Value::Number(3.),
+///         &serde_json::json!(3),
 ///         Vec::default()
 ///     ),
 ///     Ok(Value::String(String::from("FIZZ")))
