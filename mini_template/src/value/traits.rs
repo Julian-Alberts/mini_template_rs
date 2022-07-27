@@ -1,4 +1,4 @@
-use crate::{TypeError, Value};
+use crate::{TypeError, Value, ValueManager};
 
 impl<'a> TryFrom<&'a Value> for &'a str {
     type Error = TypeError;
@@ -81,6 +81,12 @@ macro_rules! value_impl {
         }
     }
 
+}
+
+impl From<ValueManager> for Value {
+    fn from(vm: ValueManager) -> Self {
+        Self::Object(vm)
+    }
 }
 
 value_impl!(String => String);

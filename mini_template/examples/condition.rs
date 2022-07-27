@@ -1,5 +1,7 @@
 use mini_template::value::ident::Ident;
 use mini_template::{value::Value, MiniTemplate, ValueManager};
+use mini_template::value;
+use mini_template::macros::ValueContainer;
 
 const TEMPLATE: &str = include_str!("./condition.tpl");
 
@@ -9,70 +11,24 @@ fn main() {
     mini_template
         .add_template("0".to_owned(), TEMPLATE.to_owned())
         .unwrap();
-
-    let mut variables = ValueManager::default();
-    variables
-        .set_value(
-            Ident::try_from("var1")
-                .unwrap()
-                .resolve_ident(&variables)
-                .unwrap(),
-            Value::String(String::from("HELLO world")),
-        )
-        .unwrap();
-    variables
-        .set_value(
-            Ident::try_from("var2")
-                .unwrap()
-                .resolve_ident(&variables)
-                .unwrap(),
-            Value::Number(9.),
-        )
-        .unwrap();
-    let render = mini_template.render("0", variables);
+    
+    #[derive(ValueContainer, Clone)]
+    struct Variables {
+        var1: String,
+        var2: usize
+    }
+    let mut variables = Variables {
+        var1: "HELLO world".to_owned(),
+        var2: 9
+    };
+    let render = mini_template.render("0", variables.clone().into());
     println!("{}", render.unwrap());
 
-    let mut variables = ValueManager::default();
-    variables
-        .set_value(
-            Ident::try_from("var1")
-                .unwrap()
-                .resolve_ident(&variables)
-                .unwrap(),
-            Value::String(String::from("HELLO world")),
-        )
-        .unwrap();
-    variables
-        .set_value(
-            Ident::try_from("var2")
-                .unwrap()
-                .resolve_ident(&variables)
-                .unwrap(),
-            Value::Number(10.),
-        )
-        .unwrap();
-    let render = mini_template.render("0", variables);
+    variables.var2 = 10;
+    let render = mini_template.render("0", variables.clone().into());
     println!("{}", render.unwrap());
 
-    let mut variables = ValueManager::default();
-    variables
-        .set_value(
-            Ident::try_from("var1")
-                .unwrap()
-                .resolve_ident(&variables)
-                .unwrap(),
-            Value::String(String::from("HELLO world")),
-        )
-        .unwrap();
-    variables
-        .set_value(
-            Ident::try_from("var2")
-                .unwrap()
-                .resolve_ident(&variables)
-                .unwrap(),
-            Value::Number(20.),
-        )
-        .unwrap();
-    let render = mini_template.render("0", variables);
+    variables.var2 = 20;
+    let render = mini_template.render("0", variables.into());
     println!("{}", render.unwrap());
 }

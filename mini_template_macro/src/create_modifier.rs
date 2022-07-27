@@ -105,7 +105,7 @@ fn get_mini_template_crate_name(attrs: &Attrs) -> syn::Ident {
         return mini_template_ident
     }
 
-    let found_crate = crate_name("mini_template").expect("my-crate is present in `Cargo.toml`");
+    let found_crate = crate_name("mini_template").expect("mini_template is present in `Cargo.toml`");
     match found_crate {
         FoundCrate::Itself => syn::Ident::new("crate", proc_macro2::Span::call_site()),
         FoundCrate::Name(name) => {

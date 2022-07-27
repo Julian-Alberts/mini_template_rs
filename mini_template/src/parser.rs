@@ -250,7 +250,7 @@ fn parse_modifier(item: Pair<Rule>) -> Result<Modifier, ParseError> {
     assert_eq!(item.as_rule(), Rule::modifier);
     let span = item.as_span().into();
     let mut items = item.into_inner();
-    let name = items.next().unwrap().as_str();
+    let name = items.next().unwrap().as_str().trim();
     let args = items.map(parse_argument).collect::<Result<_, _>>()?;
 
     Ok(Modifier { name, args, span })
@@ -1580,14 +1580,16 @@ mod tests {
             )
             .unwrap();
             let mut buf = String::default();
-            template.render(
-                &mut RenderContext {
-                    variables: ValueManager::default(),
-                    modifier: &HashMap::default(),
-                    templates: &HashMap::default(),
-                },
-                &mut buf,
-            ).unwrap();
+            template
+                .render(
+                    &mut RenderContext {
+                        variables: ValueManager::default(),
+                        modifier: &HashMap::default(),
+                        templates: &HashMap::default(),
+                    },
+                    &mut buf,
+                )
+                .unwrap();
             assert_eq!(buf.as_str(), "text text args more text")
         }
     }

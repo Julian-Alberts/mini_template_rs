@@ -1,4 +1,5 @@
 pub use mini_template_macro::create_modifier;
+pub use mini_template_macro::ValueContainer;
 
 /// Creates a new modifier based on a method.
 /// This macro is usually used to create new template modifiers. The method header of the resulting

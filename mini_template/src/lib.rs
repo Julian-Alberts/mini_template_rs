@@ -16,11 +16,11 @@ use crate::value::{TypeError, Value};
 use modifier::Modifier;
 use parser::{parse, ParseContextBuilder};
 pub use parser::{ParseError, UnsupportedFeature};
+pub use renderer::RenderContext;
 use std::collections::HashMap;
 use template::Template;
+pub use template::{CustomBlock, CustomBlockParser, Render};
 pub use value::ValueManager;
-pub use template::{CustomBlockParser, CustomBlock, Render};
-pub use renderer::RenderContext;
 
 /// A Storage for Templates
 ///
@@ -111,4 +111,151 @@ impl MiniTemplate {
         tpl.render(&mut context, &mut buf)?;
         Ok(buf)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use mini_template_macro::ValueContainer;
+
+    use crate::{
+        value::{ident::{Ident, ResolvedIdent}, Value},
+        MiniTemplate, ValueManager,
+    };
+
+    #[test]
+    fn old_style() {
+        const TEMPLATE: &str = r##"
+{if user.name == "Jon"}
+    Hi {user.name}
+{else}
+    {greeting} {user.name}
+{endif}
+"##;
+        let mut mini_template = MiniTemplate::default();
+        mini_template.add_template("test".to_owned(), TEMPLATE.to_owned()).unwrap();
+
+        let mut data = ValueManager::default();
+        data.set_value(
+            Ident::try_from("greeting")
+                .unwrap()
+                .resolve_ident(&data)
+                .unwrap(),
+            Value::String("Hello".to_owned()),
+        )
+        .unwrap();
+        data.set_value(
+            Ident::try_from("user.name")
+                .unwrap()
+                .resolve_ident(&data)
+                .unwrap(),
+            Value::String("Jon".to_owned()),
+        )
+        .unwrap();
+        
+        let output = mini_template.render("test", data.clone()).unwrap();
+        assert_eq!(output.trim(), "Hi Jon");
+        
+        data.set_value(
+            Ident::try_from("user.name")
+                .unwrap()
+                .resolve_ident(&data)
+                .unwrap(),
+            Value::String("David".to_owned()),
+        )
+        .unwrap();
+
+        let output = mini_template.render("test", data.clone()).unwrap();
+        assert_eq!(output.trim(), "Hello David");
+    }
+
+    #[test]
+    fn new_style() {
+        const TEMPLATE: &str = r##"
+{if user.name == "Jon"}
+    Hi {user.name}
+{else}
+    {greeting} {user.name}
+{endif}
+"##;
+        let mut mini_template = MiniTemplate::default();
+        mini_template.add_template("test".to_owned(), TEMPLATE.to_owned()).unwrap();
+
+        #[derive(Clone)]
+        struct TplData {
+            user: TplUser,
+            greeting: String
+        }
+
+        impl From<TplData> for ValueManager {
+            fn from(data: TplData) -> ValueManager {
+                let mut vm = ValueManager::default();
+                vm.set_value(ResolvedIdent::from("user"), ValueManager::from(data.user).into()).unwrap();
+                vm.set_value(ResolvedIdent::from("greeting"), data.greeting.into()).unwrap();
+                vm
+            }
+        }
+
+        #[derive(Clone)]
+        struct TplUser {
+            name: String
+        }
+        impl From<TplUser> for ValueManager {
+            fn from(data: TplUser) -> ValueManager {
+                let mut vm = ValueManager::default();
+                vm.set_value(ResolvedIdent::from("name"), data.name.into()).unwrap();
+                vm
+            }
+        }
+
+        let mut data = TplData {
+            user: TplUser { name: "Jon".to_owned() },
+            greeting: "Hello".to_owned()
+        };
+
+        let output = mini_template.render("test", ValueManager::from(data.clone())).unwrap();
+        assert_eq!(output.trim(), "Hi Jon");
+        
+        data.user.name = "David".to_owned();
+
+        let output = mini_template.render("test", data.into()).unwrap();
+        assert_eq!(output.trim(), "Hello David");
+    }
+
+    #[test]
+    fn derive_style() {
+        const TEMPLATE: &str = r##"
+{if user.name == "Jon"}
+    Hi {user.name}
+{else}
+    {greeting} {user.name}
+{endif}
+"##;
+        let mut mini_template = MiniTemplate::default();
+        mini_template.add_template("test".to_owned(), TEMPLATE.to_owned()).unwrap();
+
+        #[derive(Clone, ValueContainer)]
+        struct TplData {
+            user: TplUser,
+            greeting: String
+        }
+
+        #[derive(Clone, ValueContainer)]
+        struct TplUser {
+            name: String
+        }
+
+        let mut data = TplData {
+            user: TplUser { name: "Jon".to_owned() },
+            greeting: "Hello".to_owned()
+        };
+
+        let output = mini_template.render("test", data.clone().into()).unwrap();
+        assert_eq!(output.trim(), "Hi Jon");
+        
+        data.user.name = "David".to_owned();
+
+        let output = mini_template.render("test", data.into()).unwrap();
+        assert_eq!(output.trim(), "Hello David");
+    }
+
 }

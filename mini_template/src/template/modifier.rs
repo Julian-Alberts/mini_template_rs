@@ -1,6 +1,6 @@
 use crate::template::Span;
 use crate::value::{StorageMethod, Value};
-use crate::{ValueManager, RenderContext};
+use crate::{RenderContext, ValueManager};
 
 #[derive(Debug)]
 pub struct Modifier {

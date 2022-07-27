@@ -16,7 +16,7 @@ fn main() {
     mini_template.add_modifier("nth_lower", &modifiers::nth_lower);
 
     mini_template
-        .add_template("".to_owned(), TEMPLATE.to_owned())
+        .add_template("0".to_owned(), TEMPLATE.to_owned())
         .unwrap();
     let render = mini_template.render(
         "0",
