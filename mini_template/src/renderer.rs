@@ -11,7 +11,7 @@ pub struct RenderContext<'a> {
     pub templates: &'a HashMap<String, Template>,
 }
 
-impl<'a, 'b> RenderContext<'a> {
+impl<'a> RenderContext<'a> {
     pub fn new(
         modifier: &'a HashMap<&'static str, &'a Modifier>,
         variables: ValueManager,

@@ -1,5 +1,6 @@
 use mini_template::value::ident::Ident;
 use mini_template::{value::Value, MiniTemplate, ValueManager};
+use mini_template::{modifier, value};
 
 #[macro_use]
 extern crate mini_template;
@@ -32,7 +33,7 @@ fn main() {
 
 mod modifiers {
 
-    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template")]
+    #[mini_template::macros::create_modifier]
     fn is_even(num: usize) -> bool {
         num % 2 == 0
     }
@@ -42,7 +43,6 @@ mod modifiers {
     );
 
     #[mini_template::macros::create_modifier(
-        mini_template_crate = "mini_template",
         returns_result = true
     )]
     fn parse_as_usize(input: String) -> Result<usize, String> {
@@ -52,7 +52,7 @@ mod modifiers {
         }
     }
 
-    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template")]
+    #[mini_template::macros::create_modifier]
     fn nth_upper(input: String, n: Option<usize>) -> String {
         let n = n.unwrap_or(2);
         let mut buf = String::new();

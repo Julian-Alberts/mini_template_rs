@@ -90,7 +90,6 @@ where
     let mut hasher = DefaultHasher::new();
     regex.hash(&mut hasher);
     let cache_key = hasher.finish();
-    drop(hasher);
 
     let cache = REGEX_CACHE.get_or_init(Default::default);
     let cache_r = cache.read().unwrap();
@@ -146,7 +145,7 @@ pub mod error {
                     "Can not convert {} to type {} value of type {} found",
                     value, type_error.expected_type, type_error.storage_type
                 ),
-                Self::Modifier(e) => write!(f, "{}", e.to_owned()),
+                Self::Modifier(e) => write!(f, "{e}"),
             }
         }
     }

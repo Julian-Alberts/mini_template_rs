@@ -48,7 +48,7 @@ use syn::spanned::Spanned;
 pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<TokenStream, syn::Error> {
     let inputs = Inputs::new(&item.sig.inputs)?;
     let attrs = Attrs::new(attrs, &inputs)?;
-    let mini_template_crate_name = get_mini_template_crate_name(&attrs);
+    let mini_template_crate_name = get_mini_template_crate_name();
 
     if let syn::ReturnType::Default = item.sig.output {
         return Err(syn::Error::new(item.sig.span() ,"Modifier requires return type"))
@@ -99,12 +99,7 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
     }
 }
 
-fn get_mini_template_crate_name(attrs: &Attrs) -> syn::Ident {
-
-    if let Some(mini_template_ident) = attrs.mini_template_crate.clone() {
-        return mini_template_ident
-    }
-
+fn get_mini_template_crate_name() -> syn::Ident {
     let found_crate = crate_name("mini_template").expect("mini_template is present in `Cargo.toml`");
     match found_crate {
         FoundCrate::Itself => syn::Ident::new("crate", proc_macro2::Span::call_site()),
@@ -222,7 +217,6 @@ struct Attrs {
     defaults: HashMap<syn::Ident, syn::Lit>,
     modifier_ident: Option<syn::Ident>,
     returns_result: bool,
-    mini_template_crate: Option<syn::Ident>
 }
 
 impl Attrs {
@@ -232,7 +226,6 @@ impl Attrs {
             defaults: HashMap::default(),
             modifier_ident: None,
             returns_result: false,
-            mini_template_crate: None
         };
 
         for arg in args {
@@ -247,14 +240,6 @@ impl Attrs {
                         continue;
                     }
                     return Err(syn::Error::new(lit.span(), "modifier identifier needs to be string"));
-                }
-
-                if path.is_ident("mini_template_crate") {
-                    if let syn::Lit::Str(s_lit) = &lit {
-                        attrs.mini_template_crate = Some(syn::Ident::new(&s_lit.value(), lit.span()));
-                        continue;
-                    }
-                    return Err(syn::Error::new(lit.span(), "mini_template_crate needs to be string"));
                 }
 
                 if path.is_ident("returns_result") {

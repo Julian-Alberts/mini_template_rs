@@ -7,14 +7,13 @@ pub use storage_method::StorageMethod;
 pub use value_manager::ValueManager;
 
 pub trait ValueContainer: Into<ValueManager> {}
-impl <VC> From<VC> for Value 
-    where VC: ValueContainer
+impl<VC> From<VC> for Value
+where
+    VC: ValueContainer,
 {
-
     fn from(vc: VC) -> Self {
         Value::Object(vc.into())
     }
-
 }
 
 /// Values are used as variables inside a template.

@@ -37,7 +37,6 @@ pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, sy
 
 fn get_mini_template_crate_name() -> syn::Ident {
     let found_crate = crate_name("mini_template").expect("mini_template is present in `Cargo.toml`");
-    println!("{:#?}", found_crate);
     match found_crate {
         FoundCrate::Itself => syn::Ident::new("crate", proc_macro2::Span::call_site()),
         FoundCrate::Name(name) => {
