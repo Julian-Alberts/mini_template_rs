@@ -15,7 +15,7 @@ pub fn create_modifier(_attr: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
-#[proc_macro_derive(ValueContainer)]
+#[proc_macro_derive(ValueContainer, attributes(name))]
 pub fn derive_value_container(item: TokenStream) -> TokenStream {
     let item = syn::parse_macro_input!(item as syn::DeriveInput);
     let result = derive_value_container::derive_value_container(item);

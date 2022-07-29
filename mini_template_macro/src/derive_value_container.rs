@@ -1,5 +1,6 @@
 use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
+use quote::__private::ext::RepToTokensExt;
 
 pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, syn::Error> {
     let data = if let syn::Data::Struct(data) = input.data {
@@ -8,10 +9,28 @@ pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, sy
         return Err(syn::Error::new(input.ident.span() ,"Only structs are supported"))
     };
 
-    let fields = if let syn::Fields::Named(fields) = data.fields {
-        fields.named.into_iter().map(|named| {
-            named.ident
-        })
+    let (fields, template_names) = if let syn::Fields::Named(fields) = data.fields {
+        let field_names = fields.named.clone().into_iter().map(|named| named.ident.expect("named field"));
+        let template_names = fields.named.into_iter().map(|named| {
+            let attr = named.attrs.iter().find(|attr| {
+                if let Some(attr) = attr.path.segments.first() {
+                    attr
+                } else {
+                    return false
+                }.ident == "name"
+            });
+
+            if let Some(proc_macro2::TokenTree::Group(group)) = attr
+                .and_then(|attr| attr.tokens.next())
+                .and_then(|tokens| tokens.clone().into_iter().next())
+            {
+                let key = group.stream().to_string();
+                syn::Ident::new(key.as_str(), proc_macro2::Span::call_site())
+            } else {
+                named.ident.expect("named field")
+            }
+        });
+        (field_names, template_names)
     } else {
         return Err(syn::Error::new(input.ident.span() ,"Only named structs are supported"))
     };
@@ -26,7 +45,7 @@ pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, sy
             fn into(self) -> #mini_template_crate_name::value::ValueManager{
                 let mut vm = #mini_template_crate_name::value::ValueManager::default();
                 #(
-                    vm.set_value(#mini_template_crate_name::value::ident::ResolvedIdent::from(stringify!(#fields)), self.#fields.into()).unwrap();
+                    vm.set_value(#mini_template_crate_name::value::ident::ResolvedIdent::from(stringify!(#template_names)), self.#fields.into()).unwrap();
                 )*
                 vm
             }
