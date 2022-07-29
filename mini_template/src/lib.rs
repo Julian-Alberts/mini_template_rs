@@ -65,6 +65,7 @@ impl MiniTemplate {
         self.add_modifier("sub", &sub);
         self.add_modifier("mul", &mul);
         self.add_modifier("div", &div);
+        self.add_modifier("len", &len_modifier)
     }
 
     /// Register a new custom block

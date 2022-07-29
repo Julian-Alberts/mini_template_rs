@@ -97,6 +97,10 @@ impl ValueManager {
 
         Ok(())
     }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
 }
 
 impl ValueManager {
@@ -114,6 +118,7 @@ impl ValueManager {
 fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
     match &*ident.part {
         ResolvedIdentPart::Static(s) => Ok(s.get_string().to_owned()),
+        ResolvedIdentPart::Dynamic(Value::Number(n)) => Ok((*n as usize).to_string()),
         ResolvedIdentPart::Dynamic(d) => match d.try_into() {
             Ok(s) => Ok(s),
             Err(_) => Err(Error::UnsupportedIdentifier),

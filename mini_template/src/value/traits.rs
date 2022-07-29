@@ -1,5 +1,7 @@
 use crate::{TypeError, Value, ValueManager};
 
+use super::{ident::ResolvedIdent, ValueContainer};
+
 impl<'a> TryFrom<&'a Value> for &'a str {
     type Error = TypeError;
     fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
@@ -87,6 +89,36 @@ impl From<ValueManager> for Value {
     fn from(vm: ValueManager) -> Self {
         Self::Object(vm)
     }
+}
+
+impl <'a> TryFrom<&'a Value> for &'a ValueManager {
+    type Error = TypeError;
+    fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Object(s) => Ok(s),
+            _ => Err(TypeError{ expected_type: stringify!($type), storage_type: stringify!($name)})
+        }
+    }
+}
+
+impl <T> ValueContainer for Vec<T> 
+where T: Into<Value> {}
+
+impl <T> From<Vec<T>> for ValueManager 
+    where T: Into<Value>
+{
+
+    fn from(values: Vec<T>) -> Self {
+        let mut vm = ValueManager::default();
+        values.into_iter().enumerate().for_each(|(index, value)| {
+            vm.set_value(
+                ResolvedIdent::from(index.to_string()), 
+                value.into()
+            ).unwrap();
+        });
+        vm
+    }
+
 }
 
 value_impl!(String => String);

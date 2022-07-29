@@ -9,19 +9,40 @@ struct TemplateData {
     name: String,
     #[name(userId)]
     user_id: u64,
+    cart: Vec<TemplateItem>
+}
+
+#[derive(ValueContainer)]
+struct TemplateItem {
+    id: u64,
+    name: String
 }
 
 fn main() {
     let mut mini_template = MiniTemplate::default();
+    mini_template.add_default_modifiers();
     mini_template
         .add_template("0".to_owned(), TEMPLATE.to_owned())
         .unwrap();
 
     let template_data = TemplateData {
         name: "Julian".to_owned(),
-        user_id: 42
+        user_id: 42,
+        cart: vec![
+            TemplateItem {
+                id: 123,
+                name: "Prod1".to_string()
+            },
+            TemplateItem {
+                id: 1234,
+                name: "Prod2".to_string()
+            }
+        ]
     };
     
     let render = mini_template.render("0", template_data.into());
-    println!("{}", render.unwrap())
+    match render {
+        Ok(r) => println!("{r}"),
+        Err(e) => println!("{e}")
+    }
 }

@@ -10,7 +10,7 @@ use {
 };
 
 use super::value::Value;
-use crate::fn_as_modifier;
+use crate::{fn_as_modifier, ValueManager};
 use core::ops::{Add, Div, Mul, Sub};
 pub use error::*;
 
@@ -53,6 +53,11 @@ fn replace_modifier(input: String, from: String, to: String, count: Option<usize
     } else {
         input.replacen(&from[..], &to[..], count)
     }
+}
+
+#[mini_template_macro::create_modifier]
+fn len_modifier(vm: &ValueManager) -> usize {
+    vm.len()
 }
 
 #[cfg(feature = "regex")]
