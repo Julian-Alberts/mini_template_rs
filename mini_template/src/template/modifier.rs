@@ -1,6 +1,6 @@
 use crate::template::Span;
 use crate::value::{StorageMethod, Value};
-use crate::{RenderContext, ValueManager};
+use crate::RenderContext;
 
 #[derive(Debug)]
 pub struct Modifier {
@@ -20,7 +20,7 @@ impl Modifier {
             })
         })?;
 
-        let args = storage_methods_to_values(&self.args, &context.variables)?;
+        let args = storage_methods_to_values(&self.args, context)?;
         match modifier(value, args) {
             Ok(v) => Ok(v),
             Err(e) => Err(crate::error::Error::Modifier(e)),
@@ -48,17 +48,12 @@ impl PartialEq for UnknownModifierError {
 
 fn storage_methods_to_values<'a>(
     args: &'a [StorageMethod],
-    variables: &'a ValueManager,
+    context: &'a RenderContext,
 ) -> crate::error::Result<Vec<&'a Value>> {
     let mut real_args = Vec::with_capacity(args.len());
 
     for arg in args {
-        let arg = match arg {
-            StorageMethod::Const(value) => value,
-            StorageMethod::Variable(ident) => {
-                variables.get_value(ident.resolve_ident(variables)?)?
-            }
-        };
+        let arg = arg.get_value(context)?;
         real_args.push(arg);
     }
     Ok(real_args)

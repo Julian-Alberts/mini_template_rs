@@ -1,10 +1,28 @@
 use std::fmt::Debug;
 
-use crate::value::{ident::Ident, Value};
+use crate::{value::{ident::Ident, Value}, RenderContext};
 
 pub enum StorageMethod {
     Const(Value),
     Variable(Ident),
+}
+
+impl StorageMethod {
+
+    pub fn get_value<'a, 'b>(&'a self, context: &'b RenderContext) -> crate::error::Result<&'a Value> 
+        where 'b: 'a
+    {
+        let var = match &self {
+            StorageMethod::Const(var) => var,
+            StorageMethod::Variable(ident) => {
+                context
+                    .variables
+                    .get_value(ident.resolve_ident(&context.variables)?)?
+            }
+        };
+        Ok(var)
+    }
+
 }
 
 impl PartialEq for StorageMethod {
