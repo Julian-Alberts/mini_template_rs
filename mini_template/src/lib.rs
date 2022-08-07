@@ -14,13 +14,16 @@ extern crate pest_derive;
 
 use crate::value::{TypeError, Value};
 use modifier::Modifier;
-use parser::{parse, ParseContextBuilder};
+use parser::ParseContextBuilder;
 pub use parser::{ParseError, UnsupportedFeature};
 pub use renderer::RenderContext;
 use std::collections::HashMap;
 use template::Template;
 pub use template::{CustomBlock, CustomBlockParser, Render};
 pub use value::ValueManager;
+
+#[cfg(parser)]
+pub use parser::export as parse;
 
 /// A Storage for Templates
 ///
@@ -91,7 +94,7 @@ impl MiniTemplate {
         let context = ParseContextBuilder::default()
             .custom_blocks(&self.custom_blocks)
             .build();
-        let tpl = parse(tpl, context)?;
+        let tpl = parser::parse(tpl, context)?;
         Ok(self.template.insert(key, tpl))
     }
 

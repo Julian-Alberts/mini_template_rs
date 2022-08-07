@@ -496,6 +496,55 @@ impl<'a> ParseContextBuilder<'a> {
     }
 }
 
+#[cfg(parser)]
+pub mod export {
+    use pest::{Parser, error::LineColLocation};
+
+    use crate::ParseError;
+
+    use super::TemplateParser;
+
+    macro_rules! export_parser {
+        ($parser:ident, $ret_type:ty, $rule:ident, $doc_str: literal) => {
+            pub fn $parser(input: &str) -> Result<$ret_type, ParseError> {
+                let parsed = match TemplateParser::parse(super::Rule::$rule, input) {
+                    Ok(t) => t,
+                    Err(e) => match e.line_col {
+                        LineColLocation::Pos(pos) => {
+                            return Err(ParseError::Syntax(pos, pos, input.to_owned()));
+                        }
+                        LineColLocation::Span(start, end) => {
+                            return Err(ParseError::Syntax(start, end, input.to_owned()));
+                        }
+                    },
+                }.next().expect(stringify!(Valid $rule));
+                super::$parser(parsed)
+            }
+        };
+        (with context $parser:ident, $ret_type:ty, $rule:ident) => {
+            pub fn $parser(input: &str, context: &super::ParseContext) -> Result<$ret_type, ParseError> {
+                let parsed = match TemplateParser::parse(super::Rule::$rule, input) {
+                    Ok(t) => t,
+                    Err(e) => match e.line_col {
+                        LineColLocation::Pos(pos) => {
+                            return Err(ParseError::Syntax(pos, pos, input.to_owned()));
+                        }
+                        LineColLocation::Span(start, end) => {
+                            return Err(ParseError::Syntax(start, end, input.to_owned()));
+                        }
+                    },
+                }.next().expect(stringify!(Valid $rule));
+                super::$parser(parsed, context)
+            }
+        };
+    }
+
+    export_parser!(parse_identifier, super::Ident, identifier);
+    export_parser!(with context parse_loop, super::Loop, while_loop);
+    export_parser!(parse_include, super::Include, include, "");
+
+}
+
 #[cfg(test)]
 mod tests {
     use std::vec;
@@ -1421,7 +1470,7 @@ mod tests {
             ValueManager,
         };
 
-        struct MyCustmBlockParser;
+        struct MyCustomBlockParser;
         #[derive(Debug)]
         struct MyCustomBlockData {
             args: String,
@@ -1441,7 +1490,7 @@ mod tests {
             }
         }
 
-        impl CustomBlockParser for MyCustmBlockParser {
+        impl CustomBlockParser for MyCustomBlockParser {
             fn name(&self) -> &str {
                 "my_custom_block"
             }
@@ -1462,8 +1511,8 @@ mod tests {
         #[test]
         fn parse_custom_block_without_content() {
             let mut custom_blocks = HashMap::with_capacity(1);
-            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
-            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustomBlockParser);
+            custom_blocks.insert(MyCustomBlockParser.name().to_string(), mcbp);
             let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
 
             let tpl = "{% my_custom_block %}{% endmy_custom_block %}";
@@ -1488,8 +1537,8 @@ mod tests {
         #[test]
         fn parse_custom_block_with_content() {
             let mut custom_blocks = HashMap::with_capacity(1);
-            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
-            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustomBlockParser);
+            custom_blocks.insert(MyCustomBlockParser.name().to_string(), mcbp);
             let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
 
             let tpl = "{% my_custom_block %}MY content{% endmy_custom_block %}";
@@ -1514,8 +1563,8 @@ mod tests {
         #[test]
         fn parse_custom_block_with_args() {
             let mut custom_blocks = HashMap::with_capacity(1);
-            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
-            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustomBlockParser);
+            custom_blocks.insert(MyCustomBlockParser.name().to_string(), mcbp);
             let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
 
             let tpl = "{% my_custom_block MY ARGS%}{% endmy_custom_block %}";
@@ -1540,8 +1589,8 @@ mod tests {
         #[test]
         fn parse_custom_block_without_body() {
             let mut custom_blocks = HashMap::with_capacity(1);
-            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
-            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustomBlockParser);
+            custom_blocks.insert(MyCustomBlockParser.name().to_string(), mcbp);
             let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
 
             let tpl = "{% my_custom_block %}";
@@ -1566,8 +1615,8 @@ mod tests {
         #[test]
         fn parse_in_template() {
             let mut custom_blocks = HashMap::with_capacity(1);
-            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustmBlockParser);
-            custom_blocks.insert(MyCustmBlockParser.name().to_string(), mcbp);
+            let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustomBlockParser);
+            custom_blocks.insert(MyCustomBlockParser.name().to_string(), mcbp);
             let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
             let template = parse(
                 "text text {%my_custom_block args%} more text".to_owned(),
