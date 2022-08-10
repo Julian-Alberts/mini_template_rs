@@ -128,7 +128,7 @@ fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::value::ident::ResolvedIdent;
+    use crate::value::ident::{ResolvedIdent, Ident};
     use crate::{value_iter, Value, ValueManager};
 
     #[test]
@@ -153,6 +153,18 @@ mod tests {
     }
 
     #[test]
+    fn mut_access() {
+        let mut vm = ValueManager::try_from_iter(value_iter![
+            "yay": Value::Bool(true)
+        ])
+        .unwrap();
+        assert_eq!(
+            vm.get_value_mut(Value::String("yay".to_string()).into()),
+            Ok(&mut Value::Bool(true))
+        )
+    }
+
+    #[test]
     fn static_object_access() {
         let vm = ValueManager::try_from_iter(value_iter![
             "obj.val": Value::Bool(true)
@@ -163,6 +175,65 @@ mod tests {
         ident.chain("val".into());
 
         assert_eq!(vm.get_value(ident), Ok(&Value::Bool(true)))
+    }
+
+    #[test]
+    fn try_set_nested_value_of_bool() {
+        let mut vm = ValueManager::try_from_iter(value_iter![
+            "foo": Value::Bool(false)
+        ]).unwrap();
+        let mut ident: ResolvedIdent = "foo".into();
+        ident.chain("bar".into());
+        assert_eq!(vm.set_value(ident.clone(), Value::Number(1.)), Err(super::Error::UnknownProperty(ident)))
+    }
+
+    #[test]
+    fn access_of_unknown_value() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "foo": Value::Bool(false)
+        ]).unwrap();
+        let mut ident: ResolvedIdent = "foo".into();
+        ident.chain("bar".into());
+        assert_eq!(vm.get_value(ident.clone()), Err(super::Error::UnknownVariable(ident)))
+    }
+
+    #[test]
+    fn mut_access_of_unknown_value() {
+        let mut vm = ValueManager::try_from_iter(value_iter![
+            "foo": Value::Bool(false)
+        ]).unwrap();
+        let ident: ResolvedIdent = "bar".into();
+        assert_eq!(vm.get_value_mut(ident.clone()), Err(super::Error::UnknownVariable(ident)))
+    }
+
+    #[test]
+    fn access_of_nested_value() {
+        let mut vm = ValueManager::try_from_iter(value_iter![
+            "foo.foobar": Value::Bool(false)
+        ]).unwrap();
+        let mut ident: ResolvedIdent = "foo".into();
+        ident.chain("foobar".into());
+        assert_eq!(vm.get_value_mut(ident.clone()), Ok(&mut Value::Bool(false)))
+    }
+
+    #[test]
+    fn access_of_unknown_nested_value() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "foo": Value::Bool(false)
+        ]).unwrap();
+        let mut ident: ResolvedIdent = "foo".into();
+        ident.chain("foobar".into());
+        assert_eq!(vm.get_value(ident.clone()), Err(super::Error::UnknownVariable(ident)))
+    }
+
+    #[test]
+    fn mut_access_of_unknown_nested_value() {
+        let mut vm = ValueManager::try_from_iter(value_iter![
+            "foo": Value::Bool(false)
+        ]).unwrap();
+        let mut ident: ResolvedIdent = "foo".into();
+        ident.chain("foobar".into());
+        assert_eq!(vm.get_value_mut(ident.clone()), Err(super::Error::UnknownVariable(ident)))
     }
 
     #[test]
@@ -181,7 +252,7 @@ mod tests {
     #[test]
     fn access_trough_ident() {
         let vm = ValueManager::try_from_iter(value_iter![
-            "val": Value::String("hi".to_owned()),
+            "val": Value::Number(1.),
             // I don't know why any body should ever do this,
             // but it is supported by the ident parser so why not.
             "obj[val]": Value::Bool(true),
@@ -189,12 +260,21 @@ mod tests {
         ])
         .unwrap();
 
-        let mut ident_42: ResolvedIdent = "obj".into();
-        let mut ident_32 = ident_42.clone();
-        ident_42.chain("hi".into());
-        ident_32.chain("foo".into());
+        let mut ident_num: ResolvedIdent = "obj".into();
+        ident_num.chain("foo".into());
+        let ident_bool = Ident::try_from("obj[val]").unwrap().resolve_ident(&vm).unwrap();
 
-        assert_eq!(vm.get_value(ident_32), Ok(&Value::Number(33.)));
-        assert_eq!(vm.get_value(ident_42), Ok(&Value::Bool(true)))
+        assert_eq!(vm.get_value(ident_num), Ok(&Value::Number(33.)));
+        assert_eq!(vm.get_value(ident_bool), Ok(&Value::Bool(true)))
+    }
+
+    #[test]
+    fn get_length_of_value_manager() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "val": Value::String("hi".to_owned()),
+            "obj[\"bar\"]": Value::Bool(true),
+            "obj[\"foo\"]": Value::Number(33.)
+        ]).unwrap();
+        assert_eq!(vm.len(), 2);
     }
 }

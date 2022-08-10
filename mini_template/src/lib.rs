@@ -119,6 +119,8 @@ impl MiniTemplate {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use mini_template_macro::ValueContainer;
 
     use crate::{
@@ -128,6 +130,41 @@ mod tests {
         },
         MiniTemplate, ValueManager,
     };
+
+    #[test]
+    fn add_default_modifiers() {
+        let mut engine = MiniTemplate::default();
+        engine.add_default_modifiers();
+        let modifier_names = vec![
+            "slice",
+            #[cfg(feature = "regex")]
+            "regex",
+            #[cfg(feature = "regex")]
+            "match",
+            #[cfg(feature = "regex")]
+            "replace_regex",
+            "replace",
+            "upper",
+            "lower",
+            "repeat",
+            "add",
+            "sub",
+            "mul",
+            "div",
+            "len",
+        ];
+
+        modifier_names.iter().for_each(|name| {
+            assert!(engine.modifier.keys().any(|found| found == name), "Could not find modifier \"{name}\"");
+        });
+
+    }
+
+    #[test]
+    fn try_rendering_unknown_template() {
+        let engine = MiniTemplate::default();
+        assert_eq!(engine.render("template", ValueManager::default()), Err(super::error::Error::UnknownTemplate))
+    }
 
     #[test]
     fn old_style() {

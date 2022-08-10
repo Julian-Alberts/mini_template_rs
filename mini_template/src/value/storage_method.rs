@@ -43,3 +43,25 @@ impl Debug for StorageMethod {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::value::{Value, ident::Ident};
+
+    use super::StorageMethod;
+
+
+    #[test]
+    fn compare_not_equals() {
+        let a = StorageMethod::Const(Value::Null);
+        let b = StorageMethod::Variable(Ident::try_from("ident").unwrap());
+        assert_ne!(a, b)
+    }
+
+    #[test]
+    fn debug_const() {
+        assert_eq!(format!("{:#?}", StorageMethod::Const(Value::Null)), "Const(Null)".to_owned());
+    }
+
+}

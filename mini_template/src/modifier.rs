@@ -159,7 +159,7 @@ pub mod error {
 #[cfg(test)]
 mod tests {
 
-    use crate::value::TypeError;
+    use crate::{value::TypeError, value_iter};
 
     use super::*;
 
@@ -169,6 +169,8 @@ mod tests {
         let input = Value::String(String::from("My 2test2 string"));
         let regex = Value::String(String::from(r#"(\d[a-z]+\d) string"#));
         let invalid_regex = Value::String(String::from(r#"(\d[a-z]+\d string"#));
+        let not_matching_regex = Value::String(String::from("\\d{2}"));
+        let not_matching_group_regex = Value::String(String::from(".(\\d{2})?"));
         let full_match = Value::Number(0.0);
         let group = Value::Number(1.0);
         let args = vec![&regex, &full_match];
@@ -193,7 +195,29 @@ mod tests {
                 "regex parse error:\n    (\\d[a-z]+\\d string\n    ^\nerror: unclosed group"
                     .to_owned()
             ))
-        )
+        );
+
+        let args = vec![&not_matching_regex, &full_match];
+        let result = super::match_modifier(&input, args);
+        assert_eq!(result, Ok(Value::String(String::from(""))));
+
+        let args = vec![&not_matching_group_regex, &group];
+        let result = super::match_modifier(&input, args);
+        assert_eq!(result, Ok(Value::String(String::from(""))));
+    }
+
+    #[test]
+    fn replace_modifier() {
+        assert_eq!(super::replace_modifier(&Value::String("abcdefg".to_owned()), vec![
+            &Value::String("cde".to_owned()),
+            &Value::String("EDC".to_owned())
+        ]), Ok(Value::String("abEDCfg".to_owned())));
+
+        assert_eq!(super::replace_modifier(&Value::String("abcdefcdegcde".to_owned()), vec![
+            &Value::String("cde".to_owned()),
+            &Value::String("EDC".to_owned()),
+            &Value::Number(2.)
+        ]), Ok(Value::String("abEDCfEDCgcde".to_owned())));
     }
 
     #[test]
@@ -212,6 +236,17 @@ mod tests {
 
         let result = super::slice_modifier(&input, args);
         assert_eq!(result, Ok(Value::String(String::from(""))))
+    }
+
+    #[test]
+    fn replace_regex_modifier() {
+        let input = Value::String(String::from("Hello World!!!"));
+        let regex = Value::String("Wo(rld)".to_owned());
+        let replacement = Value::String("FooBar".to_owned());
+        assert_eq!(
+            super::replace_regex_modifier(&input, vec![&regex, &replacement]),
+            Ok(Value::String("Hello FooBar!!!".to_owned()))
+        );
     }
 
     #[test]
@@ -263,5 +298,17 @@ mod tests {
         let output = upper(&input, vec![]);
 
         assert_eq!(output, Ok(Value::String(String::from("HELLO WORLD!"))));
+    }
+
+    #[test]
+    fn len() {
+        let object = Value::Object(ValueManager::default());
+        assert_eq!(len_modifier(&object, vec![]), Ok(Value::Number(0.)));
+
+        let object = Value::Object(ValueManager::try_from_iter(value_iter!(
+            "a": Value::Null,
+            "b": Value::Null
+        )).unwrap());
+        assert_eq!(len_modifier(&object, vec![]), Ok(Value::Number(2.)));
     }
 }
