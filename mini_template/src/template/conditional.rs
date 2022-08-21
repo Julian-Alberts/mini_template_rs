@@ -181,7 +181,7 @@ mod tests {
     #[test]
     fn eval_simple_int_false() {
         let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Number(0.)
+            "my_var": Value::Number(0usize.into())
         ))
         .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn eval_simple_int_true_1_0() {
         let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Number(1.)
+            "my_var": Value::Number(1usize.into())
         ))
         .unwrap();
         let condition = Condition::CalculatedValue(CalculatedValue::new(
@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn eval_simple_int_true_10() {
         let vars = ValueManager::try_from_iter(value_iter!(
-            "my_var": Value::Number(10.)
+            "my_var": Value::Number(10usize.into())
         ))
         .unwrap();
 

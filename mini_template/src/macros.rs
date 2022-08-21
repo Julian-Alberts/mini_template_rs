@@ -27,7 +27,7 @@ pub use mini_template_macro::ValueContainer;
 /// );
 ///
 /// assert_eq!(
-///     repeat_n_times_modifier(&Value::String("17".to_owned()), vec![&Value::Number(2.)]),
+///     repeat_n_times_modifier(&Value::String("17".to_owned()), vec![&Value::Number(2usize.into())]),
 ///     Ok(Value::String("1717".to_owned()))
 /// );
 /// ```

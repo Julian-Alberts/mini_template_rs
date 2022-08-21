@@ -2,9 +2,11 @@ pub mod ident;
 mod storage_method;
 mod traits;
 mod value_manager;
+mod number;
 
 pub use storage_method::StorageMethod;
 pub use value_manager::ValueManager;
+pub use number::Number;
 
 pub trait ValueContainer: Into<ValueManager> {}
 impl<VC> From<VC> for Value
@@ -21,8 +23,8 @@ where
 pub enum Value {
     /// Stores a string
     String(String),
-    /// Stores a number as f64
-    Number(f64),
+    /// Stores a number
+    Number(Number),
     /// Stores a boolean
     Bool(bool),
     /// Null value
@@ -35,7 +37,7 @@ impl Value {
     pub fn as_bool(&self) -> bool {
         match self {
             Self::Bool(b) => *b,
-            Self::Number(n) => *n != 0.,
+            Self::Number(n) => *n != Number::ISize(0),
             Self::String(s) => !s.is_empty(),
             Self::Null => false,
             Self::Object(_) => true,

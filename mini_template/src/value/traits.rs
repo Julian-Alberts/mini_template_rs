@@ -1,4 +1,4 @@
-use crate::{TypeError, Value, ValueManager};
+use crate::{TypeError, Value, ValueManager, value::Number};
 
 use super::{ident::ResolvedIdent, ValueContainer};
 
@@ -19,14 +19,16 @@ impl<'a> TryFrom<&'a Value> for &'a str {
 }
 
 macro_rules! value_impl {
-    ($name: ident => $main_type: ty as [$($type: ty),+]) => {
-        value_impl!($name => $main_type);
+    ($name: ident => [$($type: ty $(as $store_type: ty)?),+]) => {
         $(
             impl TryFrom<&Value> for $type {
                 type Error = TypeError;
                 fn try_from(value: &Value) -> Result<Self, Self::Error> {
                     match value {
-                        Value::$name(s) => Ok(*s as $type),
+                        Value::$name(Number::ISize(s)) => Ok(*s as $type),
+                        Value::$name(Number::USize(s)) => Ok(*s as $type),
+                        Value::$name(Number::F32(s)) => Ok(*s as $type),
+                        Value::$name(Number::F64(s)) => Ok(*s as $type),
                         _ => Err(TypeError{ expected_type: stringify!($type), storage_type: stringify!($name)})
                     }
                 }
@@ -36,7 +38,10 @@ macro_rules! value_impl {
                 type Error = TypeError;
                 fn try_from(value: Value) -> Result<Self, Self::Error> {
                     match value {
-                        Value::$name(s) => Ok(s as $type),
+                        Value::$name(Number::ISize(s)) => Ok(s as $type),
+                        Value::$name(Number::USize(s)) => Ok(s as $type),
+                        Value::$name(Number::F32(s)) => Ok(s as $type),
+                        Value::$name(Number::F64(s)) => Ok(s as $type),
                         _ => Err(TypeError{ expected_type: stringify!($type), storage_type: stringify!($name)})
                     }
                 }
@@ -44,7 +49,7 @@ macro_rules! value_impl {
 
             impl From<$type> for Value {
                 fn from(s: $type) -> Self {
-                    Self::$name(s as $main_type)
+                    Self::$name((s$(as $store_type)?).into())
                 }
             }
 
@@ -123,4 +128,4 @@ impl <T> From<Vec<T>> for ValueManager
 
 value_impl!(String => String);
 value_impl!(Bool => bool);
-value_impl!(Number => f64 as [isize, i8, i16, i32, i64, usize, u8, u16, u32, u64]);
+value_impl!(Number => [f32, f64, i8 as isize, u8 as usize, i16 as isize, u16 as usize, i32 as isize, u32 as usize, i64 as isize, u64 as usize, isize, usize]);

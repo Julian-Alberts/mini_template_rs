@@ -61,7 +61,7 @@ mod tests {
                         StorageMethod::Variable(Ident::new_static("var")),
                         vec![Modifier {
                             name: "sub",
-                            args: vec![StorageMethod::Const(Value::Number(1.))],
+                            args: vec![StorageMethod::Const(Value::Number(1usize.into()))],
                             span: Default::default(),
                         }],
                     ),
@@ -74,7 +74,7 @@ mod tests {
         modifiers.insert("sub", sub);
         let templates = HashMap::<String, _>::new();
         let vars = ValueManager::try_from_iter(value_iter!(
-            "var": Value::Number(1.)
+            "var": Value::Number(1usize.into())
         ))
         .unwrap();
         let mut ctx = RenderContext::new(&modifiers, vars, &templates);
@@ -101,7 +101,7 @@ mod tests {
                         StorageMethod::Variable(Ident::new_static("var")),
                         vec![Modifier {
                             name: "sub",
-                            args: vec![StorageMethod::Const(Value::Number(1.))],
+                            args: vec![StorageMethod::Const(Value::Number(1usize.into()))],
                             span: Default::default(),
                         }],
                     ),
@@ -114,7 +114,7 @@ mod tests {
         modifiers.insert("sub", sub);
         let templates = HashMap::<String, _>::new();
         let vars = ValueManager::try_from_iter(value_iter!(
-            "var": Value::Number(5.)
+            "var": Value::Number(5usize.into())
         ))
         .unwrap();
         let mut ctx = RenderContext::new(&modifiers, vars, &templates);
@@ -136,7 +136,7 @@ mod tests {
         let modifiers = HashMap::new();
         let templates = HashMap::<String, _>::new();
         let vars = ValueManager::try_from_iter(value_iter![
-            "var": Value::Number(5.)
+            "var": Value::Number(5usize.into())
         ])
         .unwrap();
         let mut ctx = RenderContext::new(&modifiers, vars, &templates);

@@ -22,8 +22,8 @@ fn main() {
     let render = mini_template.render(
         "0",
         ValueManager::try_from_iter([
-            (Ident::try_from("even").unwrap(), Value::Number(4.)),
-            (Ident::try_from("zeros").unwrap(), Value::Number(4.)),
+            (Ident::try_from("even").unwrap(), Value::Number(4usize.into())),
+            (Ident::try_from("zeros").unwrap(), Value::Number(4usize.into())),
         ])
         .unwrap(),
     );
@@ -39,7 +39,7 @@ mod modifiers {
     }
 
     mini_template::fn_as_modifier!(
-        fn leading_zeros(input: usize) -> u32 => usize::leading_zeros
+        fn leading_zeros(input: usize) -> usize => usize::leading_zeros
     );
 
     #[mini_template::macros::create_modifier(
@@ -82,7 +82,7 @@ mod modifiers {
 
         let n: usize = match (*args
             .get(0)
-            .unwrap_or(&&mini_template::value::Value::Number(2.)))
+            .unwrap_or(&&mini_template::value::Value::Number(2usize.into())))
         .try_into()
         {
             Ok(inner) => inner,

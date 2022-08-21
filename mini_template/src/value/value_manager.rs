@@ -118,7 +118,10 @@ impl ValueManager {
 fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
     match &*ident.part {
         ResolvedIdentPart::Static(s) => Ok(s.get_string().to_owned()),
-        ResolvedIdentPart::Dynamic(Value::Number(n)) => Ok((*n as usize).to_string()),
+        ResolvedIdentPart::Dynamic(Value::Number(super::Number::ISize(n))) => Ok((*n as usize).to_string()),
+        ResolvedIdentPart::Dynamic(Value::Number(super::Number::USize(n))) => Ok((n).to_string()),
+        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F32(n))) => Ok((*n as usize).to_string()),
+        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F64(n))) => Ok((*n as usize).to_string()),
         ResolvedIdentPart::Dynamic(d) => match d.try_into() {
             Ok(s) => Ok(s),
             Err(_) => Err(Error::UnsupportedIdentifier),
@@ -184,7 +187,7 @@ mod tests {
         ]).unwrap();
         let mut ident: ResolvedIdent = "foo".into();
         ident.chain("bar".into());
-        assert_eq!(vm.set_value(ident.clone(), Value::Number(1.)), Err(super::Error::UnknownProperty(ident)))
+        assert_eq!(vm.set_value(ident.clone(), Value::Number(1usize.into())), Err(super::Error::UnknownProperty(ident)))
     }
 
     #[test]
@@ -252,11 +255,11 @@ mod tests {
     #[test]
     fn access_trough_ident() {
         let vm = ValueManager::try_from_iter(value_iter![
-            "val": Value::Number(1.),
+            "val": Value::Number(1usize.into()),
             // I don't know why any body should ever do this,
             // but it is supported by the ident parser so why not.
             "obj[val]": Value::Bool(true),
-            "obj[\"foo\"]": Value::Number(33.)
+            "obj[\"foo\"]": Value::Number(33usize.into())
         ])
         .unwrap();
 
@@ -264,7 +267,7 @@ mod tests {
         ident_num.chain("foo".into());
         let ident_bool = Ident::try_from("obj[val]").unwrap().resolve_ident(&vm).unwrap();
 
-        assert_eq!(vm.get_value(ident_num), Ok(&Value::Number(33.)));
+        assert_eq!(vm.get_value(ident_num), Ok(&Value::Number(33usize.into())));
         assert_eq!(vm.get_value(ident_bool), Ok(&Value::Bool(true)))
     }
 
@@ -273,7 +276,7 @@ mod tests {
         let vm = ValueManager::try_from_iter(value_iter![
             "val": Value::String("hi".to_owned()),
             "obj[\"bar\"]": Value::Bool(true),
-            "obj[\"foo\"]": Value::Number(33.)
+            "obj[\"foo\"]": Value::Number(33usize.into())
         ]).unwrap();
         assert_eq!(vm.len(), 2);
     }

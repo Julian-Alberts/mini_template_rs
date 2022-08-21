@@ -41,7 +41,7 @@ mod tests {
     }
 
     #[create_modifier]
-    fn args_modifier(data: String, other: String, num: i32) -> String {
+    fn args_modifier(data: String, other: String, num: isize) -> String {
         format!("{}={}={}", data, other, num)
     }
 

@@ -45,7 +45,7 @@ mod tests {
     #[test]
     fn simple_assign() {
         let vars = ValueManager::try_from_iter(value_iter!(
-            "input": Value::Number(42.)
+            "input": Value::Number(42f64.into())
         ))
         .unwrap();
 
@@ -65,14 +65,14 @@ mod tests {
                     .resolve_ident(&rc.variables)
                     .unwrap()
             ),
-            Ok(&Value::Number(42.))
+            Ok(&Value::Number(42f64.into()))
         )
     }
 
     #[test]
     fn assign_calculated() {
         let vars = ValueManager::try_from_iter(value_iter!(
-            "input": Value::Number(42.)
+            "input": Value::Number(42f64.into())
         ))
         .unwrap();
 
@@ -88,7 +88,7 @@ mod tests {
                 StorageMethod::Variable(Ident::new_static("input")),
                 vec![Modifier {
                     name: "add",
-                    args: vec![StorageMethod::Const(Value::Number(2.))],
+                    args: vec![StorageMethod::Const(Value::Number(2f64.into()))],
                     span: Default::default(),
                 }],
             ),
@@ -101,7 +101,7 @@ mod tests {
                     .resolve_ident(&rc.variables)
                     .unwrap()
             ),
-            Ok(&Value::Number(44.))
+            Ok(&Value::Number(44f64.into()))
         )
     }
 }

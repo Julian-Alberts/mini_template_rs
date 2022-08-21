@@ -267,7 +267,7 @@ fn parse_value(value: Pair<Rule>) -> Result<StorageMethod, ParseError> {
     let value = value.into_inner().next().unwrap();
     let value = match value.as_rule() {
         Rule::identifier => StorageMethod::Variable(parse_identifier(value)?),
-        Rule::number => StorageMethod::Const(Value::Number(value.as_str().parse().unwrap())),
+        Rule::number => StorageMethod::Const(Value::Number(value.as_str().try_into().unwrap())),
         Rule::string => StorageMethod::Const(Value::String(
             value
                 .into_inner()
@@ -703,7 +703,7 @@ mod tests {
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
                         name: "modifier",
-                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        args: vec![StorageMethod::Const(Value::Number((-32.09f64).into()))],
                         span: Default::default()
                     }]
                 ))]
@@ -747,7 +747,7 @@ mod tests {
                     StorageMethod::Const(Value::Null),
                     vec![Modifier {
                         name: "modifier",
-                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        args: vec![StorageMethod::Const(Value::Number((-32.09f64).into()))],
                         span: Default::default()
                     }]
                 ))]
@@ -766,10 +766,10 @@ mod tests {
             Template {
                 tpl_str: String::from(r#"{10|modifier:-32.09}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
-                    StorageMethod::Const(Value::Number(10.0)),
+                    StorageMethod::Const(Value::Number((10.0f64).into())),
                     vec![Modifier {
                         name: "modifier",
-                        args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                        args: vec![StorageMethod::Const(Value::Number((-32.09f64).into()))],
                         span: Default::default()
                     }]
                 ))]
@@ -792,7 +792,7 @@ mod tests {
                     vec![Modifier {
                         name: "modifier",
                         args: vec![
-                            StorageMethod::Const(Value::Number(-32.09)),
+                            StorageMethod::Const(Value::Number((-32.09f64).into())),
                             StorageMethod::Const(Value::String(String::from("argument"))),
                             StorageMethod::Variable(Ident::new_static("var2")),
                             StorageMethod::Const(Value::Bool(true))
@@ -825,10 +825,10 @@ mod tests {
                     )),
                     Statement::Literal("\n"),
                     Statement::Calculated(CalculatedValue::new(
-                        StorageMethod::Const(Value::Number(10.0)),
+                        StorageMethod::Const(Value::Number((10usize).into())),
                         vec![Modifier {
                             name: "modifier",
-                            args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                            args: vec![StorageMethod::Const(Value::Number((-32.09f64).into()))],
                             span: Default::default()
                         }]
                     ))
@@ -851,10 +851,10 @@ mod tests {
                 tpl: vec![Statement::Assign(Assign::new(
                     Ident::new_static("var"),
                     CalculatedValue::new(
-                        StorageMethod::Const(Value::Number(10.0)),
+                        StorageMethod::Const(Value::Number((10usize).into())),
                         vec![Modifier {
                             name: "modifier",
-                            args: vec![StorageMethod::Const(Value::Number(-32.09))],
+                            args: vec![StorageMethod::Const(Value::Number((-32.09f64).into()))],
                             span: Default::default()
                         }]
                     )
@@ -893,7 +893,7 @@ mod tests {
                             ),
                             operator: CompareOperator::LT,
                             right: CalculatedValue::new(
-                                StorageMethod::Const(Value::Number(10.)),
+                                StorageMethod::Const(Value::Number((10usize).into())),
                                 vec![]
                             )
                         }),
@@ -964,7 +964,7 @@ mod tests {
                             ),
                             operator: CompareOperator::LT,
                             right: CalculatedValue::new(
-                                StorageMethod::Const(Value::Number(10.)),
+                                StorageMethod::Const(Value::Number(10usize.into())),
                                 vec![]
                             )
                         }),
@@ -997,7 +997,7 @@ mod tests {
                             ),
                             operator: CompareOperator::LT,
                             right: CalculatedValue::new(
-                                StorageMethod::Const(Value::Number(10.)),
+                                StorageMethod::Const(Value::Number(10usize.into())),
                                 vec![]
                             )
                         }),
@@ -1138,7 +1138,7 @@ mod tests {
                 let value = super::parse_value(value).unwrap();
                 assert_eq!(
                     value,
-                    StorageMethod::Const(Value::Number(template.parse::<f64>().unwrap()))
+                    StorageMethod::Const(Value::Number(template.parse::<f64>().unwrap().into()))
                 );
             })
         }
@@ -1265,7 +1265,7 @@ mod tests {
                         vec![]
                     ),
                     operator: CompareOperator::EQ,
-                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10usize.into())), vec![])
                 })
             );
         }
@@ -1286,7 +1286,7 @@ mod tests {
                         vec![]
                     ),
                     operator: CompareOperator::EQ,
-                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10.)), vec![])
+                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10usize.into())), vec![])
                 })
             );
         }
@@ -1452,7 +1452,7 @@ mod tests {
                 assign,
                 Assign::new(
                     Ident::new_static("my_var"),
-                    CalculatedValue::new(StorageMethod::Const(Value::Number(12.)), vec![])
+                    CalculatedValue::new(StorageMethod::Const(Value::Number(12usize.into())), vec![])
                 )
             )
         }
@@ -1671,7 +1671,7 @@ mod tests {
                         ),
                         operator: CompareOperator::EQ,
                         right: CalculatedValue::new(
-                            StorageMethod::Const(Value::Number(0.)),
+                            StorageMethod::Const(Value::Number(0usize.into())),
                             vec![]
                         )
                     }),
@@ -1970,7 +1970,7 @@ mod legacy_tests {
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
                         name: "test",
-                        args: vec![StorageMethod::Const(Value::Number(42_f64))],
+                        args: vec![StorageMethod::Const(Value::Number((42_f64).into()))],
                         span: Default::default()
                     }]
                 )),
