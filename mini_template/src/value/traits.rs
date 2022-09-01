@@ -96,6 +96,17 @@ impl From<ValueManager> for Value {
     }
 }
 
+impl <T> From<Option<T>> for Value 
+    where T: Into<Value>
+{
+    fn from(opt: Option<T>) -> Self {
+        match opt {
+            Some(v) => v.into(),
+            None => Value::Null
+        }
+    }
+}
+
 impl <'a> TryFrom<&'a Value> for &'a ValueManager {
     type Error = TypeError;
     fn try_from(value: &'a Value) -> Result<Self, Self::Error> {

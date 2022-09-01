@@ -332,4 +332,18 @@ mod tests {
         )).unwrap());
         assert_eq!(len_modifier(&object, vec![]), Ok(Value::Number(2usize.into())));
     }
+
+    #[test]
+    fn return_null() {
+        #[mini_template_macro::create_modifier]
+        fn my_modifier(i: usize) -> Option<usize> {
+            if i < 10 {
+                Some(i)
+            } else {
+                None
+            }
+        }
+        assert_eq!(my_modifier(&Value::Number(5_usize.into()), vec![]), Ok(Value::Number(5_usize.into())));
+        assert_eq!(my_modifier(&Value::Number(15_usize.into()), vec![]), Ok(Value::Null));        
+    }
 }

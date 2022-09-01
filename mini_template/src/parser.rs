@@ -474,13 +474,6 @@ pub struct ParseContextBuilder<'a> {
 }
 
 impl<'a> ParseContextBuilder<'a> {
-    pub fn set_custom_blocks(
-        &mut self,
-        custom_blocks: &'a HashMap<String, Box<dyn CustomBlockParser>>,
-    ) {
-        self.custom_block = Some(custom_blocks);
-    }
-
     pub fn custom_blocks(
         mut self,
         custom_blocks: &'a HashMap<String, Box<dyn CustomBlockParser>>,
@@ -1535,6 +1528,12 @@ mod tests {
         }
 
         #[test]
+        fn parse_custom_block_allow_space_in_end_key_word() {
+            let tpl = "{% my_custom_block %}{% end my_custom_block %}";
+            assert!(TemplateParser::parse(Rule::custom_block, tpl).is_ok())
+        }
+
+        #[test]
         fn parse_custom_block_with_content() {
             let mut custom_blocks = HashMap::with_capacity(1);
             let mcbp: Box<dyn CustomBlockParser> = Box::new(MyCustomBlockParser);
@@ -1678,6 +1677,12 @@ mod tests {
                     vec![Statement::Literal("Foo")]
                 )
             )
+        }
+
+        #[test]
+        fn parse_loop_space_in_end() {
+            let template = "{while var==0}Foo{end while}";
+            assert!(TemplateParser::parse(Rule::while_loop, template).is_ok())
         }
     }
 }
