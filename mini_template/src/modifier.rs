@@ -26,7 +26,7 @@ fn slice_modifier(input: String, start: usize, length: usize) -> String {
 }
 
 #[cfg(feature = "regex")]
-#[mini_template_macro::create_modifier(returns_result = true)]
+#[mini_template_macro::create_modifier]
 fn match_modifier(
     input: String,
     regex: String,
@@ -61,7 +61,7 @@ fn len_modifier(vm: &ValueManager) -> usize {
 }
 
 #[cfg(feature = "regex")]
-#[mini_template_macro::create_modifier(returns_result = true)]
+#[mini_template_macro::create_modifier]
 fn replace_regex_modifier(
     input: String,
     regex: String,
@@ -124,7 +124,7 @@ pub fn regex_cache_clear() {
 pub mod error {
     use std::fmt::Display;
 
-    use crate::value::TypeError;
+    use crate::value::{TypeError, Value};
 
     pub type Result<T> = std::result::Result<T, Error>;
     #[derive(Debug, PartialEq)]
@@ -154,6 +154,27 @@ pub mod error {
             }
         }
     }
+    
+    pub trait IntoModifierResult<T> {
+        fn into_modifier_result(self) -> Result<T>;
+    }
+
+    impl <T> IntoModifierResult<T> for std::result::Result<T, String> 
+        where T: Into<Value>
+    {
+        fn into_modifier_result(self) -> Result<T> {
+            self.or_else(|e| Err(Error::Modifier(e)))
+        }
+    }
+
+    impl <T> IntoModifierResult<T> for T 
+        where T: Into<Value>
+    {
+        fn into_modifier_result(self) -> Result<T> {
+            Ok(self)
+        }
+    }
+
 }
 
 #[cfg(test)]

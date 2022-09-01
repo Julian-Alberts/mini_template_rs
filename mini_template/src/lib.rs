@@ -119,8 +119,6 @@ impl MiniTemplate {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use mini_template_macro::ValueContainer;
 
     use crate::{
