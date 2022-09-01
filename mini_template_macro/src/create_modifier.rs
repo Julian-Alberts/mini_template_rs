@@ -22,7 +22,7 @@ use syn::spanned::Spanned;
 ///
 /// assert_eq!(
 ///     fizz_buzz(
-///         &Value::Number(3.),
+///         &Value::Number(mini_template::value::Number::USize(3)),
 ///         Vec::default()
 ///     ),
 ///     Ok(Value::String(String::from("FIZZ")))
@@ -61,11 +61,22 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
 
     let vars = create_var_init_code(&inputs, &attrs, &mini_template_crate_name)?;
     let inner_fn = &item;
-    let modifier_code_call = modifier_code_call(&item.sig.ident, &inputs, &attrs, &mini_template_crate_name);
-    let use_of_deprecated_feature = if !attrs.defaults.is_empty() {
-        quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: Default values will be removed in version 0.3.0")]}
+    let modifier_code_call = modifier_code_call(&item.sig.ident, &inputs);
+    let use_of_deprecated_feature_default_values = if !attrs.defaults.is_empty() {
+        Some(quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: Default values will be removed in version 0.3.0")]})
     } else {
-        TokenStream::default()
+        None
+    };
+    let use_of_deprecated_feature_returns_result = if attrs.returns_result_is_set {
+        Some(quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: `returns_result` is no longer required and will be removed in version 0.3.0")]})
+    } else {
+        None
+    };
+    let use_of_deprecated_feature = match (use_of_deprecated_feature_default_values, use_of_deprecated_feature_returns_result) {
+        (Some(a), Some(b)) => quote::quote! {#a #b},
+        (None, Some(b)) => b,
+        (Some(a), None) => a,
+        (None, None) => TokenStream::default()
     };
 
     if attrs.modifier_ident.is_some() {
@@ -75,6 +86,7 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
                 args: Vec<&#mini_template_crate_name::value::Value>
             ) -> #mini_template_crate_name::modifier::error::Result<#mini_template_crate_name::value::Value> {
                 use #mini_template_crate_name::modifier::error::Error;
+                use #mini_template_crate_name::modifier::error::IntoModifierResult;
                 #vars
                 let result: #mini_template_crate_name::modifier::error::Result<_> = #modifier_code_call;
                 result.map(#mini_template_crate_name::value::Value::from)
@@ -90,6 +102,7 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
                 args: Vec<&#mini_template_crate_name::value::Value>
             ) -> #mini_template_crate_name::modifier::error::Result<#mini_template_crate_name::value::Value> {
                 use #mini_template_crate_name::modifier::error::Error;
+                use #mini_template_crate_name::modifier::error::IntoModifierResult;
                 #vars
                 #inner_fn
                 let result: #mini_template_crate_name::modifier::error::Result<_> = #modifier_code_call;
@@ -109,16 +122,10 @@ fn get_mini_template_crate_name() -> syn::Ident {
     }
 }
 
-fn modifier_code_call(ident: &syn::Ident, inputs: &Inputs, attrs: &Attrs, mini_template_crate_name: &syn::Ident) -> TokenStream {
+fn modifier_code_call(ident: &syn::Ident, inputs: &Inputs) -> TokenStream {
     let inputs = inputs.inputs.iter().map(|i| &i.ident).collect::<syn::punctuated::Punctuated<_, syn::token::Comma>>();
-    if attrs.returns_result {
-        quote::quote! {
-            #ident(#inputs).or_else(|e| Err(#mini_template_crate_name::modifier::error::Error::Modifier(e)))
-        }
-    } else {
-        quote::quote! {
-            Ok(#ident(#inputs))
-        }
+    quote::quote! {
+        #ident(#inputs).into_modifier_result()
     }
 }
 
@@ -216,7 +223,7 @@ fn into_value(value: TokenStream, mini_template_crate_name: &syn::Ident) -> Toke
 struct Attrs {
     defaults: HashMap<syn::Ident, syn::Lit>,
     modifier_ident: Option<syn::Ident>,
-    returns_result: bool,
+    returns_result_is_set: bool,
 }
 
 impl Attrs {
@@ -225,7 +232,7 @@ impl Attrs {
         let mut attrs = Attrs {
             defaults: HashMap::default(),
             modifier_ident: None,
-            returns_result: false,
+            returns_result_is_set: false,
         };
 
         for arg in args {
@@ -239,15 +246,15 @@ impl Attrs {
                         attrs.modifier_ident = Some(syn::Ident::new(&s_lit.value(), lit.span()));
                         continue;
                     }
-                    return Err(syn::Error::new(lit.span(), "modifier identifier needs to be string"));
+                    return Err(syn::Error::new(lit.span(), "modifier identifier must to be of type string"));
                 }
 
                 if path.is_ident("returns_result") {
-                    if let syn::Lit::Bool(b_lit) = &lit {
-                        attrs.returns_result = b_lit.value;
+                    if let syn::Lit::Bool(_) = &lit {
+                        attrs.returns_result_is_set = true;
                         continue;
                     }
-                    return Err(syn::Error::new(lit.span(), "returns_result needs to be boolean"));
+                    return Err(syn::Error::new(lit.span(), "returns_result must to be of type boolean"));
                 }
 
                 let mut segments_iter = path.segments.iter();

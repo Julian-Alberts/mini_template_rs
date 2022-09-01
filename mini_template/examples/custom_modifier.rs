@@ -42,9 +42,7 @@ mod modifiers {
         fn leading_zeros(input: usize) -> usize => usize::leading_zeros
     );
 
-    #[mini_template::macros::create_modifier(
-        returns_result = true
-    )]
+    #[mini_template::macros::create_modifier]
     fn parse_as_usize(input: String) -> Result<usize, String> {
         match input.parse::<usize>() {
             Ok(o) => Ok(o),

@@ -9,7 +9,7 @@ fn main() {
     let r = modifier(
         &mini_template::value::Value::String(String::from("FOO")),
         vec![
-            &mini_template::value::Value::Number(42.),
+            &mini_template::value::Value::Number(mini_template::value::Number::F64(42.)),
             &mini_template::value::Value::Bool(true),
         ]
     );
@@ -18,7 +18,7 @@ fn main() {
     let r = modifier(
         &mini_template::value::Value::String(String::from("FOO")),
         vec![
-            &mini_template::value::Value::Number(42.),
+            &mini_template::value::Value::Number(mini_template::value::Number::F64(42.)),
         ]
     );
     assert_eq!(r, Ok(mini_template::value::Value::String(String::from("FOO 42 None"))));
@@ -26,7 +26,7 @@ fn main() {
     let r = modifier(
         &mini_template::value::Value::String(String::from("FOO")),
         vec![
-            &mini_template::value::Value::Number(42.),
+            &mini_template::value::Value::Number(mini_template::value::Number::F64(42.)),
             &mini_template::value::Value::Null,
         ]
     );

@@ -1,6 +1,6 @@
 use mini_template_macro::create_modifier;
 
-#[create_modifier(returns_result = true)]
+#[create_modifier]
 fn modifier(s: String) -> Result<String, String> {
     if s == "FOO" {
         Ok(s)
