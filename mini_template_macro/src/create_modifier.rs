@@ -4,54 +4,19 @@ use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use syn::spanned::Spanned;
 
-///## With body
-/// ```
-/// use mini_template::value::Value;
-/// use mini_template_macro::create_modifier;
-///
-/// #[create_modifier]
-/// fn fizz_buzz(n: usize) -> String {
-///     match (n % 3, n % 5) {
-///         (0, 0) => String::from("FIZZBUZZ"),
-///         (0, _) => String::from("FIZZ"),
-///         (_, 0) => String::from("BUZZ"),
-///         _ => n.to_string()
-///     }
-/// }
-///
-///
-/// assert_eq!(
-///     fizz_buzz(
-///         &Value::Number(mini_template::value::Number::USize(3)),
-///         Vec::default()
-///     ),
-///     Ok(Value::String(String::from("FIZZ")))
-/// );
-/// ```
-/// ## Returns Result
-/// ```
-/// use mini_template::value::Value;
-/// use mini_template_macro::create_modifier;
-///
-/// #[create_modifier(returns_result = true)]
-/// fn as_usize(n: String) -> Result<usize, String> {
-///     match n.parse() {
-///         Ok(n) => Ok(n),
-///         Err(_) => Err(format!("Can not convert {n} to usize"))
-///     }
-/// }
-///
-///
-/// assert!(as_usize(&Value::String("17".to_owned()), Vec::default()).is_ok());
-/// assert!(as_usize(&Value::String("Foo".to_owned()), Vec::default()).is_err());
-/// ```
-pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<TokenStream, syn::Error> {
+pub fn create_modifier(
+    attrs: syn::AttributeArgs,
+    item: syn::ItemFn,
+) -> Result<TokenStream, syn::Error> {
     let inputs = Inputs::new(&item.sig.inputs)?;
     let attrs = Attrs::new(attrs, &inputs)?;
     let mini_template_crate_name = get_mini_template_crate_name();
 
     if let syn::ReturnType::Default = item.sig.output {
-        return Err(syn::Error::new(item.sig.span() ,"Modifier requires return type"))
+        return Err(syn::Error::new(
+            item.sig.span(),
+            "Modifier requires return type",
+        ));
     }
     let modifier_ident = if let Some(ident) = &attrs.modifier_ident {
         ident
@@ -63,20 +28,27 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
     let inner_fn = &item;
     let modifier_code_call = modifier_code_call(&item.sig.ident, &inputs);
     let use_of_deprecated_feature_default_values = if !attrs.defaults.is_empty() {
-        Some(quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: Default values will be removed in version 0.3.0")]})
+        Some(
+            quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: Default values will be removed in version 0.3.0")]},
+        )
     } else {
         None
     };
     let use_of_deprecated_feature_returns_result = if attrs.returns_result_is_set {
-        Some(quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: `returns_result` is no longer required and will be removed in version 0.3.0")]})
+        Some(
+            quote::quote! {#[deprecated(since = "0.2.0", note = "Marked as deprecated by mini_template_macro: `returns_result` is no longer required and will be removed in version 0.3.0")]},
+        )
     } else {
         None
     };
-    let use_of_deprecated_feature = match (use_of_deprecated_feature_default_values, use_of_deprecated_feature_returns_result) {
+    let use_of_deprecated_feature = match (
+        use_of_deprecated_feature_default_values,
+        use_of_deprecated_feature_returns_result,
+    ) {
         (Some(a), Some(b)) => quote::quote! {#a #b},
         (None, Some(b)) => b,
         (Some(a), None) => a,
-        (None, None) => TokenStream::default()
+        (None, None) => TokenStream::default(),
     };
 
     if attrs.modifier_ident.is_some() {
@@ -113,17 +85,20 @@ pub fn create_modifier(attrs: syn::AttributeArgs, item: syn::ItemFn) -> Result<T
 }
 
 fn get_mini_template_crate_name() -> syn::Ident {
-    let found_crate = crate_name("mini_template").expect("mini_template is present in `Cargo.toml`");
+    let found_crate =
+        crate_name("mini_template").expect("mini_template is present in `Cargo.toml`");
     match found_crate {
         FoundCrate::Itself => syn::Ident::new("crate", proc_macro2::Span::call_site()),
-        FoundCrate::Name(name) => {
-            syn::Ident::new(&name, proc_macro2::Span::call_site())
-        }
+        FoundCrate::Name(name) => syn::Ident::new(&name, proc_macro2::Span::call_site()),
     }
 }
 
 fn modifier_code_call(ident: &syn::Ident, inputs: &Inputs) -> TokenStream {
-    let inputs = inputs.inputs.iter().map(|i| &i.ident).collect::<syn::punctuated::Punctuated<_, syn::token::Comma>>();
+    let inputs = inputs
+        .inputs
+        .iter()
+        .map(|i| &i.ident)
+        .collect::<syn::punctuated::Punctuated<_, syn::token::Comma>>();
     quote::quote! {
         #ident(#inputs).into_modifier_result()
     }
@@ -132,7 +107,7 @@ fn modifier_code_call(ident: &syn::Ident, inputs: &Inputs) -> TokenStream {
 fn create_var_init_code(
     inputs: &Inputs,
     attrs: &Attrs,
-    mini_template_crate_name: &syn::Ident
+    mini_template_crate_name: &syn::Ident,
 ) -> Result<TokenStream, syn::Error> {
     let mut inputs_iter = inputs.inputs.iter();
     let value = {
@@ -189,8 +164,8 @@ fn create_var_init_code(
                 }
 
             }).collect::<TokenStream>();
-            args.extend(init);
-            args
+        args.extend(init);
+        args
     } else {
         TokenStream::new()
     };
@@ -201,7 +176,11 @@ fn create_var_init_code(
     })
 }
 
-fn var_init_default(ident: &syn::Ident, default: Option<&syn::Lit>, mini_template_crate_name: &syn::Ident) -> TokenStream {
+fn var_init_default(
+    ident: &syn::Ident,
+    default: Option<&syn::Lit>,
+    mini_template_crate_name: &syn::Ident,
+) -> TokenStream {
     match default {
         Some(d) => quote::quote! {#d},
         None => {
@@ -227,7 +206,6 @@ struct Attrs {
 }
 
 impl Attrs {
-
     fn new(args: syn::AttributeArgs, inputs: &Inputs) -> Result<Self, syn::Error> {
         let mut attrs = Attrs {
             defaults: HashMap::default(),
@@ -240,13 +218,17 @@ impl Attrs {
                 path,
                 lit,
                 ..
-            })) = arg {
+            })) = arg
+            {
                 if path.is_ident("modifier_ident") {
                     if let syn::Lit::Str(s_lit) = &lit {
                         attrs.modifier_ident = Some(syn::Ident::new(&s_lit.value(), lit.span()));
                         continue;
                     }
-                    return Err(syn::Error::new(lit.span(), "modifier identifier must to be of type string"));
+                    return Err(syn::Error::new(
+                        lit.span(),
+                        "modifier identifier must to be of type string",
+                    ));
                 }
 
                 if path.is_ident("returns_result") {
@@ -254,18 +236,24 @@ impl Attrs {
                         attrs.returns_result_is_set = true;
                         continue;
                     }
-                    return Err(syn::Error::new(lit.span(), "returns_result must to be of type boolean"));
+                    return Err(syn::Error::new(
+                        lit.span(),
+                        "returns_result must to be of type boolean",
+                    ));
                 }
 
                 let mut segments_iter = path.segments.iter();
-                if let Some(syn::PathSegment{ ident, .. }) = segments_iter.next() {
+                if let Some(syn::PathSegment { ident, .. }) = segments_iter.next() {
                     if ident == &syn::Ident::new("defaults", proc_macro2::Span::call_site()) {
-                        if let Some(syn::PathSegment{ ident, .. }) = segments_iter.next() {
-                            if let Some(input_info) = inputs.inputs.iter().find(|ii| {
-                                ident == &ii.ident
-                            }) {
+                        if let Some(syn::PathSegment { ident, .. }) = segments_iter.next() {
+                            if let Some(input_info) =
+                                inputs.inputs.iter().find(|ii| ident == &ii.ident)
+                            {
                                 if input_info.is_option {
-                                    return Err(syn::Error::new(path.span(), "Arguments can not be optional and have a default value"));
+                                    return Err(syn::Error::new(
+                                        path.span(),
+                                        "Arguments can not be optional and have a default value",
+                                    ));
                                 }
                                 attrs.defaults.insert(ident.clone(), lit);
                                 continue;
@@ -274,81 +262,92 @@ impl Attrs {
                     }
                 }
 
-                return Err(syn::Error::new(path.span(), "Unknown argument"))
+                return Err(syn::Error::new(path.span(), "Unknown argument"));
             }
-            return Err(syn::Error::new(arg.span(), "Unknown argument"))
+            return Err(syn::Error::new(arg.span(), "Unknown argument"));
         }
 
         Ok(attrs)
     }
-
 }
 
 struct Input<'a> {
     ident: syn::Ident,
     ty: &'a syn::Type,
     is_option: bool,
-    allow_missing: bool
+    allow_missing: bool,
 }
 
 struct Inputs<'a> {
     inputs: Vec<Input<'a>>,
 }
 
-impl <'a> Inputs<'a> {
-
-    fn new(i: &'a syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>) -> Result<Self, syn::Error> {
+impl<'a> Inputs<'a> {
+    fn new(
+        i: &'a syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>,
+    ) -> Result<Self, syn::Error> {
         if i.is_empty() {
-            return Err(syn::Error::new(Spanned::span(i), "Modifiers require at least one argument"));
+            return Err(syn::Error::new(
+                Spanned::span(i),
+                "Modifiers require at least one argument",
+            ));
         }
         let mut unnamed_value_index = 0;
 
-        let mut inputs: Vec<Input> = i.iter().map(|arg| {
-            let typed = if let syn::FnArg::Typed(t) = arg {
-                t
-            } else {
-                return Err(syn::Error::new(arg.span(), "All arguments need to be typed"))
-            };
-            let ident = if let syn::Pat::Ident(pat_ident) = &*typed.pat {
-                pat_ident.ident.clone()
-            } else {
-                let i = syn::Ident::new(&format!("mini_template_unnamed_{unnamed_value_index}"), typed.span());
-                unnamed_value_index += 1;
-                i
-            };
+        let mut inputs: Vec<Input> = i
+            .iter()
+            .map(|arg| {
+                let typed = if let syn::FnArg::Typed(t) = arg {
+                    t
+                } else {
+                    return Err(syn::Error::new(
+                        arg.span(),
+                        "All arguments need to be typed",
+                    ));
+                };
+                let ident = if let syn::Pat::Ident(pat_ident) = &*typed.pat {
+                    pat_ident.ident.clone()
+                } else {
+                    let i = syn::Ident::new(
+                        &format!("mini_template_unnamed_{unnamed_value_index}"),
+                        typed.span(),
+                    );
+                    unnamed_value_index += 1;
+                    i
+                };
 
-            let ty = &*typed.ty;
+                let ty = &*typed.ty;
 
-            let is_option = if let syn::Type::Path(path) = &*typed.ty {
-                is_pat_type(&path.path, syn::Ident::new("Option", proc_macro2::Span::call_site()))
-            } else {
-                false
-            };
+                let is_option = if let syn::Type::Path(path) = &*typed.ty {
+                    is_pat_type(
+                        &path.path,
+                        syn::Ident::new("Option", proc_macro2::Span::call_site()),
+                    )
+                } else {
+                    false
+                };
 
-            Ok(Input {
-                ident,
-                is_option,
-                ty,
-                allow_missing: false
+                Ok(Input {
+                    ident,
+                    is_option,
+                    ty,
+                    allow_missing: false,
+                })
             })
-        }).collect::<Result<_, _>>()?;
+            .collect::<Result<_, _>>()?;
 
         for i in inputs.iter_mut().rev() {
             if i.is_option {
                 i.allow_missing = true
             } else {
-                break
+                break;
             }
         }
 
-        Ok(Self {
-            inputs,
-        })
+        Ok(Self { inputs })
     }
-
 }
 
 fn is_pat_type(path: &syn::Path, ident: syn::Ident) -> bool {
-    path.segments.len() == 1 &&
-    path.segments.iter().next().unwrap().ident == ident
+    path.segments.len() == 1 && path.segments.iter().next().unwrap().ident == ident
 }

@@ -6,18 +6,27 @@ pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, sy
     let data = if let syn::Data::Struct(data) = input.data {
         data
     } else {
-        return Err(syn::Error::new(input.ident.span() ,"Only structs are supported"))
+        return Err(syn::Error::new(
+            input.ident.span(),
+            "Only structs are supported",
+        ));
     };
 
     let (fields, template_names) = if let syn::Fields::Named(fields) = data.fields {
-        let field_names = fields.named.clone().into_iter().map(|named| named.ident.expect("named field"));
+        let field_names = fields
+            .named
+            .clone()
+            .into_iter()
+            .map(|named| named.ident.expect("named field"));
         let template_names = fields.named.into_iter().map(|named| {
             let attr = named.attrs.iter().find(|attr| {
                 if let Some(attr) = attr.path.segments.first() {
                     attr
                 } else {
-                    return false
-                }.ident == "name"
+                    return false;
+                }
+                .ident
+                    == "name"
             });
 
             if let Some(proc_macro2::TokenTree::Group(group)) = attr
@@ -32,7 +41,10 @@ pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, sy
         });
         (field_names, template_names)
     } else {
-        return Err(syn::Error::new(input.ident.span() ,"Only named structs are supported"))
+        return Err(syn::Error::new(
+            input.ident.span(),
+            "Only named structs are supported",
+        ));
     };
 
     let mini_template_crate_name = get_mini_template_crate_name();
@@ -55,11 +67,10 @@ pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, sy
 }
 
 fn get_mini_template_crate_name() -> syn::Ident {
-    let found_crate = crate_name("mini_template").expect("mini_template is present in `Cargo.toml`");
+    let found_crate =
+        crate_name("mini_template").expect("mini_template is present in `Cargo.toml`");
     match found_crate {
         FoundCrate::Itself => syn::Ident::new("crate", proc_macro2::Span::call_site()),
-        FoundCrate::Name(name) => {
-            syn::Ident::new(&name, proc_macro2::Span::call_site())
-        }
+        FoundCrate::Name(name) => syn::Ident::new(&name, proc_macro2::Span::call_site()),
     }
 }
