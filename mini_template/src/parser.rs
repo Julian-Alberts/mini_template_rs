@@ -157,7 +157,7 @@ fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
     let mut negate = false;
     while let Some(n) = inner.peek() {
         if n.as_rule() != Rule::not_operator {
-            break
+            break;
         }
         inner.next();
         negate = !negate;
@@ -169,7 +169,7 @@ fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
             Rule::condition => parse_condition(c)?,
             Rule::compare_condition => Condition::Compare(parse_compare_condition(c)?),
             Rule::calculated_value => Condition::CalculatedValue(parse_calculated_value(c)?),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         if let Some(operator) = inner.next() {
@@ -205,7 +205,7 @@ fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
                 _ => unreachable!(),
             };
             if negate {
-                return Ok(Condition::Not(Box::new(condition)))
+                return Ok(Condition::Not(Box::new(condition)));
             }
             return Ok(condition);
         }
@@ -504,7 +504,7 @@ impl<'a> ParseContextBuilder<'a> {
 
 #[cfg(parser)]
 pub mod export {
-    use pest::{Parser, error::LineColLocation};
+    use pest::{error::LineColLocation, Parser};
 
     use crate::ParseError;
 
@@ -548,7 +548,6 @@ pub mod export {
     export_parser!(parse_identifier, super::Ident, identifier);
     export_parser!(with context parse_loop, super::Loop, while_loop);
     export_parser!(parse_include, super::Include, include, "");
-
 }
 
 #[cfg(test)]
@@ -985,7 +984,8 @@ mod tests {
 
         #[test]
         fn parse_multiple() {
-            let template = "{%if i < 10%}HI{%else%}{%if n == \"TEST\"%}HI2{%else%}TEST{%endif%}{%endif%}";
+            let template =
+                "{%if i < 10%}HI{%else%}{%if n == \"TEST\"%}HI2{%else%}TEST{%endif%}{%endif%}";
             let conditional = TemplateParser::parse(Rule::conditional, template)
                 .unwrap()
                 .next()
@@ -1271,7 +1271,10 @@ mod tests {
                         vec![]
                     ),
                     operator: CompareOperator::EQ,
-                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10usize.into())), vec![])
+                    right: CalculatedValue::new(
+                        StorageMethod::Const(Value::Number(10usize.into())),
+                        vec![]
+                    )
                 })
             );
         }
@@ -1292,7 +1295,10 @@ mod tests {
                         vec![]
                     ),
                     operator: CompareOperator::EQ,
-                    right: CalculatedValue::new(StorageMethod::Const(Value::Number(10usize.into())), vec![])
+                    right: CalculatedValue::new(
+                        StorageMethod::Const(Value::Number(10usize.into())),
+                        vec![]
+                    )
                 })
             );
         }
@@ -1444,12 +1450,10 @@ mod tests {
             let condition = super::parse_condition(condition).unwrap();
             assert_eq!(
                 condition,
-                Condition::Not(Box::new(
-                    Condition::CalculatedValue(CalculatedValue::new(
-                        StorageMethod::Variable(Ident::new_static("bar")),
-                        vec![]
-                    ))
-                )),
+                Condition::Not(Box::new(Condition::CalculatedValue(CalculatedValue::new(
+                    StorageMethod::Variable(Ident::new_static("bar")),
+                    vec![]
+                )))),
             );
         }
     }
@@ -1477,7 +1481,10 @@ mod tests {
                 assign,
                 Assign::new(
                     Ident::new_static("my_var"),
-                    CalculatedValue::new(StorageMethod::Const(Value::Number(12usize.into())), vec![])
+                    CalculatedValue::new(
+                        StorageMethod::Const(Value::Number(12usize.into())),
+                        vec![]
+                    )
                 )
             )
         }

@@ -153,15 +153,20 @@ mod tests {
         ];
 
         modifier_names.iter().for_each(|name| {
-            assert!(engine.modifier.keys().any(|found| found == name), "Could not find modifier \"{name}\"");
+            assert!(
+                engine.modifier.keys().any(|found| found == name),
+                "Could not find modifier \"{name}\""
+            );
         });
-
     }
 
     #[test]
     fn try_rendering_unknown_template() {
         let engine = MiniTemplate::default();
-        assert_eq!(engine.render("template", ValueManager::default()), Err(super::error::Error::UnknownTemplate))
+        assert_eq!(
+            engine.render("template", ValueManager::default()),
+            Err(super::error::Error::UnknownTemplate)
+        )
     }
 
     #[test]

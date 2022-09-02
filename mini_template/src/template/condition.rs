@@ -29,7 +29,7 @@ impl ConditionEval for Condition {
             Self::And(c) => c.eval(context),
             Self::Compare(c) => c.eval(context),
             Self::CalculatedValue(c) => Ok(c.calc(context)?.as_bool()),
-            Self::Not(c) => c.eval(context).map(|b| !b)
+            Self::Not(c) => c.eval(context).map(|b| !b),
         }
     }
 }
@@ -114,7 +114,6 @@ pub enum CompareOperator {
     GT,
     GE,
 }
-
 
 #[cfg(test)]
 mod tests {

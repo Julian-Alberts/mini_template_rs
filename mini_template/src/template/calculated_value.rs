@@ -18,7 +18,7 @@ impl CalculatedValue {
     }
 
     pub fn calc(&self, context: &RenderContext) -> crate::error::Result<Value> {
-        let mut var =  Cow::Borrowed(self.value.get_value(context)?);
+        let mut var = Cow::Borrowed(self.value.get_value(context)?);
 
         for modifier in &self.modifiers {
             var = Cow::Owned(modifier.eval(&var, context)?)

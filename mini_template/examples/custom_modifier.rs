@@ -1,6 +1,6 @@
 use mini_template::value::ident::Ident;
-use mini_template::{value::Value, MiniTemplate, ValueManager};
 use mini_template::{modifier, value};
+use mini_template::{value::Value, MiniTemplate, ValueManager};
 
 #[macro_use]
 extern crate mini_template;
@@ -22,8 +22,14 @@ fn main() {
     let render = mini_template.render(
         "0",
         ValueManager::try_from_iter([
-            (Ident::try_from("even").unwrap(), Value::Number(4usize.into())),
-            (Ident::try_from("zeros").unwrap(), Value::Number(4usize.into())),
+            (
+                Ident::try_from("even").unwrap(),
+                Value::Number(4usize.into()),
+            ),
+            (
+                Ident::try_from("zeros").unwrap(),
+                Value::Number(4usize.into()),
+            ),
         ])
         .unwrap(),
     );

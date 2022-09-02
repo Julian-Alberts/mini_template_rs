@@ -118,10 +118,16 @@ impl ValueManager {
 fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
     match &*ident.part {
         ResolvedIdentPart::Static(s) => Ok(s.get_string().to_owned()),
-        ResolvedIdentPart::Dynamic(Value::Number(super::Number::ISize(n))) => Ok((*n as usize).to_string()),
+        ResolvedIdentPart::Dynamic(Value::Number(super::Number::ISize(n))) => {
+            Ok((*n as usize).to_string())
+        }
         ResolvedIdentPart::Dynamic(Value::Number(super::Number::USize(n))) => Ok((n).to_string()),
-        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F32(n))) => Ok((*n as usize).to_string()),
-        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F64(n))) => Ok((*n as usize).to_string()),
+        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F32(n))) => {
+            Ok((*n as usize).to_string())
+        }
+        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F64(n))) => {
+            Ok((*n as usize).to_string())
+        }
         ResolvedIdentPart::Dynamic(d) => match d.try_into() {
             Ok(s) => Ok(s),
             Err(_) => Err(Error::UnsupportedIdentifier),
@@ -131,7 +137,7 @@ fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::value::ident::{ResolvedIdent, Ident};
+    use crate::value::ident::{Ident, ResolvedIdent};
     use crate::{value_iter, Value, ValueManager};
 
     #[test]
@@ -184,36 +190,49 @@ mod tests {
     fn try_set_nested_value_of_bool() {
         let mut vm = ValueManager::try_from_iter(value_iter![
             "foo": Value::Bool(false)
-        ]).unwrap();
+        ])
+        .unwrap();
         let mut ident: ResolvedIdent = "foo".into();
         ident.chain("bar".into());
-        assert_eq!(vm.set_value(ident.clone(), Value::Number(1usize.into())), Err(super::Error::UnknownProperty(ident)))
+        assert_eq!(
+            vm.set_value(ident.clone(), Value::Number(1usize.into())),
+            Err(super::Error::UnknownProperty(ident))
+        )
     }
 
     #[test]
     fn access_of_unknown_value() {
         let vm = ValueManager::try_from_iter(value_iter![
             "foo": Value::Bool(false)
-        ]).unwrap();
+        ])
+        .unwrap();
         let mut ident: ResolvedIdent = "foo".into();
         ident.chain("bar".into());
-        assert_eq!(vm.get_value(ident.clone()), Err(super::Error::UnknownVariable(ident)))
+        assert_eq!(
+            vm.get_value(ident.clone()),
+            Err(super::Error::UnknownVariable(ident))
+        )
     }
 
     #[test]
     fn mut_access_of_unknown_value() {
         let mut vm = ValueManager::try_from_iter(value_iter![
             "foo": Value::Bool(false)
-        ]).unwrap();
+        ])
+        .unwrap();
         let ident: ResolvedIdent = "bar".into();
-        assert_eq!(vm.get_value_mut(ident.clone()), Err(super::Error::UnknownVariable(ident)))
+        assert_eq!(
+            vm.get_value_mut(ident.clone()),
+            Err(super::Error::UnknownVariable(ident))
+        )
     }
 
     #[test]
     fn access_of_nested_value() {
         let mut vm = ValueManager::try_from_iter(value_iter![
             "foo.foobar": Value::Bool(false)
-        ]).unwrap();
+        ])
+        .unwrap();
         let mut ident: ResolvedIdent = "foo".into();
         ident.chain("foobar".into());
         assert_eq!(vm.get_value_mut(ident.clone()), Ok(&mut Value::Bool(false)))
@@ -223,20 +242,28 @@ mod tests {
     fn access_of_unknown_nested_value() {
         let vm = ValueManager::try_from_iter(value_iter![
             "foo": Value::Bool(false)
-        ]).unwrap();
+        ])
+        .unwrap();
         let mut ident: ResolvedIdent = "foo".into();
         ident.chain("foobar".into());
-        assert_eq!(vm.get_value(ident.clone()), Err(super::Error::UnknownVariable(ident)))
+        assert_eq!(
+            vm.get_value(ident.clone()),
+            Err(super::Error::UnknownVariable(ident))
+        )
     }
 
     #[test]
     fn mut_access_of_unknown_nested_value() {
         let mut vm = ValueManager::try_from_iter(value_iter![
             "foo": Value::Bool(false)
-        ]).unwrap();
+        ])
+        .unwrap();
         let mut ident: ResolvedIdent = "foo".into();
         ident.chain("foobar".into());
-        assert_eq!(vm.get_value_mut(ident.clone()), Err(super::Error::UnknownVariable(ident)))
+        assert_eq!(
+            vm.get_value_mut(ident.clone()),
+            Err(super::Error::UnknownVariable(ident))
+        )
     }
 
     #[test]
@@ -265,7 +292,10 @@ mod tests {
 
         let mut ident_num: ResolvedIdent = "obj".into();
         ident_num.chain("foo".into());
-        let ident_bool = Ident::try_from("obj[val]").unwrap().resolve_ident(&vm).unwrap();
+        let ident_bool = Ident::try_from("obj[val]")
+            .unwrap()
+            .resolve_ident(&vm)
+            .unwrap();
 
         assert_eq!(vm.get_value(ident_num), Ok(&Value::Number(33usize.into())));
         assert_eq!(vm.get_value(ident_bool), Ok(&Value::Bool(true)))
@@ -277,7 +307,8 @@ mod tests {
             "val": Value::String("hi".to_owned()),
             "obj[\"bar\"]": Value::Bool(true),
             "obj[\"foo\"]": Value::Number(33usize.into())
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_eq!(vm.len(), 2);
     }
 }

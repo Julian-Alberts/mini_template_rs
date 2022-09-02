@@ -1,6 +1,6 @@
+use mini_template::value;
 use mini_template::MiniTemplate;
 use mini_template_macro::ValueContainer;
-use mini_template::value;
 
 const TEMPLATE: &str = include_str!("./value_container.tpl");
 
@@ -9,13 +9,13 @@ struct TemplateData {
     name: String,
     #[name(userId)]
     user_id: u64,
-    cart: Vec<TemplateItem>
+    cart: Vec<TemplateItem>,
 }
 
 #[derive(ValueContainer)]
 struct TemplateItem {
     id: u64,
-    name: String
+    name: String,
 }
 
 fn main() {
@@ -31,18 +31,18 @@ fn main() {
         cart: vec![
             TemplateItem {
                 id: 123,
-                name: "Prod1".to_string()
+                name: "Prod1".to_string(),
             },
             TemplateItem {
                 id: 1234,
-                name: "Prod2".to_string()
-            }
-        ]
+                name: "Prod2".to_string(),
+            },
+        ],
     };
-    
+
     let render = mini_template.render("0", template_data.into());
     match render {
         Ok(r) => println!("{r}"),
-        Err(e) => println!("{e}")
+        Err(e) => println!("{e}"),
     }
 }

@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use crate::{value::{ident::Ident, Value}, RenderContext};
+use crate::{
+    value::{ident::Ident, Value},
+    RenderContext,
+};
 
 pub enum StorageMethod {
     Const(Value),
@@ -8,21 +11,21 @@ pub enum StorageMethod {
 }
 
 impl StorageMethod {
-
-    pub fn get_value<'a, 'b>(&'a self, context: &'b RenderContext) -> crate::error::Result<&'a Value> 
-        where 'b: 'a
+    pub fn get_value<'a, 'b>(
+        &'a self,
+        context: &'b RenderContext,
+    ) -> crate::error::Result<&'a Value>
+    where
+        'b: 'a,
     {
         let var = match &self {
             StorageMethod::Const(var) => var,
-            StorageMethod::Variable(ident) => {
-                context
-                    .variables
-                    .get_value(ident.resolve_ident(&context.variables)?)?
-            }
+            StorageMethod::Variable(ident) => context
+                .variables
+                .get_value(ident.resolve_ident(&context.variables)?)?,
         };
         Ok(var)
     }
-
 }
 
 impl PartialEq for StorageMethod {
@@ -44,13 +47,11 @@ impl Debug for StorageMethod {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::value::{Value, ident::Ident};
+    use crate::value::{ident::Ident, Value};
 
     use super::StorageMethod;
-
 
     #[test]
     fn compare_not_equals() {
@@ -61,7 +62,9 @@ mod tests {
 
     #[test]
     fn debug_const() {
-        assert_eq!(format!("{:#?}", StorageMethod::Const(Value::Null)), "Const(Null)".to_owned());
+        assert_eq!(
+            format!("{:#?}", StorageMethod::Const(Value::Null)),
+            "Const(Null)".to_owned()
+        );
     }
-
 }

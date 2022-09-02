@@ -1,12 +1,12 @@
 pub mod ident;
+mod number;
 mod storage_method;
 mod traits;
 mod value_manager;
-mod number;
 
+pub use number::Number;
 pub use storage_method::StorageMethod;
 pub use value_manager::ValueManager;
-pub use number::Number;
 
 pub trait ValueContainer: Into<ValueManager> {}
 impl<VC> From<VC> for Value

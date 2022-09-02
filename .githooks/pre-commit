@@ -1,0 +1,11 @@
+#!/bin/sh
+cd $(git rev-parse --show-toplevel)
+cd mini_template
+for file in $(git diff --relative --name-only --staged . | grep '.rs'); do
+	cargo fmt -- $file
+done
+cd ../mini_template_macro
+for file in $(git diff --relative --name-only --staged . | grep '.rs'); do
+	cargo fmt -- $file
+done
+exit 0

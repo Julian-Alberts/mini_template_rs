@@ -1,4 +1,4 @@
-use crate::{TypeError, Value, ValueManager, value::Number};
+use crate::{value::Number, TypeError, Value, ValueManager};
 
 use super::{ident::ResolvedIdent, ValueContainer};
 
@@ -96,45 +96,45 @@ impl From<ValueManager> for Value {
     }
 }
 
-impl <T> From<Option<T>> for Value 
-    where T: Into<Value>
+impl<T> From<Option<T>> for Value
+where
+    T: Into<Value>,
 {
     fn from(opt: Option<T>) -> Self {
         match opt {
             Some(v) => v.into(),
-            None => Value::Null
+            None => Value::Null,
         }
     }
 }
 
-impl <'a> TryFrom<&'a Value> for &'a ValueManager {
+impl<'a> TryFrom<&'a Value> for &'a ValueManager {
     type Error = TypeError;
     fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
         match value {
             Value::Object(s) => Ok(s),
-            _ => Err(TypeError{ expected_type: stringify!($type), storage_type: stringify!($name)})
+            _ => Err(TypeError {
+                expected_type: stringify!($type),
+                storage_type: stringify!($name),
+            }),
         }
     }
 }
 
-impl <T> ValueContainer for Vec<T> 
-where T: Into<Value> {}
+impl<T> ValueContainer for Vec<T> where T: Into<Value> {}
 
-impl <T> From<Vec<T>> for ValueManager 
-    where T: Into<Value>
+impl<T> From<Vec<T>> for ValueManager
+where
+    T: Into<Value>,
 {
-
     fn from(values: Vec<T>) -> Self {
         let mut vm = ValueManager::default();
         values.into_iter().enumerate().for_each(|(index, value)| {
-            vm.set_value(
-                ResolvedIdent::from(index.to_string()), 
-                value.into()
-            ).unwrap();
+            vm.set_value(ResolvedIdent::from(index.to_string()), value.into())
+                .unwrap();
         });
         vm
     }
-
 }
 
 value_impl!(String => String);

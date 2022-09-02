@@ -5,7 +5,7 @@ pub enum Number {
     ISize(isize),
     USize(usize),
     F32(f32),
-    F64(f64)
+    F64(f64),
 }
 
 impl PartialEq for Number {
@@ -36,7 +36,6 @@ impl PartialEq for Number {
 }
 
 impl PartialOrd for Number {
-
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         use self::Number::*;
         let result = match (self, other) {
@@ -62,11 +61,9 @@ impl PartialOrd for Number {
         };
         Some(result)
     }
-
 }
 
 impl ToString for Number {
-
     fn to_string(&self) -> String {
         use self::Number::*;
         match self {
@@ -76,7 +73,6 @@ impl ToString for Number {
             F64(o) => o.to_string(),
         }
     }
-
 }
 
 impl From<f32> for Number {
@@ -85,20 +81,17 @@ impl From<f32> for Number {
     }
 }
 
-
 impl From<f64> for Number {
     fn from(n: f64) -> Self {
         Number::F64(n)
     }
 }
 
-
 impl From<isize> for Number {
     fn from(n: isize) -> Self {
         Number::ISize(n)
     }
 }
-
 
 impl From<usize> for Number {
     fn from(n: usize) -> Self {
@@ -117,21 +110,21 @@ impl TryFrom<&str> for Number {
             (IS_POSITIVE, IS_INTEGER) => {
                 let num = match value.parse() {
                     Ok(n) => n,
-                    Err(e) => return Err(ParseNumberError::Integer(e))
+                    Err(e) => return Err(ParseNumberError::Integer(e)),
                 };
                 Ok(Number::USize(num))
             }
             (IS_NEGATIVE, IS_INTEGER) => {
                 let num = match value.parse() {
                     Ok(n) => n,
-                    Err(e) => return Err(ParseNumberError::Integer(e))
+                    Err(e) => return Err(ParseNumberError::Integer(e)),
                 };
                 Ok(Number::ISize(num))
             }
             (_, IS_FLOAT) => {
                 let num = match value.parse() {
                     Ok(n) => n,
-                    Err(e) => return Err(ParseNumberError::Float(e))
+                    Err(e) => return Err(ParseNumberError::Float(e)),
                 };
                 Ok(Number::F64(num))
             }
@@ -142,5 +135,5 @@ impl TryFrom<&str> for Number {
 #[derive(Debug)]
 pub enum ParseNumberError {
     Float(ParseFloatError),
-    Integer(ParseIntError)
+    Integer(ParseIntError),
 }

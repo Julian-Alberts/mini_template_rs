@@ -154,27 +154,28 @@ pub mod error {
             }
         }
     }
-    
+
     pub trait IntoModifierResult<T> {
         fn into_modifier_result(self) -> Result<T>;
     }
 
-    impl <T> IntoModifierResult<T> for std::result::Result<T, String> 
-        where T: Into<Value>
+    impl<T> IntoModifierResult<T> for std::result::Result<T, String>
+    where
+        T: Into<Value>,
     {
         fn into_modifier_result(self) -> Result<T> {
             self.or_else(|e| Err(Error::Modifier(e)))
         }
     }
 
-    impl <T> IntoModifierResult<T> for T 
-        where T: Into<Value>
+    impl<T> IntoModifierResult<T> for T
+    where
+        T: Into<Value>,
     {
         fn into_modifier_result(self) -> Result<T> {
             Ok(self)
         }
     }
-
 }
 
 #[cfg(test)]
@@ -229,16 +230,28 @@ mod tests {
 
     #[test]
     fn replace_modifier() {
-        assert_eq!(super::replace_modifier(&Value::String("abcdefg".to_owned()), vec![
-            &Value::String("cde".to_owned()),
-            &Value::String("EDC".to_owned())
-        ]), Ok(Value::String("abEDCfg".to_owned())));
+        assert_eq!(
+            super::replace_modifier(
+                &Value::String("abcdefg".to_owned()),
+                vec![
+                    &Value::String("cde".to_owned()),
+                    &Value::String("EDC".to_owned())
+                ]
+            ),
+            Ok(Value::String("abEDCfg".to_owned()))
+        );
 
-        assert_eq!(super::replace_modifier(&Value::String("abcdefcdegcde".to_owned()), vec![
-            &Value::String("cde".to_owned()),
-            &Value::String("EDC".to_owned()),
-            &Value::Number(2usize.into())
-        ]), Ok(Value::String("abEDCfEDCgcde".to_owned())));
+        assert_eq!(
+            super::replace_modifier(
+                &Value::String("abcdefcdegcde".to_owned()),
+                vec![
+                    &Value::String("cde".to_owned()),
+                    &Value::String("EDC".to_owned()),
+                    &Value::Number(2usize.into())
+                ]
+            ),
+            Ok(Value::String("abEDCfEDCgcde".to_owned()))
+        );
     }
 
     #[test]
@@ -324,13 +337,18 @@ mod tests {
     #[test]
     fn len() {
         let object = Value::Object(ValueManager::default());
-        assert_eq!(len_modifier(&object, vec![]), Ok(Value::Number(0usize.into())));
+        assert_eq!(
+            len_modifier(&object, vec![]),
+            Ok(Value::Number(0usize.into()))
+        );
 
-        let object = Value::Object(ValueManager::try_from_iter(value_iter!(
-            "a": Value::Null,
-            "b": Value::Null
-        )).unwrap());
-        assert_eq!(len_modifier(&object, vec![]), Ok(Value::Number(2usize.into())));
+        let object = Value::Object(
+            ValueManager::try_from_iter(value_iter!("a": Value::Null, "b": Value::Null)).unwrap(),
+        );
+        assert_eq!(
+            len_modifier(&object, vec![]),
+            Ok(Value::Number(2usize.into()))
+        );
     }
 
     #[test]
@@ -343,7 +361,13 @@ mod tests {
                 None
             }
         }
-        assert_eq!(my_modifier(&Value::Number(5_usize.into()), vec![]), Ok(Value::Number(5_usize.into())));
-        assert_eq!(my_modifier(&Value::Number(15_usize.into()), vec![]), Ok(Value::Null));        
+        assert_eq!(
+            my_modifier(&Value::Number(5_usize.into()), vec![]),
+            Ok(Value::Number(5_usize.into()))
+        );
+        assert_eq!(
+            my_modifier(&Value::Number(15_usize.into()), vec![]),
+            Ok(Value::Null)
+        );
     }
 }
