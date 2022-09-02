@@ -70,9 +70,11 @@ include = {"{%" ~ include_key_word ~ calculated_value ~ "%}"}
 // Condition
 condition = {
     (
-        ("(" ~ condition ~ ")") | 
-        compare_condition | 
-        calculated_value
+        not_operator* ~ (
+            ("(" ~ condition ~ ")") | 
+            compare_condition | 
+            calculated_value
+        )
     )~ 
     (
         (and_operator|or_operator) ~ 
@@ -99,6 +101,8 @@ ge_operator = { ">=" }
 
 and_operator = {"&&"}
 or_operator = {"||"}
+
+not_operator = {"!"}
 
 // Keywords
 if_key_word = _{"if"}

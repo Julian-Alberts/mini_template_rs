@@ -154,13 +154,22 @@ fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
     let mut current_or = Vec::new();
     let mut prev_operator = None;
 
+    let mut negate = false;
+    while let Some(n) = inner.peek() {
+        if n.as_rule() != Rule::not_operator {
+            break
+        }
+        inner.next();
+        negate = !negate;
+    }
+
     // At some point no more operators will be found and the function returns
     while let Some(c) = inner.next() {
         let c = match c.as_rule() {
             Rule::condition => parse_condition(c)?,
             Rule::compare_condition => Condition::Compare(parse_compare_condition(c)?),
             Rule::calculated_value => Condition::CalculatedValue(parse_calculated_value(c)?),
-            _ => unreachable!(),
+            _ => unreachable!()
         };
 
         if let Some(operator) = inner.next() {
@@ -177,24 +186,28 @@ fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
             }
             prev_operator = Some(operator.as_rule());
         } else {
-            match prev_operator {
+            let condition = match prev_operator {
                 Some(Rule::and_operator) => {
                     current_and.get_or_insert(Vec::default()).push(c);
                     let and = Condition::And(AndCondition::new(current_and.take().unwrap()));
-                    return if !current_or.is_empty() {
+                    if !current_or.is_empty() {
                         current_or.push(and);
-                        Ok(Condition::Or(OrCondition::new(current_or)))
+                        Condition::Or(OrCondition::new(current_or))
                     } else {
-                        Ok(and)
-                    };
+                        and
+                    }
                 }
                 Some(Rule::or_operator) => {
                     current_or.push(c);
-                    return Ok(Condition::Or(OrCondition::new(current_or)));
+                    Condition::Or(OrCondition::new(current_or))
                 }
-                None => return Ok(c),
+                None => c,
                 _ => unreachable!(),
+            };
+            if negate {
+                return Ok(Condition::Not(Box::new(condition)))
             }
+            return Ok(condition);
         }
     }
     unreachable!()
@@ -1419,6 +1432,25 @@ mod tests {
                     ])
                 ])
             )
+        }
+
+        #[test]
+        fn parse_with_not() {
+            let template = "!bar";
+            let condition = TemplateParser::parse(Rule::condition, template)
+                .unwrap()
+                .next()
+                .unwrap();
+            let condition = super::parse_condition(condition).unwrap();
+            assert_eq!(
+                condition,
+                Condition::Not(Box::new(
+                    Condition::CalculatedValue(CalculatedValue::new(
+                        StorageMethod::Variable(Ident::new_static("bar")),
+                        vec![]
+                    ))
+                )),
+            );
         }
     }
 
