@@ -1,7 +1,7 @@
 WHITESPACE = _{" "|"\n"}
 modifier = {"|" ~ identifier ~ argument*}
 argument = { ":" ~ value }
-calculated = {!"\\" ~ "{" ~ calculated_value ~ "}"}
+calculated = {!"\\" ~ "{{" ~ calculated_value ~ "}}"}
 calculated_value = { value ~ modifier* }
 identifier = {
     (ident_static|ident_dynamic) ~
@@ -16,13 +16,13 @@ full_ident = {
 }
 ident_static = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
 ident_dynamic = {"[" ~ value ~ "]"}
-text = {(!"{" ~ ("\\{" | ANY))+}
+text = {(!("{{" | "{%") ~ ("\\{{" | "\\{%" | ANY))+}
 
-assign = !{"{" ~ identifier ~ "=" ~ calculated_value ~ "}"}
+assign = !{"{%" ~ identifier ~ "=" ~ calculated_value ~ "%}"}
 
 // Template
 template = {SOI ~ template_content ~ EOI}
-template_content = ${ (custom_block|include|while_loop|assign|calculated|text|conditional)* }
+template_content = ${ (include|while_loop|assign|calculated|text|conditional|custom_block)* }
 
 custom_block = {
     "{%" ~ PUSH(ident_static) ~ custom_block_args ~ "%}" ~
@@ -50,22 +50,22 @@ value = { boolean|identifier|number|string|null_literal }
 
 // Blocks
 conditional = !{ 
-    "{" ~ if_key_word ~ condition ~ "}" ~
+    "{%" ~ if_key_word ~ condition ~ "%}" ~
         template_content ~
     (
-        "{" ~ else_key_word ~ "}" ~
+        "{%" ~ else_key_word ~ "%}" ~
             template_content
     )? ~
-    "{" ~ "end" ~ if_key_word ~ "}" ~ "\n"?
+    "{%" ~ "end" ~ if_key_word ~ "%}" ~ "\n"?
 }
 
 while_loop = !{ 
-    "{" ~ while_key_word ~ condition ~ "}" ~
+    "{%" ~ while_key_word ~ condition ~ "%}" ~
         template_content ~
-    "{" ~ "end" ~ while_key_word ~ "}" ~ "\n"?
+    "{%" ~ "end" ~ while_key_word ~ "%}" ~ "\n"?
 }
 
-include = {"{" ~ include_key_word ~ calculated_value ~ "}"}
+include = {"{%" ~ include_key_word ~ calculated_value ~ "%}"}
 
 // Condition
 condition = {

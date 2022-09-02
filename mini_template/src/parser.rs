@@ -575,7 +575,7 @@ mod tests {
 
     #[test]
     fn parse_template_item_calculated() {
-        let template = String::from("{var}");
+        let template = String::from("{{var}}");
         let item = TemplateParser::parse(Rule::calculated, &template);
         assert!(item.is_ok());
         let item = item.unwrap().next();
@@ -593,7 +593,7 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed() {
-        let template = String::from("{var}");
+        let template = String::from("{{var}}");
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
@@ -604,21 +604,21 @@ mod tests {
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![],
                 ))],
-                tpl_str: String::from("{var}")
+                tpl_str: String::from("{{var}}")
             }
         );
     }
 
     #[test]
     fn parse_template_single_computed_modifier() {
-        let template = String::from("{var|modifier}");
+        let template = String::from("{{var|modifier}}");
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{var|modifier}"),
+                tpl_str: String::from("{{var|modifier}}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -633,14 +633,14 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed_multiple_modifier() {
-        let template = String::from("{var|modifier1|modifier2}");
+        let template = String::from("{{var|modifier1|modifier2}}");
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{var|modifier1|modifier2}"),
+                tpl_str: String::from("{{var|modifier1|modifier2}}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![
@@ -662,14 +662,14 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed_modifier_var_param() {
-        let template = String::from("{var|modifier:var2}");
+        let template = String::from("{{var|modifier:var2}}");
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{var|modifier:var2}"),
+                tpl_str: String::from("{{var|modifier:var2}}"),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -684,14 +684,14 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed_modifier_number_param() {
-        let template = String::from(r#"{var|modifier:-32.09}"#);
+        let template = String::from(r#"{{var|modifier:-32.09}}"#);
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{var|modifier:-32.09}"#),
+                tpl_str: String::from(r#"{{var|modifier:-32.09}}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -706,14 +706,14 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed_modifier_null_param() {
-        let template = String::from(r#"{var|modifier:null}"#);
+        let template = String::from(r#"{{var|modifier:null}}"#);
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{var|modifier:null}"#),
+                tpl_str: String::from(r#"{{var|modifier:null}}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -728,14 +728,14 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed_modifier_null_value() {
-        let template = String::from(r#"{null|modifier:-32.09}"#);
+        let template = String::from(r#"{{null|modifier:-32.09}}"#);
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{null|modifier:-32.09}"#),
+                tpl_str: String::from(r#"{{null|modifier:-32.09}}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Null),
                     vec![Modifier {
@@ -750,14 +750,14 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed_literal_before_modifier() {
-        let template = String::from(r#"{10|modifier:-32.09}"#);
+        let template = String::from(r#"{{10|modifier:-32.09}}"#);
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{10|modifier:-32.09}"#),
+                tpl_str: String::from(r#"{{10|modifier:-32.09}}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Number((10.0f64).into())),
                     vec![Modifier {
@@ -772,14 +772,14 @@ mod tests {
 
     #[test]
     fn parse_template_single_computed_modifier_multiple_args() {
-        let template = String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#);
+        let template = String::from(r#"{{var|modifier:-32.09:"argument":var2:true}}"#);
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok(), "{:#?}", template);
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{var|modifier:-32.09:"argument":var2:true}"#),
+                tpl_str: String::from(r#"{{var|modifier:-32.09:"argument":var2:true}}"#),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -799,14 +799,14 @@ mod tests {
 
     #[test]
     fn parse_template_multi_line() {
-        let template = String::from("{var|modifier}\n{10|modifier:-32.09}");
+        let template = String::from("{{var|modifier}}\n{{10|modifier:-32.09}}");
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{var|modifier}\n{10|modifier:-32.09}"),
+                tpl_str: String::from("{{var|modifier}}\n{{10|modifier:-32.09}}"),
                 tpl: vec![
                     Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Variable(Ident::new_static("var")),
@@ -833,14 +833,14 @@ mod tests {
     #[cfg(feature = "assign")]
     #[test]
     fn parse_template_assign() {
-        let template = String::from("{var = 10|modifier:-32.09}");
+        let template = String::from("{%var = 10|modifier:-32.09%}");
         let template = parse(template, ParseContextBuilder::default().build());
         assert!(template.is_ok(), "{template:#?}");
         let template = template.unwrap();
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{var = 10|modifier:-32.09}"),
+                tpl_str: String::from("{%var = 10|modifier:-32.09%}"),
                 tpl: vec![Statement::Assign(Assign::new(
                     Ident::new_static("var"),
                     CalculatedValue::new(
@@ -868,7 +868,7 @@ mod tests {
 
         #[test]
         fn parse_simple() {
-            let template = "{if i < 10}HI{endif}";
+            let template = "{%if i < 10%}HI{%end if%}";
             let conditional = TemplateParser::parse(Rule::conditional, template)
                 .unwrap()
                 .next()
@@ -901,7 +901,7 @@ mod tests {
 
         #[test]
         fn parse_complex_condition() {
-            let template = "{if (var1 || var2) && var3}HI{endif}";
+            let template = "{%if (var1 || var2) && var3%}HI{%endif%}";
             let conditional = TemplateParser::parse(Rule::conditional, template)
                 .unwrap()
                 .next()
@@ -939,7 +939,7 @@ mod tests {
 
         #[test]
         fn parse_else() {
-            let template = "{if i < 10}HI{else}TEST{endif}";
+            let template = "{%if i < 10%}HI{%else%}TEST{%endif%}";
             let conditional = TemplateParser::parse(Rule::conditional, template)
                 .unwrap()
                 .next()
@@ -972,7 +972,7 @@ mod tests {
 
         #[test]
         fn parse_multiple() {
-            let template = "{if i < 10}HI{else}{if n == \"TEST\"}HI2{else}TEST{endif}{endif}";
+            let template = "{%if i < 10%}HI{%else%}{%if n == \"TEST\"%}HI2{%else%}TEST{%endif%}{%endif%}";
             let conditional = TemplateParser::parse(Rule::conditional, template)
                 .unwrap()
                 .next()
@@ -1178,7 +1178,7 @@ mod tests {
 
         #[test]
         fn parse_include_string() {
-            let template = "{include \"template_name\"}";
+            let template = "{%include \"template_name\"%}";
             let include = TemplateParser::parse(Rule::include, template)
                 .unwrap()
                 .next()
@@ -1197,7 +1197,7 @@ mod tests {
 
         #[test]
         fn parse_include_modifier() {
-            let template = "{include template_name|modifier}";
+            let template = "{%include template_name|modifier%}";
             let include = TemplateParser::parse(Rule::include, template)
                 .unwrap()
                 .next()
@@ -1435,7 +1435,7 @@ mod tests {
 
         #[test]
         fn parse_assign_simple() {
-            let tpl = "{my_var=12}";
+            let tpl = "{%my_var=12%}";
             let assign = TemplateParser::parse(Rule::assign, tpl)
                 .unwrap()
                 .next()
@@ -1653,7 +1653,7 @@ mod tests {
         #[test]
         fn parse_loop() {
             let context = ParseContextBuilder::default().build();
-            let template = "{while var==0}Foo{endwhile}";
+            let template = "{%while var==0%}Foo{%end while%}";
 
             let l = TemplateParser::parse(Rule::while_loop, template)
                 .unwrap()
@@ -1681,7 +1681,7 @@ mod tests {
 
         #[test]
         fn parse_loop_space_in_end() {
-            let template = "{while var==0}Foo{end while}";
+            let template = "{%while var==0%}Foo{%end while%}";
             assert!(TemplateParser::parse(Rule::while_loop, template).is_ok())
         }
     }
@@ -1751,7 +1751,7 @@ mod pest_tests {
 
     #[test]
     fn string_before_modifier() {
-        test_cases(&[r#"{"test"|modifier:arg}"#], Rule::calculated)
+        test_cases(&[r#"{{"test"|modifier:arg}}"#], Rule::calculated)
     }
 
     #[test]
@@ -1775,10 +1775,10 @@ mod pest_tests {
     fn test_conditional() {
         test_cases(
             &[
-                "{if i < 10}HI{endif}",
-                "{if i < 10}HI{else}TEST{endif}",
-                "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
-                "{if i}HI{endif}",
+                "{%if i < 10%}HI{%endif%}",
+                "{%if i < 10%}HI{%else%}TEST{%endif%}",
+                "{%if i < 10%}HI{%else%}{%if i < 10%}HI{%else%}TEST{%endif%}{%endif%}",
+                "{%if i%}HI{%end if%}",
             ],
             Rule::conditional,
         );
@@ -1789,11 +1789,11 @@ mod pest_tests {
         test_cases(
             &[
                 "Hello world",
-                r#"{"test"|modifier:arg}"#,
-                "{if i < 10} HI {endif}",
-                "{if i < 10}HI{else}TEST{endif}",
-                "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
-                "{if i}HI{endif}",
+                r#"{{"test"|modifier:arg}}"#,
+                "{%if i < 10%} HI {%endif%}",
+                "{%if i < 10%}HI{%else%}TEST{%endif%}",
+                "{%if i < 10%}HI{%else%}{%if i < 10%}HI{%else%}TEST{%endif%}{%endif%}",
+                "{%if i%}HI{%endif%}",
             ],
             Rule::template,
         );
@@ -1804,11 +1804,11 @@ mod pest_tests {
         test_cases(
             &[
                 "Hello world",
-                r#"{"test"|modifier:arg}"#,
-                "{if i < 10} HI {endif}",
-                "{if i < 10}HI{else}TEST{endif}",
-                "{if i < 10}HI{else}{if i < 10}HI{else}TEST{endif}{endif}",
-                "{if i}HI{endif}",
+                r#"{{"test"|modifier:arg}}"#,
+                "{%if i < 10%} HI {%endif%}",
+                "{%if i < 10%}HI{%else%}TEST{%endif%}",
+                "{%if i < 10%}HI{%else%}{%if i < 10%}HI{%else%}TEST{%endif%}{%endif%}",
+                "{%if i%}HI{%endif%}",
             ],
             Rule::template_content,
         )
@@ -1817,7 +1817,7 @@ mod pest_tests {
     #[test]
     fn test_assign() {
         test_cases(
-            &["{my_var=12}", r#"{my_var = "test"|modifier:arg}"#],
+            &["{%my_var=12%}", r#"{%my_var = "test"|modifier:arg%}"#],
             Rule::assign,
         )
     }
@@ -1826,9 +1826,9 @@ mod pest_tests {
     fn test_while() {
         test_cases(
             &[
-                "{while var==0}1{endwhile}",
-                "{ while var == 0 } 1 { endwhile }",
-                "{while var==0}\n1\n{endwhile}",
+                "{%while var==0%}1{%endwhile%}",
+                "{% while var == 0 %} 1 {% endwhile %}",
+                "{%while var==0%}\n1\n{%endwhile%}",
             ],
             Rule::while_loop,
         )
@@ -1838,9 +1838,9 @@ mod pest_tests {
     fn test_include() {
         test_cases(
             &[
-                "{include \"string\"}",
-                "{ include var }",
-                "{include  1|modifier:arg1:arg2}",
+                "{%include \"string\"%}",
+                "{% include var %}",
+                "{%include  1|modifier:arg1:arg2%}",
             ],
             Rule::include,
         )
@@ -1890,7 +1890,7 @@ mod legacy_tests {
     #[test]
     fn variable_value() {
         let tpl = parse(
-            "Simple more {var} template {foo}".to_owned(),
+            "Simple more {{var}} template {{foo}}".to_owned(),
             ParseContextBuilder::default().build(),
         )
         .unwrap();
@@ -1914,7 +1914,7 @@ mod legacy_tests {
     #[test]
     fn variable_value_simple_modifier() {
         let tpl = parse(
-            "Simple {var|test} template".to_owned(),
+            "Simple {{var|test}} template".to_owned(),
             ParseContextBuilder::default().build(),
         )
         .unwrap();
@@ -1938,7 +1938,7 @@ mod legacy_tests {
     #[test]
     fn variable_value_modifier_string_value() {
         let tpl = parse(
-            r#"Simple {var|test:"test value"} template"#.to_owned(),
+            r#"Simple {{var|test:"test value"}} template"#.to_owned(),
             ParseContextBuilder::default().build(),
         )
         .unwrap();
@@ -1964,7 +1964,7 @@ mod legacy_tests {
     #[test]
     fn variable_value_modifier_num_value() {
         let tpl = parse(
-            r#"Simple {var|test:42} template"#.to_owned(),
+            r#"Simple {{var|test:42}} template"#.to_owned(),
             ParseContextBuilder::default().build(),
         )
         .unwrap();
@@ -1988,7 +1988,7 @@ mod legacy_tests {
     #[test]
     fn variable_value_modifier_var_value() {
         let tpl = parse(
-            r#"Simple {var|test:foobar} template"#.to_owned(),
+            r#"Simple {{var|test:foobar}} template"#.to_owned(),
             ParseContextBuilder::default().build(),
         )
         .unwrap();

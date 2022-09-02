@@ -27,7 +27,7 @@ impl<'a> RenderContext<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{ParseContextBuilder, UnsupportedFeature};
+    use crate::parser::*;
     use crate::{
         modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
         value_iter, ValueManager,
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn replace_variables() {
-        let tpl = String::from("Simple {foo} template string");
+        let tpl = String::from("Simple {{foo}} template string");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
         let variables = ValueManager::try_from_iter(value_iter!(
             "foo": Value::String("my test value".to_owned())
@@ -82,7 +82,7 @@ mod tests {
     #[test]
     #[cfg(feature = "dynamic_global_access")]
     fn dynamic_global_access() {
-        let tpl = String::from("Simple {[foo]} template string");
+        let tpl = String::from("Simple {{[foo]}} template string");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
         let variables = ValueManager::try_from_iter(value_iter!(
             "foo": Value::String("my_var".to_owned()),
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     #[cfg(not(feature = "dynamic_global_access"))]
     fn dynamic_global_access_disabled() {
-        let tpl = String::from("Simple {[foo]} template string");
+        let tpl = String::from("Simple {{[foo]}} template string");
         let tpl = parse(tpl, ParseContextBuilder::default().build());
         assert_eq!(
             tpl,
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn modifier() {
-        let tpl = String::from("Simple {foo|upper} template string");
+        let tpl = String::from("Simple {{foo|upper}} template string");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn modifier_values() {
-        let tpl = String::from(r#"Simple {foo|args:"BAR":42} template string"#);
+        let tpl = String::from(r#"Simple {{foo|args:"BAR":42}} template string"#);
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn modifier_list() {
-        let tpl = String::from(r#"Simple {foo|upper|args:"bar":42} template string"#);
+        let tpl = String::from(r#"Simple {{foo|upper|args:"bar":42}} template string"#);
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
@@ -193,7 +193,7 @@ mod tests {
     fn condition1() {
         let tpl = String::from(
             r#"Foo
-{if var1}Bar {endif}
+{%if var1%}Bar {%endif%}
 Baz"#,
         );
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
@@ -216,7 +216,7 @@ Baz"#,
 
     #[test]
     fn condition2() {
-        let tpl = String::from("Foo\n{if var1}\nBar\n{endif}\nBaz");
+        let tpl = String::from("Foo\n{%if var1%}\nBar\n{%endif%}\nBaz");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(
@@ -237,7 +237,7 @@ Baz"#,
 
     #[test]
     fn condition3() {
-        let tpl = String::from("Foo{if var1}Bar{else}Fizz{endif}Baz");
+        let tpl = String::from("Foo{%if var1%}Bar{%else%}Fizz{%endif%}Baz");
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(

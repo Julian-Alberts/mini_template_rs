@@ -167,11 +167,11 @@ mod tests {
     #[test]
     fn old_style() {
         const TEMPLATE: &str = r##"
-{if user.name == "Jon"}
-    Hi {user.name}
-{else}
-    {greeting} {user.name}
-{endif}
+{%if user.name == "Jon"%}
+    Hi {{user.name}}
+{%else%}
+    {{greeting}} {{user.name}}
+{%endif%}
 "##;
         let mut mini_template = MiniTemplate::default();
         mini_template
@@ -215,11 +215,11 @@ mod tests {
     #[test]
     fn new_style() {
         const TEMPLATE: &str = r##"
-{if user.name == "Jon"}
-    Hi {user.name}
-{else}
-    {greeting} {user.name}
-{endif}
+{%if user.name == "Jon"%}
+    Hi {{user.name}}
+{%else%}
+    {{greeting}} {{user.name}}
+{%endif%}
 "##;
         let mut mini_template = MiniTemplate::default();
         mini_template
@@ -280,11 +280,11 @@ mod tests {
     #[test]
     fn derive_style() {
         const TEMPLATE: &str = r##"
-{if user.name == "Jon"}
-    Hi {user.name}
-{else}
-    {greeting} {user.name}
-{endif}
+{%if user.name == "Jon"%}
+    Hi {{user.name}}
+{%else%}
+    {{greeting}} {{user.name}}
+{%endif%}
 "##;
         let mut mini_template = MiniTemplate::default();
         mini_template
