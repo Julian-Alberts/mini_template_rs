@@ -33,6 +33,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::template::Modifier;
+    use crate::template_provider::DefaultTemplateProvider;
     use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
@@ -72,12 +73,12 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
-        let templates = HashMap::<String, _>::new();
         let vars = ValueManager::try_from_iter(value_iter!(
             "var": Value::Number(1usize.into())
         ))
         .unwrap();
-        let mut ctx = RenderContext::new(&modifiers, vars, &templates);
+        let tpl_provider = DefaultTemplateProvider::default();
+        let mut ctx = RenderContext::new(&modifiers, vars, &tpl_provider);
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
         assert_eq!(buffer.as_str(), "1")
@@ -112,12 +113,12 @@ mod tests {
         let mut modifiers = HashMap::default();
         let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
         modifiers.insert("sub", sub);
-        let templates = HashMap::<String, _>::new();
         let vars = ValueManager::try_from_iter(value_iter!(
             "var": Value::Number(5usize.into())
         ))
         .unwrap();
-        let mut ctx = RenderContext::new(&modifiers, vars, &templates);
+        let tpl_provider = DefaultTemplateProvider::default();
+        let mut ctx = RenderContext::new(&modifiers, vars, &tpl_provider);
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
         assert_eq!(buffer.as_str(), "54321")
@@ -134,12 +135,12 @@ mod tests {
         );
 
         let modifiers = HashMap::new();
-        let templates = HashMap::<String, _>::new();
         let vars = ValueManager::try_from_iter(value_iter![
             "var": Value::Number(5usize.into())
         ])
         .unwrap();
-        let mut ctx = RenderContext::new(&modifiers, vars, &templates);
+        let tpl_provider = DefaultTemplateProvider::default();
+        let mut ctx = RenderContext::new(&modifiers, vars, &tpl_provider);
         let mut buffer = String::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
         assert!(buffer.is_empty())

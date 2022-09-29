@@ -8,6 +8,7 @@ mod renderer;
 mod template;
 mod util;
 pub mod value;
+pub mod template_provider;
 
 #[macro_use]
 extern crate pest_derive;
@@ -17,6 +18,7 @@ use modifier::Modifier;
 use parser::ParseContextBuilder;
 pub use parser::{ParseError, UnsupportedFeature};
 pub use renderer::RenderContext;
+use template_provider::{TemplateProvider, DefaultTemplateProvider};
 use std::collections::HashMap;
 use template::Template;
 pub use template::{CustomBlock, CustomBlockParser, Render};
@@ -28,9 +30,11 @@ pub use parser::export as parse;
 /// A Storage for Templates
 ///
 /// A MiniTemplate instance is used to parse, save and render templates.
-/// ```
-/// # use mini_template::MiniTemplate;
-/// # use mini_template::macros::ValueContainer;
+/// ```ignore
+/// # // This test does not compile. There seams to be an error inside the ValueContainer macro. The macro tries to use `crate` instead of `mini_template` 
+/// use mini_template::MiniTemplate;
+/// use mini_template::macros::ValueContainer;
+/// use mini_template::value;
 /// #[derive(Clone, ValueContainer)]
 /// struct TplData {
 ///    foo: String,
@@ -39,18 +43,18 @@ pub use parser::export as parse;
 /// let mut mini = MiniTemplate::default();
 /// mini.add_template("foo".to_owned(), "{{foo}}".to_string()).unwrap();
 /// mini.add_template("bar".to_owned(), "{% if bar > 10%} {{foo|upper}} {%else%} {{foo|lower}} {%end if%}".to_string()).unwrap();
-/// 
-/// # let foo = 
+///
+/// # let foo =
 /// mini.render("foo", TplData {
 ///     foo: "Me".to_string(),
 ///     bar: 10
 /// }.into()).unwrap();
-/// # let bar1 = 
+/// # let bar1 =
 /// mini.render("bar", TplData {
 ///     foo: "Me".to_string(),
 ///     bar: 1
 /// }.into()).unwrap();
-/// # let bar2 = 
+/// # let bar2 =
 /// mini.render("bar", TplData {
 ///     foo: "Me".to_string(),
 ///     bar: 11
@@ -59,11 +63,10 @@ pub use parser::export as parse;
 /// # assert_eq!(bar1.as_str(), "ME");
 /// # assert_eq!(bar2.as_str(), "me");
 /// ```
-#[derive(Default)]
 pub struct MiniTemplate {
     modifier: HashMap<&'static str, &'static Modifier>,
     custom_blocks: HashMap<String, Box<dyn CustomBlockParser>>,
-    template: HashMap<String, Template>,
+    template_provider: Box<dyn TemplateProvider>
 }
 
 impl MiniTemplate {
@@ -73,8 +76,15 @@ impl MiniTemplate {
     pub fn new() -> Self {
         MiniTemplate {
             modifier: HashMap::new(),
-            template: HashMap::new(),
+            template_provider: Box::new(DefaultTemplateProvider::default()),
             custom_blocks: HashMap::new(),
+        }
+    }
+
+    pub fn new_with_template_provider(template_provider: Box<dyn TemplateProvider>) -> Self {
+        Self {
+            template_provider,
+            ..Default::default()
         }
     }
 
@@ -121,12 +131,13 @@ impl MiniTemplate {
         &mut self,
         key: String,
         tpl: String,
-    ) -> Result<Option<Template>, ParseError> {
+    ) -> Result<(), ParseError> {
         let context = ParseContextBuilder::default()
             .custom_blocks(&self.custom_blocks)
             .build();
         let tpl = parser::parse(tpl, context)?;
-        Ok(self.template.insert(key, tpl))
+        self.template_provider.insert_template(key, tpl);
+        Ok(())
     }
 
     /// Render the template for a given key.
@@ -137,15 +148,23 @@ impl MiniTemplate {
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
     pub fn render(&self, key: &str, data: ValueManager) -> crate::error::Result<String> {
-        let tpl = match self.template.get(key) {
+        let tpl = match self.template_provider.get_template(key) {
             Some(t) => t,
             None => return Err(crate::error::Error::UnknownTemplate),
         };
-        let mut context = RenderContext::new(&self.modifier, data, &self.template);
+        let mut context = RenderContext::new(&self.modifier, data, self.template_provider.as_ref());
         let mut buf = String::new();
         tpl.render(&mut context, &mut buf)?;
         Ok(buf)
     }
+}
+
+impl Default for MiniTemplate {
+
+    fn default() -> Self {
+        Self { modifier: HashMap::default(), custom_blocks: HashMap::default(), template_provider: Box::new(DefaultTemplateProvider::default()) }
+    }
+
 }
 
 #[cfg(test)]

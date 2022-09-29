@@ -1499,7 +1499,7 @@ mod tests {
             parser::{parse, parse_custom_block, ParseContextBuilder, Rule, TemplateParser},
             renderer::RenderContext,
             template::{CustomBlock, CustomBlockParser, Render},
-            ValueManager,
+            ValueManager, template_provider::DefaultTemplateProvider,
         };
 
         struct MyCustomBlockParser;
@@ -1558,7 +1558,7 @@ mod tests {
                 &mut RenderContext::new(
                     &HashMap::default(),
                     ValueManager::default(),
-                    &HashMap::default(),
+                    &DefaultTemplateProvider::default(),
                 ),
                 &mut buf,
             )
@@ -1590,7 +1590,7 @@ mod tests {
                 &mut RenderContext::new(
                     &HashMap::default(),
                     ValueManager::default(),
-                    &HashMap::default(),
+                    &DefaultTemplateProvider::default(),
                 ),
                 &mut buf,
             )
@@ -1616,7 +1616,7 @@ mod tests {
                 &mut RenderContext::new(
                     &HashMap::default(),
                     ValueManager::default(),
-                    &HashMap::default(),
+                    &DefaultTemplateProvider::default(),
                 ),
                 &mut buf,
             )
@@ -1642,7 +1642,7 @@ mod tests {
                 &mut RenderContext::new(
                     &HashMap::default(),
                     ValueManager::default(),
-                    &HashMap::default(),
+                    &DefaultTemplateProvider::default(),
                 ),
                 &mut buf,
             )
@@ -1667,7 +1667,7 @@ mod tests {
                     &mut RenderContext {
                         variables: ValueManager::default(),
                         modifier: &HashMap::default(),
-                        templates: &HashMap::default(),
+                        template_provider: &DefaultTemplateProvider::default(),
                     },
                     &mut buf,
                 )

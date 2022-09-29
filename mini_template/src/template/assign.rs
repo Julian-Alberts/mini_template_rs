@@ -32,6 +32,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::template::Modifier;
+    use crate::template_provider::DefaultTemplateProvider;
     use crate::value::ident::Ident;
     use crate::{
         renderer::RenderContext,
@@ -50,8 +51,8 @@ mod tests {
         .unwrap();
 
         let modifiers = HashMap::default();
-        let templates = HashMap::<String, _>::new();
-        let mut rc = RenderContext::new(&modifiers, vars, &templates);
+        let tpl_provider = DefaultTemplateProvider::default();
+        let mut rc = RenderContext::new(&modifiers, vars, &tpl_provider);
 
         let assign = Assign::new(
             Ident::new_static("output"),
@@ -79,9 +80,9 @@ mod tests {
         let mut modifiers = HashMap::new();
         let add_modifier: &crate::modifier::Modifier = &crate::modifier::add;
         modifiers.insert("add", add_modifier);
-        let templates = HashMap::<String, _>::new();
-        let mut rc = RenderContext::new(&modifiers, vars, &templates);
-
+        let tpl_provider = DefaultTemplateProvider::default();
+        let mut rc = RenderContext::new(&modifiers, vars, &tpl_provider);
+        
         let assign = Assign::new(
             Ident::new_static("output"),
             CalculatedValue::new(

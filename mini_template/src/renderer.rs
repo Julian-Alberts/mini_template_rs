@@ -1,5 +1,5 @@
-use crate::Template;
-use std::collections::HashMap;
+use crate::{template_provider::TemplateProvider};
+use std::{collections::HashMap};
 
 use crate::value::ValueManager;
 
@@ -8,19 +8,19 @@ use super::modifier::Modifier;
 pub struct RenderContext<'a> {
     pub modifier: &'a HashMap<&'static str, &'a Modifier>,
     pub variables: ValueManager,
-    pub templates: &'a HashMap<String, Template>,
+    pub template_provider: &'a dyn TemplateProvider,
 }
 
 impl<'a> RenderContext<'a> {
     pub fn new(
         modifier: &'a HashMap<&'static str, &'a Modifier>,
         variables: ValueManager,
-        templates: &'a HashMap<String, Template>,
+        template_provider: &'a dyn TemplateProvider,
     ) -> Self {
         Self {
             modifier,
             variables,
-            templates,
+            template_provider,
         }
     }
 }
@@ -28,6 +28,7 @@ impl<'a> RenderContext<'a> {
 #[cfg(test)]
 mod tests {
     use crate::parser::*;
+    use crate::template_provider::DefaultTemplateProvider;
     use crate::{
         modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
         value_iter, ValueManager,
@@ -51,7 +52,7 @@ mod tests {
         let tpl = parse(tpl, ParseContextBuilder::default().build()).unwrap();
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&HashMap::new(), ValueManager::default(), &HashMap::new()),
+            &mut RenderContext::new(&HashMap::new(), ValueManager::default(), &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -69,7 +70,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &mut RenderContext::new(&HashMap::new(), variables, &HashMap::new()),
+            &mut RenderContext::new(&HashMap::new(), variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -128,7 +129,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
+            &mut RenderContext::new(&modifiers, variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -153,7 +154,7 @@ mod tests {
         let mut rendered = String::new();
 
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
+            &mut RenderContext::new(&modifiers, variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -179,7 +180,7 @@ mod tests {
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
+            &mut RenderContext::new(&modifiers, variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -207,7 +208,7 @@ Baz"#,
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
+            &mut RenderContext::new(&modifiers, variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -228,7 +229,7 @@ Baz"#,
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
+            &mut RenderContext::new(&modifiers, variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -249,7 +250,7 @@ Baz"#,
 
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
+            &mut RenderContext::new(&modifiers, variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();
@@ -261,7 +262,7 @@ Baz"#,
         .unwrap();
         let mut rendered = String::new();
         tpl.render(
-            &mut RenderContext::new(&modifiers, variables, &HashMap::new()),
+            &mut RenderContext::new(&modifiers, variables, &DefaultTemplateProvider::default()),
             &mut rendered,
         )
         .unwrap();

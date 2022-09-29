@@ -1,6 +1,6 @@
 use mini_template::value;
 use mini_template::MiniTemplate;
-use mini_template_macro::ValueContainer;
+use mini_template::macros::ValueContainer;
 
 const TEMPLATE: &str = include_str!("./value_container.tpl");
 

@@ -17,8 +17,8 @@ impl Render for Include {
             Err(e) => return Err(crate::error::Error::Include(e)),
         };
         let template = context
-            .templates
-            .get(&key)
+            .template_provider
+            .get_template(&key)
             .ok_or(crate::error::Error::UnknownTemplate)?;
         template.render(context, buf)
     }
