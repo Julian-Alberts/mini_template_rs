@@ -28,6 +28,37 @@ pub use parser::export as parse;
 /// A Storage for Templates
 ///
 /// A MiniTemplate instance is used to parse, save and render templates.
+/// ```
+/// # use mini_template::MiniTemplate;
+/// # use mini_template::macros::ValueContainer;
+/// #[derive(Clone, ValueContainer)]
+/// struct TplData {
+///    foo: String,
+///    bar: usize,
+/// }
+/// let mut mini = MiniTemplate::default();
+/// mini.add_template("foo".to_owned(), "{{foo}}".to_string()).unwrap();
+/// mini.add_template("bar".to_owned(), "{% if bar > 10%} {{foo|upper}} {%else%} {{foo|lower}} {%end if%}".to_string()).unwrap();
+/// 
+/// # let foo = 
+/// mini.render("foo", TplData {
+///     foo: "Me".to_string(),
+///     bar: 10
+/// }.into()).unwrap();
+/// # let bar1 = 
+/// mini.render("bar", TplData {
+///     foo: "Me".to_string(),
+///     bar: 1
+/// }.into()).unwrap();
+/// # let bar2 = 
+/// mini.render("bar", TplData {
+///     foo: "Me".to_string(),
+///     bar: 11
+/// }.into()).unwrap();
+/// # assert_eq!(foo.as_str(), "Me");
+/// # assert_eq!(bar1.as_str(), "ME");
+/// # assert_eq!(bar2.as_str(), "me");
+/// ```
 #[derive(Default)]
 pub struct MiniTemplate {
     modifier: HashMap<&'static str, &'static Modifier>,
