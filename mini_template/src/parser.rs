@@ -30,7 +30,7 @@ use crate::{
 #[grammar = "template.pest"]
 struct TemplateParser;
 
-pub fn parse(input: String, context: ParseContext) -> Result<Template, ParseError> {
+pub fn parse(input: String, context: &ParseContext) -> Result<Template, ParseError> {
     let mut compiled_template = Template {
         tpl: Vec::new(),
         tpl_str: input,
@@ -53,7 +53,7 @@ pub fn parse(input: String, context: ParseContext) -> Result<Template, ParseErro
         .next()
         .unwrap()
         .into_inner()
-        .filter_map(|i| parse_template_content(i, &context))
+        .filter_map(|i| parse_template_content(i, context))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(compiled_template)
 }
@@ -573,7 +573,7 @@ mod tests {
     #[test]
     fn parse_template_single_literal() {
         let template = String::from("test literal");
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -606,7 +606,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed() {
         let template = String::from("{{var}}");
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -624,7 +624,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier() {
         let template = String::from("{{var|modifier}}");
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -646,7 +646,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_multiple_modifier() {
         let template = String::from("{{var|modifier1|modifier2}}");
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -675,7 +675,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_var_param() {
         let template = String::from("{{var|modifier:var2}}");
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -697,7 +697,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_number_param() {
         let template = String::from(r#"{{var|modifier:-32.09}}"#);
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -719,7 +719,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_null_param() {
         let template = String::from(r#"{{var|modifier:null}}"#);
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -741,7 +741,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_null_value() {
         let template = String::from(r#"{{null|modifier:-32.09}}"#);
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -763,7 +763,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_literal_before_modifier() {
         let template = String::from(r#"{{10|modifier:-32.09}}"#);
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -785,7 +785,7 @@ mod tests {
     #[test]
     fn parse_template_single_computed_modifier_multiple_args() {
         let template = String::from(r#"{{var|modifier:-32.09:"argument":var2:true}}"#);
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok(), "{:#?}", template);
         let template = template.unwrap();
         assert_eq!(
@@ -812,7 +812,7 @@ mod tests {
     #[test]
     fn parse_template_multi_line() {
         let template = String::from("{{var|modifier}}\n{{10|modifier:-32.09}}");
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok());
         let template = template.unwrap();
         assert_eq!(
@@ -846,7 +846,7 @@ mod tests {
     #[test]
     fn parse_template_assign() {
         let template = String::from("{%var = 10|modifier:-32.09%}");
-        let template = parse(template, ParseContextBuilder::default().build());
+        let template = parse(template, &ParseContextBuilder::default().build());
         assert!(template.is_ok(), "{template:#?}");
         let template = template.unwrap();
         assert_eq!(
@@ -1499,7 +1499,8 @@ mod tests {
             parser::{parse, parse_custom_block, ParseContextBuilder, Rule, TemplateParser},
             renderer::RenderContext,
             template::{CustomBlock, CustomBlockParser, Render},
-            ValueManager, template_provider::DefaultTemplateProvider,
+            template_provider::DefaultTemplateProvider,
+            ValueManager,
         };
 
         struct MyCustomBlockParser;
@@ -1658,7 +1659,7 @@ mod tests {
             let builder = ParseContextBuilder::default().custom_blocks(&custom_blocks);
             let template = parse(
                 "text text {%my_custom_block args%} more text".to_owned(),
-                builder.build(),
+                &builder.build(),
             )
             .unwrap();
             let mut buf = String::default();
@@ -1917,7 +1918,7 @@ mod legacy_tests {
     fn simple_compile() {
         let tpl = parse(
             "Simple template string".to_owned(),
-            ParseContextBuilder::default().build(),
+            &ParseContextBuilder::default().build(),
         )
         .unwrap();
         assert_eq!(
@@ -1930,7 +1931,7 @@ mod legacy_tests {
     fn variable_value() {
         let tpl = parse(
             "Simple more {{var}} template {{foo}}".to_owned(),
-            ParseContextBuilder::default().build(),
+            &ParseContextBuilder::default().build(),
         )
         .unwrap();
         assert_eq!(
@@ -1954,7 +1955,7 @@ mod legacy_tests {
     fn variable_value_simple_modifier() {
         let tpl = parse(
             "Simple {{var|test}} template".to_owned(),
-            ParseContextBuilder::default().build(),
+            &ParseContextBuilder::default().build(),
         )
         .unwrap();
         assert_eq!(
@@ -1978,7 +1979,7 @@ mod legacy_tests {
     fn variable_value_modifier_string_value() {
         let tpl = parse(
             r#"Simple {{var|test:"test value"}} template"#.to_owned(),
-            ParseContextBuilder::default().build(),
+            &ParseContextBuilder::default().build(),
         )
         .unwrap();
         assert_eq!(
@@ -2004,7 +2005,7 @@ mod legacy_tests {
     fn variable_value_modifier_num_value() {
         let tpl = parse(
             r#"Simple {{var|test:42}} template"#.to_owned(),
-            ParseContextBuilder::default().build(),
+            &ParseContextBuilder::default().build(),
         )
         .unwrap();
         assert_eq!(
@@ -2028,7 +2029,7 @@ mod legacy_tests {
     fn variable_value_modifier_var_value() {
         let tpl = parse(
             r#"Simple {{var|test:foobar}} template"#.to_owned(),
-            ParseContextBuilder::default().build(),
+            &ParseContextBuilder::default().build(),
         )
         .unwrap();
         assert_eq!(

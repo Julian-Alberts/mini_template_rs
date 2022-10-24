@@ -1,6 +1,6 @@
 use mini_template::value::ident::Ident;
-use mini_template::{modifier, value};
-use mini_template::{value::Value, MiniTemplate, ValueManager};
+use mini_template::{modifier, value, MiniTemplateBuilder};
+use mini_template::{value::Value, ValueManager};
 
 #[macro_use]
 extern crate mini_template;
@@ -8,13 +8,13 @@ extern crate mini_template;
 const TEMPLATE: &str = include_str!("./custom_modifier.tpl");
 
 fn main() {
-    let mut mini_template = MiniTemplate::default();
-
-    mini_template.add_modifier("is_even", &modifiers::is_even);
-    mini_template.add_modifier("leading_zeros", &modifiers::leading_zeros);
-    mini_template.add_modifier("as_usize", &modifiers::parse_as_usize);
-    mini_template.add_modifier("nth_upper", &modifiers::nth_upper);
-    mini_template.add_modifier("nth_lower", &modifiers::nth_lower);
+    let mut mini_template = MiniTemplateBuilder::default()
+        .with_modifier("is_even", &modifiers::is_even)
+        .with_modifier("leading_zeros", &modifiers::leading_zeros)
+        .with_modifier("as_usize", &modifiers::parse_as_usize)
+        .with_modifier("nth_upper", &modifiers::nth_upper)
+        .with_modifier("nth_lower", &modifiers::nth_lower)
+        .build();
 
     mini_template
         .add_template("0".to_owned(), TEMPLATE.to_owned())

@@ -6,9 +6,9 @@ pub mod modifier;
 mod parser;
 mod renderer;
 mod template;
+pub mod template_provider;
 mod util;
 pub mod value;
-pub mod template_provider;
 
 #[macro_use]
 extern crate pest_derive;
@@ -18,10 +18,10 @@ use modifier::Modifier;
 use parser::ParseContextBuilder;
 pub use parser::{ParseError, UnsupportedFeature};
 pub use renderer::RenderContext;
-use template_provider::{TemplateProvider, DefaultTemplateProvider};
 use std::collections::HashMap;
 use template::Template;
 pub use template::{CustomBlock, CustomBlockParser, Render};
+use template_provider::{DefaultTemplateProvider, TemplateProvider};
 pub use value::ValueManager;
 
 #[cfg(parser)]
@@ -31,7 +31,7 @@ pub use parser::export as parse;
 ///
 /// A MiniTemplate instance is used to parse, save and render templates.
 /// ```ignore
-/// # // This test does not compile. There seams to be an error inside the ValueContainer macro. The macro tries to use `crate` instead of `mini_template` 
+/// # // This test does not compile. There seams to be an error inside the ValueContainer macro. The macro tries to use `crate` instead of `mini_template`
 /// use mini_template::MiniTemplate;
 /// use mini_template::macros::ValueContainer;
 /// use mini_template::value;
@@ -66,76 +66,16 @@ pub use parser::export as parse;
 pub struct MiniTemplate {
     modifier: HashMap<&'static str, &'static Modifier>,
     custom_blocks: HashMap<String, Box<dyn CustomBlockParser>>,
-    template_provider: Box<dyn TemplateProvider>
+    template_provider: Box<dyn TemplateProvider>,
 }
 
 impl MiniTemplate {
-    /// Creates a new instance.
-    /// Use [`MiniTemplate::default`] instead.
-    #[deprecated]
-    pub fn new() -> Self {
-        MiniTemplate {
-            modifier: HashMap::new(),
-            template_provider: Box::new(DefaultTemplateProvider::default()),
-            custom_blocks: HashMap::new(),
-        }
-    }
-
-    pub fn new_with_template_provider(template_provider: Box<dyn TemplateProvider>) -> Self {
-        Self {
-            template_provider,
-            ..Default::default()
-        }
-    }
-
-    /// Adds the following modifiers:
-    ///
-    /// slice, regex, match, replace, replace_regex, upper, lower, repeat, add, sub, mul, div
-    pub fn add_default_modifiers(&mut self) {
-        use modifier::*;
-        self.add_modifier("slice", &slice_modifier);
-        #[cfg(feature = "regex")]
-        {
-            self.add_modifier("regex", &match_modifier);
-            self.add_modifier("match", &match_modifier);
-            self.add_modifier("replace_regex", &replace_regex_modifier);
-        }
-        self.add_modifier("replace", &replace_modifier);
-        self.add_modifier("upper", &upper);
-        self.add_modifier("lower", &lower);
-        self.add_modifier("repeat", &repeat);
-
-        self.add_modifier("add", &add);
-        self.add_modifier("sub", &sub);
-        self.add_modifier("mul", &mul);
-        self.add_modifier("div", &div);
-        self.add_modifier("len", &len_modifier)
-    }
-
-    /// Register a new custom block
-    pub fn add_custom_block(&mut self, custom_block: Box<dyn CustomBlockParser>) {
-        self.custom_blocks
-            .insert(custom_block.name().to_owned(), custom_block);
-    }
-
-    /// Register a new modifier
-    ///
-    /// You can implement modifiers by hand. But that will result quite complex setup code.
-    /// Preferably you should take a look at the [`mini_template::modifier::create_modifier`] macro.
-    pub fn add_modifier(&mut self, key: &'static str, modifier: &'static Modifier) {
-        self.modifier.insert(key, modifier);
-    }
-
     /// Register a new Template for a give key
-    pub fn add_template(
-        &mut self,
-        key: String,
-        tpl: String,
-    ) -> Result<(), ParseError> {
+    pub fn add_template(&mut self, key: String, tpl: String) -> Result<(), ParseError> {
         let context = ParseContextBuilder::default()
             .custom_blocks(&self.custom_blocks)
             .build();
-        let tpl = parser::parse(tpl, context)?;
+        let tpl = parser::parse(tpl, &context)?;
         self.template_provider.insert_template(key, tpl);
         Ok(())
     }
@@ -149,8 +89,8 @@ impl MiniTemplate {
     /// * UnknownVariable: The template contains a unknown variable
     pub fn render(&self, key: &str, data: ValueManager) -> crate::error::Result<String> {
         let tpl = match self.template_provider.get_template(key) {
-            Some(t) => t,
-            None => return Err(crate::error::Error::UnknownTemplate),
+            Ok(Some(t)) => t,
+            Ok(None) | Err(_) => return Err(crate::error::Error::UnknownTemplate),
         };
         let mut context = RenderContext::new(&self.modifier, data, self.template_provider.as_ref());
         let mut buf = String::new();
@@ -159,12 +99,81 @@ impl MiniTemplate {
     }
 }
 
-impl Default for MiniTemplate {
+pub struct MiniTemplateBuilder {
+    modifier: HashMap<&'static str, &'static Modifier>,
+    custom_blocks: HashMap<String, Box<dyn CustomBlockParser>>,
+    template_provider: Box<dyn TemplateProvider>,
+}
 
-    fn default() -> Self {
-        Self { modifier: HashMap::default(), custom_blocks: HashMap::default(), template_provider: Box::new(DefaultTemplateProvider::default()) }
+impl MiniTemplateBuilder {
+    pub fn build(self) -> MiniTemplate {
+        MiniTemplate {
+            modifier: self.modifier,
+            custom_blocks: self.custom_blocks,
+            template_provider: self.template_provider,
+        }
     }
 
+    pub fn with_custom_block(mut self, custom_block: Box<dyn CustomBlockParser>) -> Self {
+        self.custom_blocks
+            .insert(custom_block.name().to_owned(), custom_block);
+        self
+    }
+
+    pub fn build_with_template_provider<T, F>(mut self, template_provider_builder: F) -> Self
+    where
+        T: TemplateProvider + 'static,
+        F: FnOnce() -> T,
+    {
+        self.template_provider = Box::new(template_provider_builder());
+        self
+    }
+
+    /// Adds the following modifiers:
+    ///
+    /// slice, regex, match, replace, replace_regex, upper, lower, repeat, add, sub, mul, div
+    pub fn with_default_modifiers(self) -> Self {
+        use modifier::*;
+        let s = self
+            .with_modifier("slice", &slice_modifier)
+            .with_modifier("replace", &replace_modifier)
+            .with_modifier("upper", &upper)
+            .with_modifier("lower", &lower)
+            .with_modifier("repeat", &repeat)
+            .with_modifier("add", &add)
+            .with_modifier("sub", &sub)
+            .with_modifier("mul", &mul)
+            .with_modifier("div", &div)
+            .with_modifier("len", &len_modifier);
+
+        #[cfg(feature = "regex")]
+        {
+            s.with_modifier("regex", &match_modifier)
+                .with_modifier("match", &match_modifier)
+                .with_modifier("replace_regex", &replace_regex_modifier)
+        }
+        #[cfg(not(feature = "regex"))]
+        s
+    }
+
+    /// Register a new modifier
+    ///
+    /// You can implement modifiers by hand. But that will result quite complex setup code.
+    /// Preferably you should take a look at the [`mini_template::modifier::create_modifier`] macro.
+    pub fn with_modifier(mut self, key: &'static str, modifier: &'static Modifier) -> Self {
+        self.modifier.insert(key, modifier);
+        self
+    }
+}
+
+impl Default for MiniTemplateBuilder {
+    fn default() -> Self {
+        Self {
+            modifier: Default::default(),
+            custom_blocks: Default::default(),
+            template_provider: Box::new(DefaultTemplateProvider::default()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -176,13 +185,14 @@ mod tests {
             ident::{Ident, ResolvedIdent},
             Value,
         },
-        MiniTemplate, ValueManager,
+        MiniTemplateBuilder, ValueManager,
     };
 
     #[test]
     fn add_default_modifiers() {
-        let mut engine = MiniTemplate::default();
-        engine.add_default_modifiers();
+        let engine = MiniTemplateBuilder::default()
+            .with_default_modifiers()
+            .build();
         let modifier_names = vec![
             "slice",
             #[cfg(feature = "regex")]
@@ -212,7 +222,7 @@ mod tests {
 
     #[test]
     fn try_rendering_unknown_template() {
-        let engine = MiniTemplate::default();
+        let engine = MiniTemplateBuilder::default().build();
         assert_eq!(
             engine.render("template", ValueManager::default()),
             Err(super::error::Error::UnknownTemplate)
@@ -228,7 +238,7 @@ mod tests {
     {{greeting}} {{user.name}}
 {%endif%}
 "##;
-        let mut mini_template = MiniTemplate::default();
+        let mut mini_template = MiniTemplateBuilder::default().build();
         mini_template
             .add_template("test".to_owned(), TEMPLATE.to_owned())
             .unwrap();
@@ -276,7 +286,7 @@ mod tests {
     {{greeting}} {{user.name}}
 {%endif%}
 "##;
-        let mut mini_template = MiniTemplate::default();
+        let mut mini_template = MiniTemplateBuilder::default().build();
         mini_template
             .add_template("test".to_owned(), TEMPLATE.to_owned())
             .unwrap();
@@ -341,7 +351,7 @@ mod tests {
     {{greeting}} {{user.name}}
 {%endif%}
 "##;
-        let mut mini_template = MiniTemplate::default();
+        let mut mini_template = MiniTemplateBuilder::default().build();
         mini_template
             .add_template("test".to_owned(), TEMPLATE.to_owned())
             .unwrap();

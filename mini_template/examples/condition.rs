@@ -1,12 +1,13 @@
 use mini_template::macros::ValueContainer;
 use mini_template::value;
-use mini_template::MiniTemplate;
+use mini_template::MiniTemplateBuilder;
 
 const TEMPLATE: &str = include_str!("./condition.tpl");
 
 fn main() {
-    let mut mini_template = MiniTemplate::default();
-    mini_template.add_default_modifiers();
+    let mut mini_template = MiniTemplateBuilder::default()
+        .with_default_modifiers()
+        .build();
     mini_template
         .add_template("0".to_owned(), TEMPLATE.to_owned())
         .unwrap();
