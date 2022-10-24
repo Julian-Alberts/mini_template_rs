@@ -164,7 +164,11 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(true),
@@ -172,7 +176,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -180,7 +188,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -188,7 +200,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -210,7 +226,11 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(true),
@@ -218,7 +238,11 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -226,7 +250,11 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
         let vars = ValueManager::try_from_iter(value_iter!(
             "a": Value::Bool(false),
@@ -234,7 +262,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -249,7 +281,11 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -264,7 +300,11 @@ mod tests {
             vec![],
         ));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -279,7 +319,11 @@ mod tests {
             vec![],
         ))));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -294,7 +338,11 @@ mod tests {
             vec![],
         ));
         assert!(!condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -309,7 +357,11 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -325,7 +377,11 @@ mod tests {
             vec![],
         ));
         assert!(condition
-            .eval(&RenderContext::new(&HashMap::new(), vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &HashMap::new(),
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 
@@ -356,7 +412,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -366,7 +426,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -376,7 +440,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -386,7 +454,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -396,7 +468,11 @@ mod tests {
         ))
         .unwrap();
         assert!(!condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -406,7 +482,11 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -416,7 +496,11 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
 
         let vars = ValueManager::try_from_iter(value_iter!(
@@ -426,7 +510,11 @@ mod tests {
         ))
         .unwrap();
         assert!(condition
-            .eval(&RenderContext::new(&mods, vars, &DefaultTemplateProvider::default()))
+            .eval(&RenderContext::new(
+                &mods,
+                vars,
+                &DefaultTemplateProvider::default()
+            ))
             .unwrap());
     }
 }

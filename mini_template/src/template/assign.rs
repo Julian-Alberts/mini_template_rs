@@ -82,7 +82,7 @@ mod tests {
         modifiers.insert("add", add_modifier);
         let tpl_provider = DefaultTemplateProvider::default();
         let mut rc = RenderContext::new(&modifiers, vars, &tpl_provider);
-        
+
         let assign = Assign::new(
             Ident::new_static("output"),
             CalculatedValue::new(

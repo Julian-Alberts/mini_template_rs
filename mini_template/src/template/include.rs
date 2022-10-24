@@ -16,10 +16,10 @@ impl Render for Include {
             Ok(key) => key,
             Err(e) => return Err(crate::error::Error::Include(e)),
         };
-        let template = context
-            .template_provider
-            .get_template(&key)
-            .ok_or(crate::error::Error::UnknownTemplate)?;
+        let template = match context.template_provider.get_template(&key) {
+            Ok(Some(tpl)) => tpl,
+            Err(_) | Ok(None) => return Err(crate::error::Error::UnknownTemplate)
+        };
         template.render(context, buf)
     }
 }
