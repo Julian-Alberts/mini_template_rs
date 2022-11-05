@@ -17,7 +17,80 @@ pub use error::*;
 #[cfg(feature = "regex")]
 static REGEX_CACHE: OnceCell<RwLock<HashMap<u64, Regex>>> = OnceCell::new();
 
-pub type Modifier = dyn Fn(&Value, Vec<&Value>) -> Result<Value>;
+pub type ModifierCallback = dyn Fn(&Value, Vec<&Value>) -> Result<Value>;
+
+pub trait Modifier {
+    fn name(&self) -> &str;
+    fn call(&self, subject: &Value, args: Vec<&Value>) -> Result<Value>;
+}
+
+pub(crate) struct NamedModifier<M>
+where
+    M: Modifier,
+{
+    name: String,
+    inner: M,
+}
+
+impl<M> Modifier for NamedModifier<M>
+where
+    M: Modifier,
+{
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn call(&self, subject: &Value, args: Vec<&Value>) -> Result<Value> {
+        self.inner.call(subject, args)
+    }
+}
+
+pub(crate) struct FunctionStyleModifier {
+    name: &'static str,
+    function: &'static ModifierCallback,
+}
+
+impl Modifier for FunctionStyleModifier {
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn call(&self, subject: &Value, args: Vec<&Value>) -> Result<Value> {
+        (self.function)(subject, args)
+    }
+}
+
+#[derive(Default)]
+pub struct ModifierContainer {
+    modifiers: HashMap<String, Box<dyn Modifier>>,
+}
+
+impl ModifierContainer {
+    pub fn get(&self, key: &str) -> Option<&dyn Modifier> {
+        self.modifiers.get(key).map(Box::as_ref)
+    }
+}
+
+pub(crate) trait InsertModifier<K, M> {
+    fn insert(&mut self, key: K, modifier: M);
+}
+
+impl InsertModifier<String, Box<dyn Modifier>> for ModifierContainer {
+    fn insert(&mut self, key: String, modifier: Box<dyn Modifier>) {
+        self.modifiers.insert(key, modifier);
+    }
+}
+
+impl InsertModifier<&'static str, &'static ModifierCallback> for ModifierContainer {
+    fn insert(&mut self, key: &'static str, modifier: &'static ModifierCallback) {
+        self.insert(
+            key.to_owned(),
+            Box::new(FunctionStyleModifier {
+                function: modifier,
+                name: key,
+            }),
+        )
+    }
+}
 
 #[mini_template_macro::create_modifier]
 fn slice_modifier(input: String, start: usize, length: usize) -> String {

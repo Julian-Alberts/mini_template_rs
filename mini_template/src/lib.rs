@@ -14,7 +14,7 @@ pub mod value;
 extern crate pest_derive;
 
 use crate::value::{TypeError, Value};
-use modifier::Modifier;
+use modifier::{InsertModifier, ModifierCallback, ModifierContainer};
 use parser::ParseContextBuilder;
 pub use parser::{ParseError, UnsupportedFeature};
 pub use renderer::RenderContext;
@@ -64,7 +64,7 @@ pub use parser::export as parse;
 /// # assert_eq!(bar2.as_str(), "me");
 /// ```
 pub struct MiniTemplate {
-    modifier: HashMap<&'static str, &'static Modifier>,
+    modifier: ModifierContainer,
     custom_blocks: HashMap<String, Box<dyn CustomBlockParser>>,
     template_provider: Box<dyn TemplateProvider>,
 }
@@ -100,7 +100,7 @@ impl MiniTemplate {
 }
 
 pub struct MiniTemplateBuilder {
-    modifier: HashMap<&'static str, &'static Modifier>,
+    modifier: ModifierContainer,
     custom_blocks: HashMap<String, Box<dyn CustomBlockParser>>,
     template_provider: Box<dyn TemplateProvider>,
 }
@@ -160,7 +160,7 @@ impl MiniTemplateBuilder {
     ///
     /// You can implement modifiers by hand. But that will result quite complex setup code.
     /// Preferably you should take a look at the [`mini_template::modifier::create_modifier`] macro.
-    pub fn with_modifier(mut self, key: &'static str, modifier: &'static Modifier) -> Self {
+    pub fn with_modifier(mut self, key: &'static str, modifier: &'static ModifierCallback) -> Self {
         self.modifier.insert(key, modifier);
         self
     }
@@ -187,38 +187,6 @@ mod tests {
         },
         MiniTemplateBuilder, ValueManager,
     };
-
-    #[test]
-    fn add_default_modifiers() {
-        let engine = MiniTemplateBuilder::default()
-            .with_default_modifiers()
-            .build();
-        let modifier_names = vec![
-            "slice",
-            #[cfg(feature = "regex")]
-            "regex",
-            #[cfg(feature = "regex")]
-            "match",
-            #[cfg(feature = "regex")]
-            "replace_regex",
-            "replace",
-            "upper",
-            "lower",
-            "repeat",
-            "add",
-            "sub",
-            "mul",
-            "div",
-            "len",
-        ];
-
-        modifier_names.iter().for_each(|name| {
-            assert!(
-                engine.modifier.keys().any(|found| found == name),
-                "Could not find modifier \"{name}\""
-            );
-        });
-    }
 
     #[test]
     fn try_rendering_unknown_template() {

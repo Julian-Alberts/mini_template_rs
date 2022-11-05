@@ -29,8 +29,7 @@ impl PartialEq for Assign {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
+    use crate::modifier::{InsertModifier, ModifierContainer};
     use crate::template::Modifier;
     use crate::template_provider::DefaultTemplateProvider;
     use crate::value::ident::Ident;
@@ -50,7 +49,7 @@ mod tests {
         ))
         .unwrap();
 
-        let modifiers = HashMap::default();
+        let modifiers = ModifierContainer::default();
         let tpl_provider = DefaultTemplateProvider::default();
         let mut rc = RenderContext::new(&modifiers, vars, &tpl_provider);
 
@@ -77,9 +76,8 @@ mod tests {
         ))
         .unwrap();
 
-        let mut modifiers = HashMap::new();
-        let add_modifier: &crate::modifier::Modifier = &crate::modifier::add;
-        modifiers.insert("add", add_modifier);
+        let mut modifiers = ModifierContainer::default();
+        modifiers.insert("add", &crate::modifier::add);
         let tpl_provider = DefaultTemplateProvider::default();
         let mut rc = RenderContext::new(&modifiers, vars, &tpl_provider);
 

@@ -1496,6 +1496,7 @@ mod tests {
         use pest::Parser;
 
         use crate::{
+            modifier::ModifierContainer,
             parser::{parse, parse_custom_block, ParseContextBuilder, Rule, TemplateParser},
             renderer::RenderContext,
             template::{CustomBlock, CustomBlockParser, Render},
@@ -1557,7 +1558,7 @@ mod tests {
             let mut buf = String::default();
             cb.render(
                 &mut RenderContext::new(
-                    &HashMap::default(),
+                    &ModifierContainer::default(),
                     ValueManager::default(),
                     &DefaultTemplateProvider::default(),
                 ),
@@ -1589,7 +1590,7 @@ mod tests {
             let mut buf = String::default();
             cb.render(
                 &mut RenderContext::new(
-                    &HashMap::default(),
+                    &ModifierContainer::default(),
                     ValueManager::default(),
                     &DefaultTemplateProvider::default(),
                 ),
@@ -1615,7 +1616,7 @@ mod tests {
             let mut buf = String::default();
             cb.render(
                 &mut RenderContext::new(
-                    &HashMap::default(),
+                    &ModifierContainer::default(),
                     ValueManager::default(),
                     &DefaultTemplateProvider::default(),
                 ),
@@ -1641,7 +1642,7 @@ mod tests {
             let mut buf = String::default();
             cb.render(
                 &mut RenderContext::new(
-                    &HashMap::default(),
+                    &ModifierContainer::default(),
                     ValueManager::default(),
                     &DefaultTemplateProvider::default(),
                 ),
@@ -1667,7 +1668,7 @@ mod tests {
                 .render(
                     &mut RenderContext {
                         variables: ValueManager::default(),
-                        modifier: &HashMap::default(),
+                        modifier: &ModifierContainer::default(),
                         template_provider: &DefaultTemplateProvider::default(),
                     },
                     &mut buf,

@@ -1,19 +1,15 @@
-use crate::template_provider::TemplateProvider;
-use std::collections::HashMap;
-
 use crate::value::ValueManager;
-
-use super::modifier::Modifier;
+use crate::{modifier::ModifierContainer, template_provider::TemplateProvider};
 
 pub struct RenderContext<'a> {
-    pub modifier: &'a HashMap<&'static str, &'a Modifier>,
+    pub modifier: &'a ModifierContainer,
     pub variables: ValueManager,
     pub template_provider: &'a dyn TemplateProvider,
 }
 
 impl<'a> RenderContext<'a> {
     pub fn new(
-        modifier: &'a HashMap<&'static str, &'a Modifier>,
+        modifier: &'a ModifierContainer,
         variables: ValueManager,
         template_provider: &'a dyn TemplateProvider,
     ) -> Self {
@@ -27,14 +23,14 @@ impl<'a> RenderContext<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::modifier::{InsertModifier, ModifierContainer};
     use crate::parser::*;
     use crate::template_provider::DefaultTemplateProvider;
     use crate::{
-        modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
-        value_iter, ValueManager,
+        parser::parse, renderer::RenderContext, template::Render, value::Value, value_iter,
+        ValueManager,
     };
     use mini_template_macro::create_modifier;
-    use std::collections::HashMap;
 
     #[create_modifier]
     fn upper_case_modifier(data: String) -> String {
@@ -53,7 +49,7 @@ mod tests {
         let mut rendered = String::new();
         tpl.render(
             &mut RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 ValueManager::default(),
                 &DefaultTemplateProvider::default(),
             ),
@@ -75,7 +71,7 @@ mod tests {
 
         tpl.render(
             &mut RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 variables,
                 &DefaultTemplateProvider::default(),
             ),
@@ -132,7 +128,7 @@ mod tests {
         ))
         .unwrap();
 
-        let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
+        let mut modifiers = ModifierContainer::default();
         modifiers.insert("upper", &upper_case_modifier);
         let mut rendered = String::new();
 
@@ -157,7 +153,7 @@ mod tests {
         ))
         .unwrap();
 
-        let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
+        let mut modifiers = ModifierContainer::default();
         modifiers.insert("args", &args_modifier);
         let mut rendered = String::new();
 
@@ -182,7 +178,7 @@ mod tests {
         ))
         .unwrap();
 
-        let mut modifiers: HashMap<&str, &Modifier> = HashMap::new();
+        let mut modifiers = ModifierContainer::default();
         modifiers.insert("args", &args_modifier);
         modifiers.insert("upper", &upper_case_modifier);
 
@@ -212,7 +208,7 @@ Baz"#,
         ))
         .unwrap();
 
-        let modifiers: HashMap<&str, &Modifier> = HashMap::new();
+        let modifiers = ModifierContainer::default();
 
         let mut rendered = String::new();
         tpl.render(
@@ -233,7 +229,7 @@ Baz"#,
         ))
         .unwrap();
 
-        let modifiers: HashMap<&str, &Modifier> = HashMap::new();
+        let modifiers = ModifierContainer::default();
 
         let mut rendered = String::new();
         tpl.render(
@@ -254,7 +250,7 @@ Baz"#,
         ))
         .unwrap();
 
-        let modifiers: HashMap<&str, &Modifier> = HashMap::new();
+        let modifiers = ModifierContainer::default();
 
         let mut rendered = String::new();
         tpl.render(

@@ -13,7 +13,7 @@ impl Modifier {
     pub fn eval(&self, value: &Value, context: &RenderContext) -> crate::error::Result<Value> {
         // Safety: modifier_name points to tpl.tpl_str and should never be null
         let modifier_name = unsafe { self.name.as_ref().unwrap() };
-        let modifier = *context.modifier.get(modifier_name).ok_or_else(|| {
+        let modifier = context.modifier.get(modifier_name).ok_or_else(|| {
             crate::error::Error::UnknownModifier(UnknownModifierError {
                 name: modifier_name.to_string(),
                 span: self.span.clone(),
@@ -21,7 +21,7 @@ impl Modifier {
         })?;
 
         let args = storage_methods_to_values(&self.args, context)?;
-        match modifier(value, args) {
+        match modifier.call(value, args) {
             Ok(v) => Ok(v),
             Err(e) => Err(crate::error::Error::Modifier(e)),
         }

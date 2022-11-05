@@ -30,8 +30,7 @@ impl Render for Loop {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
+    use crate::modifier::{InsertModifier, ModifierContainer};
     use crate::template::Modifier;
     use crate::template_provider::DefaultTemplateProvider;
     use crate::value::ident::Ident;
@@ -70,9 +69,8 @@ mod tests {
             ],
         );
 
-        let mut modifiers = HashMap::default();
-        let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
-        modifiers.insert("sub", sub);
+        let mut modifiers = ModifierContainer::default();
+        modifiers.insert("sub", &crate::modifier::sub);
         let vars = ValueManager::try_from_iter(value_iter!(
             "var": Value::Number(1usize.into())
         ))
@@ -110,9 +108,8 @@ mod tests {
             ],
         );
 
-        let mut modifiers = HashMap::default();
-        let sub: &'static crate::modifier::Modifier = &crate::modifier::sub;
-        modifiers.insert("sub", sub);
+        let mut modifiers = ModifierContainer::default();
+        modifiers.insert("sub", &crate::modifier::sub);
         let vars = ValueManager::try_from_iter(value_iter!(
             "var": Value::Number(5usize.into())
         ))
@@ -134,7 +131,7 @@ mod tests {
             vec![Statement::Literal("TEST")],
         );
 
-        let modifiers = HashMap::new();
+        let modifiers = ModifierContainer::default();
         let vars = ValueManager::try_from_iter(value_iter![
             "var": Value::Number(5usize.into())
         ])

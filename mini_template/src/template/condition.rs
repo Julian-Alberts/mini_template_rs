@@ -117,8 +117,7 @@ pub enum CompareOperator {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
+    use crate::modifier::ModifierContainer;
     use crate::template_provider::DefaultTemplateProvider;
     use crate::value::ident::Ident;
     use crate::{
@@ -139,7 +138,7 @@ mod tests {
         ));
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 ValueManager::default(),
                 &DefaultTemplateProvider::default()
             ))
@@ -165,7 +164,7 @@ mod tests {
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -177,7 +176,7 @@ mod tests {
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -189,7 +188,7 @@ mod tests {
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -201,7 +200,7 @@ mod tests {
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -227,7 +226,7 @@ mod tests {
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -239,7 +238,7 @@ mod tests {
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -251,7 +250,7 @@ mod tests {
         .unwrap();
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -263,7 +262,7 @@ mod tests {
         .unwrap();
         assert!(!condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -282,7 +281,7 @@ mod tests {
         ));
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -301,7 +300,7 @@ mod tests {
         ));
         assert!(!condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -320,7 +319,7 @@ mod tests {
         ))));
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -339,7 +338,7 @@ mod tests {
         ));
         assert!(!condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -358,7 +357,7 @@ mod tests {
         ));
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -378,7 +377,7 @@ mod tests {
         ));
         assert!(condition
             .eval(&RenderContext::new(
-                &HashMap::new(),
+                &ModifierContainer::default(),
                 vars,
                 &DefaultTemplateProvider::default()
             ))
@@ -404,7 +403,7 @@ mod tests {
                 vec![],
             )),
         ]);
-        let mods = HashMap::default();
+        let mods = ModifierContainer::default();
         let vars = ValueManager::try_from_iter(value_iter!(
             "var1": Value::Bool(false),
             "var2": Value::Bool(false),
