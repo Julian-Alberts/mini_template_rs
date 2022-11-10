@@ -57,13 +57,11 @@ pub struct ModifierContainer {
 }
 
 impl Default for ModifierContainer {
-
     fn default() -> Self {
         Self {
-            modifiers: HashMap::default()
+            modifiers: HashMap::default(),
         }
     }
-
 }
 
 impl ModifierContainer {
@@ -108,14 +106,12 @@ pub trait AsModifier<M: Modifier> {
 }
 
 impl AsModifier<FunctionStyleModifier> for ModifierCallback {
-
     fn as_modifier(&'static self, name: &'static str) -> FunctionStyleModifier {
         FunctionStyleModifier {
             name,
-            function: self
+            function: self,
         }
     }
-
 }
 
 #[cfg(test)]

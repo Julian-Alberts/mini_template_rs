@@ -75,7 +75,7 @@ pub fn regex_cache_clear() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{value::Value, modifier::Error};
+    use crate::{modifier::Error, value::Value};
 
     #[test]
     fn match_modifier() {

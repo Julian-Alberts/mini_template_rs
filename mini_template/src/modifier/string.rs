@@ -1,6 +1,6 @@
 use crate::fn_as_modifier;
 
-use super::{ModifierGroup, AsModifier, ModifierCallback};
+use super::{AsModifier, ModifierCallback, ModifierGroup};
 
 #[mini_template_macro::create_modifier]
 fn replace_modifier(input: String, from: String, to: String, count: Option<usize>) -> String {
@@ -37,14 +37,17 @@ impl ModifierGroup for StringModifierGroup {
             Box::new(slice_modifier.as_modifier("slice")),
             Box::new(upper.as_modifier("upper")),
             Box::new(lower.as_modifier("lower")),
-            Box::new(repeat.as_modifier("repeat"))
+            Box::new(repeat.as_modifier("repeat")),
         ]
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{value::{Value, TypeError}, modifier::{string::*, Error}};
+    use crate::{
+        modifier::{string::*, Error},
+        value::{TypeError, Value},
+    };
 
     #[test]
     fn replace_modifier() {

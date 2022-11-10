@@ -2,7 +2,7 @@ use crate::fn_as_modifier;
 
 use core::ops::{Add, Div, Mul, Sub};
 
-use super::{ModifierGroup, AsModifier, ModifierCallback, Modifier};
+use super::{AsModifier, Modifier, ModifierCallback, ModifierGroup};
 
 fn_as_modifier!(fn add(a: f64, b: f64) -> f64 => f64::add);
 
@@ -23,7 +23,7 @@ impl ModifierGroup for MathModifierGroup {
             Box::new(add.as_modifier("add")),
             Box::new(sub.as_modifier("sub")),
             Box::new(mul.as_modifier("mul")),
-            Box::new(div.as_modifier("div"))
+            Box::new(div.as_modifier("div")),
         ]
     }
 }

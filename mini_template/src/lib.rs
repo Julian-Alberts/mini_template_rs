@@ -133,7 +133,7 @@ impl MiniTemplateBuilder {
     ///
     /// slice, regex, match, replace, replace_regex, upper, lower, repeat, add, sub, mul, div
     pub fn with_default_modifiers(self) -> Self {
-        use modifier::{string::*, math::*, regex::*, *};
+        use modifier::{math::*, regex::*, string::*, *};
         let s = self
             .with_modifier_group(&StringModifierGroup)
             .with_modifier_group(&MathModifierGroup)
@@ -159,9 +159,10 @@ impl MiniTemplateBuilder {
     }
 
     pub fn with_modifier_group(mut self, group: &dyn ModifierGroup) -> Self {
-        group.get_modifiers().into_iter().for_each(|m| {
-            self.modifier.insert(m.name().to_owned(), m)
-        });
+        group
+            .get_modifiers()
+            .into_iter()
+            .for_each(|m| self.modifier.insert(m.name().to_owned(), m));
         self
     }
 }
