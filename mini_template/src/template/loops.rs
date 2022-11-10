@@ -70,7 +70,7 @@ mod tests {
         );
 
         let mut modifiers = ModifierContainer::default();
-        modifiers.insert("sub", &crate::modifier::sub);
+        modifiers.insert("sub", &crate::modifier::math::sub);
         let vars = ValueManager::try_from_iter(value_iter!(
             "var": Value::Number(1usize.into())
         ))
@@ -109,7 +109,7 @@ mod tests {
         );
 
         let mut modifiers = ModifierContainer::default();
-        modifiers.insert("sub", &crate::modifier::sub);
+        modifiers.insert("sub", &crate::modifier::math::sub);
         let vars = ValueManager::try_from_iter(value_iter!(
             "var": Value::Number(5usize.into())
         ))

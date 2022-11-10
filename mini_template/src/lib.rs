@@ -14,7 +14,7 @@ pub mod value;
 extern crate pest_derive;
 
 use crate::value::{TypeError, Value};
-use modifier::{InsertModifier, ModifierCallback, ModifierContainer};
+use modifier::{InsertModifier, ModifierCallback, ModifierContainer, ModifierGroup};
 use parser::ParseContextBuilder;
 pub use parser::{ParseError, UnsupportedFeature};
 pub use renderer::RenderContext;
@@ -133,17 +133,10 @@ impl MiniTemplateBuilder {
     ///
     /// slice, regex, match, replace, replace_regex, upper, lower, repeat, add, sub, mul, div
     pub fn with_default_modifiers(self) -> Self {
-        use modifier::*;
+        use modifier::{string::*, math::*, regex::*, *};
         let s = self
-            .with_modifier("slice", &slice_modifier)
-            .with_modifier("replace", &replace_modifier)
-            .with_modifier("upper", &upper)
-            .with_modifier("lower", &lower)
-            .with_modifier("repeat", &repeat)
-            .with_modifier("add", &add)
-            .with_modifier("sub", &sub)
-            .with_modifier("mul", &mul)
-            .with_modifier("div", &div)
+            .with_modifier_group(&StringModifierGroup)
+            .with_modifier_group(&MathModifierGroup)
             .with_modifier("len", &len_modifier);
 
         #[cfg(feature = "regex")]
@@ -162,6 +155,13 @@ impl MiniTemplateBuilder {
     /// Preferably you should take a look at the [`mini_template::modifier::create_modifier`] macro.
     pub fn with_modifier(mut self, key: &'static str, modifier: &'static ModifierCallback) -> Self {
         self.modifier.insert(key, modifier);
+        self
+    }
+
+    pub fn with_modifier_group(mut self, group: &dyn ModifierGroup) -> Self {
+        group.get_modifiers().into_iter().for_each(|m| {
+            self.modifier.insert(m.name().to_owned(), m)
+        });
         self
     }
 }

@@ -77,7 +77,7 @@ mod tests {
         .unwrap();
 
         let mut modifiers = ModifierContainer::default();
-        modifiers.insert("add", &crate::modifier::add);
+        modifiers.insert("add", &crate::modifier::math::add);
         let tpl_provider = DefaultTemplateProvider::default();
         let mut rc = RenderContext::new(&modifiers, vars, &tpl_provider);
 
