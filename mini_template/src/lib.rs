@@ -141,9 +141,10 @@ impl MiniTemplateBuilder {
 
         #[cfg(feature = "regex")]
         {
-            s.with_modifier("regex", &match_modifier)
-                .with_modifier("match", &match_modifier)
-                .with_modifier("replace_regex", &replace_regex_modifier)
+            /*s.with_modifier("regex", &match_modifier)
+            .with_modifier("match", &match_modifier)
+            .with_modifier("replace_regex", &replace_regex_modifier)*/
+            s
         }
         #[cfg(not(feature = "regex"))]
         s

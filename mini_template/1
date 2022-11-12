@@ -1,0 +1,41 @@
+    Checking mini_template v0.2.0 (/home/julian/Projects/rust/mini_template/mini_template)
+error: `self` parameter is only allowed in associated functions
+  --> src/modifier/regex.rs:51:9
+   |
+51 |         &self,
+   |         ^^^^^ not semantically valid as function parameter
+   |
+   = note: associated functions are those in `impl` or `trait` definitions
+error[E0401]: can't use generic parameters from outer function
+  --> src/modifier/regex.rs:51:9
+   |
+48 | impl MatchModifier {
+   | ---- `Self` type implicitly declared here, by this `impl`
+...
+51 |         &self,
+   |         ^^^^^
+   |         |
+   |         use of generic parameter from outer function
+   |         use a type here instead
+error[E0424]: expected value, found module `self`
+  --> src/modifier/regex.rs:51:10
+   |
+50 |     fn match_modifier(
+   |        -------------- this function doesn't have a `self` parameter
+51 |         &self,
+   |          ^^^^ `self` value is a keyword only available in methods with a `self` parameter
+   |
+help: add a `self` receiver parameter to make the associated `fn` a method
+   |
+49 |     &self, #[mini_template_macro::create_modifier]
+   |     ++++++
+warning: unused import: `regex::*`
+   --> src/lib.rs:136:33
+    |
+136 |         use modifier::{math::*, regex::*, string::*, *};
+    |                                 ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` on by default
+Some errors have detailed explanations: E0401, E0424.
+For more information about an error, try `rustc --explain E0401`.
+WARNING: no such item: mini_template::modifier::regex
