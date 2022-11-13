@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::Modifier;
+use super::{Modifier, ModifierGroup};
 
 use {
     regex::Regex,
@@ -38,6 +38,10 @@ pub struct MatchModifier {
     cache: Arc<RegexCache>,
 }
 impl MatchModifier {
+    pub fn new(cache: Arc<RegexCache>) -> Self {
+        Self { cache }
+    }
+
     #[mini_template_macro::create_modifier(modifier_ident = "callable")]
     fn match_modifier(
         &self,
@@ -75,6 +79,10 @@ pub struct ReplaceRegexModifier {
     cache: Arc<RegexCache>,
 }
 impl ReplaceRegexModifier {
+    pub fn new(cache: Arc<RegexCache>) -> Self {
+        Self { cache }
+    }
+
     #[mini_template_macro::create_modifier(modifier_ident = "callable")]
     fn replace_regex_modifier(
         &self,
@@ -86,6 +94,36 @@ impl ReplaceRegexModifier {
         let count = count.unwrap_or(0);
         self.cache
             .with_regex(regex, |regex| regex.replacen(&input, count, to).to_string())
+    }
+}
+impl Modifier for ReplaceRegexModifier {
+    fn name(&self) -> &str {
+        "replace_regex"
+    }
+    fn call(
+        &self,
+        subject: &crate::value::Value,
+        args: Vec<&crate::value::Value>,
+    ) -> super::Result<crate::value::Value> {
+        self.callable(subject, args)
+    }
+}
+
+#[derive(Default)]
+pub struct RegexModifierGroup {
+    cache: Arc<RegexCache>,
+}
+impl RegexModifierGroup {
+    pub fn new(cache: Arc<RegexCache>) -> Self {
+        Self { cache }
+    }
+}
+impl ModifierGroup for RegexModifierGroup {
+    fn get_modifiers(&self) -> Vec<Box<dyn Modifier>> {
+        vec![
+            Box::new(MatchModifier::new(Arc::clone(&self.cache))),
+            Box::new(ReplaceRegexModifier::new(Arc::clone(&self.cache))),
+        ]
     }
 }
 

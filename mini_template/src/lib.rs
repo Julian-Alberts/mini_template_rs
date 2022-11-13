@@ -14,11 +14,11 @@ pub mod value;
 extern crate pest_derive;
 
 use crate::value::{TypeError, Value};
-use modifier::{InsertModifier, ModifierCallback, ModifierContainer, ModifierGroup};
+use modifier::{InsertModifier, Modifier, ModifierCallback, ModifierContainer, ModifierGroup};
 use parser::ParseContextBuilder;
 pub use parser::{ParseError, UnsupportedFeature};
 pub use renderer::RenderContext;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use template::Template;
 pub use template::{CustomBlock, CustomBlockParser, Render};
 use template_provider::{DefaultTemplateProvider, TemplateProvider};
@@ -141,10 +141,9 @@ impl MiniTemplateBuilder {
 
         #[cfg(feature = "regex")]
         {
-            /*s.with_modifier("regex", &match_modifier)
-            .with_modifier("match", &match_modifier)
-            .with_modifier("replace_regex", &replace_regex_modifier)*/
-            s
+            let cache = Default::default();
+            s.with_modifier_group(&RegexModifierGroup::new(Arc::clone(&cache)))
+                .with_boxed_modifier(Box::new(MatchModifier::new(cache)))
         }
         #[cfg(not(feature = "regex"))]
         s
@@ -159,6 +158,12 @@ impl MiniTemplateBuilder {
         self
     }
 
+    pub fn with_boxed_modifier(mut self, modifier: Box<dyn Modifier>) -> Self {
+        self.modifier.insert(modifier.name().to_owned(), modifier);
+        self
+    }
+
+    /// Register a new Group of modifiers
     pub fn with_modifier_group(mut self, group: &dyn ModifierGroup) -> Self {
         group
             .get_modifiers()
