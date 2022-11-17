@@ -19,7 +19,7 @@ use parser::ParseContextBuilder;
 pub use parser::{ParseError, UnsupportedFeature};
 pub use renderer::RenderContext;
 use std::{collections::HashMap, sync::Arc};
-use template::Template;
+pub use template::Template;
 pub use template::{CustomBlock, CustomBlockParser, Render};
 use template_provider::{DefaultTemplateProvider, TemplateProvider};
 pub use value::ValueManager;
@@ -120,13 +120,13 @@ impl MiniTemplateBuilder {
         self
     }
 
-    pub fn build_with_template_provider<T, F>(mut self, template_provider_builder: F) -> Self
+    pub fn build_with_template_provider<T, F>(mut self, template_provider_builder: F) -> MiniTemplate
     where
         T: TemplateProvider + 'static,
         F: FnOnce() -> T,
     {
         self.template_provider = Box::new(template_provider_builder());
-        self
+        self.build()
     }
 
     /// Adds the following modifiers:

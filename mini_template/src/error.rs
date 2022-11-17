@@ -87,4 +87,22 @@ mod tests {
         });
         assert_eq!(&format!("{}", error), "2> ABCDEFGHIJ\n      ^^\n")
     }
+
+    #[test]
+    fn print_modifier_error() {
+        let e = super::Error::Modifier(crate::modifier::Error::Modifier("Test".to_owned()));
+        assert_eq!(format!("{e}").as_str(), "Test")
+    }
+
+    #[test]
+    fn print_unknown_template() {
+        let e = super::Error::UnknownTemplate;
+        assert_eq!(format!("{e}").as_str(), "unknown template")
+    }
+    
+    #[test]
+    fn print_unsupported_ident() {
+        let e = super::Error::UnsupportedIdentifier;
+        assert_eq!(format!("{e}").as_str(), "Test")
+    }
 }
