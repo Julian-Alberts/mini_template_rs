@@ -36,7 +36,18 @@ mod tests {
 
     #[test]
     fn get_modifiers() {
-        assert_eq!(MathModifierGroup.get_modifiers().into_iter().map(|m| m.name().to_owned()).collect::<Vec<_>>(), vec!["add".to_owned(), "sub".to_owned(), "mul".to_owned(), "div".to_owned()]);
+        assert_eq!(
+            MathModifierGroup
+                .get_modifiers()
+                .into_iter()
+                .map(|m| m.name().to_owned())
+                .collect::<Vec<_>>(),
+            vec![
+                "add".to_owned(),
+                "sub".to_owned(),
+                "mul".to_owned(),
+                "div".to_owned()
+            ]
+        );
     }
-
 }

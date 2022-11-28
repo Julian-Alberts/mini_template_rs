@@ -4,7 +4,6 @@ use crate::ValueManager;
 use crate::{template::Span, util::TemplateString};
 use std::fmt::{Debug, Display, Formatter, Write};
 
-#[derive(Debug)]
 pub struct Ident {
     pub next: Option<Box<Ident>>,
     pub part: Box<IdentPart>,
@@ -79,6 +78,25 @@ impl PartialEq for Ident {
     }
 }
 
+impl Debug for Ident {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &*self.part {
+            IdentPart::Dynamic(ident) => write!(f, "[{:?}]", ident)?,
+            IdentPart::Static(ident) => {
+                write!(f, "{}", ident.get_string())?;
+                if self.next.is_some() {
+                    write!(f, ".")?;
+                }
+            }
+        }
+        if let Some(next) = &self.next {
+            write!(f, "{:?}", next)
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum IdentPart {
     Static(TemplateString),
@@ -95,7 +113,7 @@ impl PartialEq for IdentPart {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ResolvedIdent {
     pub next: Option<Box<ResolvedIdent>>,
     pub part: Box<ResolvedIdentPart>,
@@ -158,6 +176,26 @@ impl Display for ResolvedIdent {
         if let Some(ident) = &self.next {
             let ident = ident.as_ref();
             Display::fmt(ident, f)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+
+impl Debug for ResolvedIdent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &*self.part {
+            ResolvedIdentPart::Dynamic(ident) => write!(f, "[{:?}]", ident)?,
+            ResolvedIdentPart::Static(ident) => {
+                write!(f, "{}", ident.get_string())?;
+                if self.next.is_some() {
+                    write!(f, ".")?;
+                }
+            }
+        }
+        if let Some(next) = &self.next {
+            write!(f, "{:?}", next)
         } else {
             Ok(())
         }

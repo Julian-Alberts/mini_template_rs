@@ -3,7 +3,7 @@
 pub mod error;
 pub mod macros;
 pub mod modifier;
-mod parser;
+pub mod parser;
 mod renderer;
 mod template;
 pub mod template_provider;
@@ -23,9 +23,6 @@ pub use template::Template;
 pub use template::{CustomBlock, CustomBlockParser, Render};
 use template_provider::{DefaultTemplateProvider, TemplateProvider};
 pub use value::ValueManager;
-
-#[cfg(parser)]
-pub use parser::export as parse;
 
 /// A Storage for Templates
 ///
@@ -120,7 +117,10 @@ impl MiniTemplateBuilder {
         self
     }
 
-    pub fn build_with_template_provider<T, F>(mut self, template_provider_builder: F) -> MiniTemplate
+    pub fn build_with_template_provider<T, F>(
+        mut self,
+        template_provider_builder: F,
+    ) -> MiniTemplate
     where
         T: TemplateProvider + 'static,
         F: FnOnce() -> T,

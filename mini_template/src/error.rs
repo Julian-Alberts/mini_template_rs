@@ -99,10 +99,10 @@ mod tests {
         let e = super::Error::UnknownTemplate;
         assert_eq!(format!("{e}").as_str(), "unknown template")
     }
-    
+
     #[test]
     fn print_unsupported_ident() {
         let e = super::Error::UnsupportedIdentifier;
-        assert_eq!(format!("{e}").as_str(), "Test")
+        assert_eq!(format!("{e}").as_str(), "Tried to access unsupported Identifier")
     }
 }
