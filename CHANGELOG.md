@@ -1,5 +1,4 @@
-#Changelog
-
+# Changelog
 ## Version 0.2.0 <sup><i>WIP</i></sup>
 ### Additions
 * Added `Option` support for modifiers
@@ -20,3 +19,12 @@
 ### Internal
 * Rewrote entire identifier code to support multipart modifiers
 * Templates are now indexed by hashes
+
+# Changelog
+## Version 0.1.1
+### Fixed
+* Quote masking works as expected
+* Fixed add sub mul div modifier when regex feature was not enabled
+
+## Version 0.1.0
+Initial release
