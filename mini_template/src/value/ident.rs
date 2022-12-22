@@ -182,7 +182,6 @@ impl Display for ResolvedIdent {
     }
 }
 
-
 impl Debug for ResolvedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &*self.part {

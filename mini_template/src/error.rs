@@ -103,6 +103,9 @@ mod tests {
     #[test]
     fn print_unsupported_ident() {
         let e = super::Error::UnsupportedIdentifier;
-        assert_eq!(format!("{e}").as_str(), "Tried to access unsupported Identifier")
+        assert_eq!(
+            format!("{e}").as_str(),
+            "Tried to access unsupported Identifier"
+        )
     }
 }

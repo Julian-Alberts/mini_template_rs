@@ -6,10 +6,12 @@ pub fn derive_value_container(input: syn::DeriveInput) -> Result<TokenStream, sy
     match &input.data {
         syn::Data::Struct(data) => derive_struct(data, &input),
         syn::Data::Enum(data) => derive_enum(data, &input),
-        _ => return Err(syn::Error::new(
-            input.ident.span(),
-            "Unions are not supported",
-        ))
+        _ => {
+            return Err(syn::Error::new(
+                input.ident.span(),
+                "Unions are not supported",
+            ))
+        }
     }
 }
 
@@ -50,7 +52,10 @@ fn derive_enum(data: &syn::DataEnum, input: &syn::DeriveInput) -> Result<TokenSt
     })
 }
 
-fn derive_struct(data: &syn::DataStruct, input: &syn::DeriveInput) -> Result<TokenStream, syn::Error>{
+fn derive_struct(
+    data: &syn::DataStruct,
+    input: &syn::DeriveInput,
+) -> Result<TokenStream, syn::Error> {
     let (fields, template_names) = if let syn::Fields::Named(fields) = &data.fields {
         let field_names = fields
             .named
@@ -59,7 +64,7 @@ fn derive_struct(data: &syn::DataStruct, input: &syn::DeriveInput) -> Result<Tok
             .map(|named| named.ident.expect("named field"));
         let template_names = fields.named.iter().map(|named| {
             let attr = named.attrs.iter().find(|attr| {
-               if let Some(attr) = attr.path.segments.first() {
+                if let Some(attr) = attr.path.segments.first() {
                     attr
                 } else {
                     return false;
