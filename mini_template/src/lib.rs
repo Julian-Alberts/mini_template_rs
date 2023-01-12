@@ -38,8 +38,8 @@ pub use value::ValueManager;
 ///    bar: usize,
 /// }
 /// let mut mini = MiniTemplate::default();
-/// mini.add_template("foo".to_owned(), "{{foo}}".to_string()).unwrap();
-/// mini.add_template("bar".to_owned(), "{% if bar > 10%} {{foo|upper}} {%else%} {{foo|lower}} {%end if%}".to_string()).unwrap();
+/// mini.add_template("foo".to_owned(), "{{ foo }}".to_string()).unwrap();
+/// mini.add_template("bar".to_owned(), "{% if bar > 10 %} {{ foo|upper }} {% else %} {{ foo|lower }} {% end if %}".to_string()).unwrap();
 ///
 /// # let foo =
 /// mini.render("foo", TplData {
