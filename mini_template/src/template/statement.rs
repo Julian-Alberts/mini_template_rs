@@ -19,6 +19,7 @@ pub enum Statement {
     #[cfg(feature = "loop")]
     Loop(Loop),
     Include(Include),
+    ForceNewLine,
 }
 
 impl PartialEq for Statement {
@@ -35,6 +36,7 @@ impl PartialEq for Statement {
             #[cfg(feature = "loop")]
             (Statement::Loop(s), Statement::Loop(o)) => s == o,
             (Statement::CustomBlock(_s), Statement::CustomBlock(_o)) => todo!(),
+            (Statement::ForceNewLine, Statement::ForceNewLine) => true,
             _ => false,
         }
     }

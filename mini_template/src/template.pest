@@ -16,14 +16,15 @@ full_ident = {
 }
 ident_static = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
 ident_dynamic = {"[" ~ value ~ "]"}
-text = {(!("{{" | "{%") ~ ("\\{{" | "\\{%" | ANY))+}
+text = {(!("{{" | "{%" | "\n") ~ ("\\{{" | "\\{%" | ANY))+}
 
 assign = !{"{%" ~ identifier ~ "=" ~ calculated_value ~ "%}"}
 
 // Template
 template = {SOI ~ template_content ~ EOI}
-template_content = ${ (include|while_loop|assign|calculated|text|conditional|custom_block)* }
-
+template_content = ${ (include|while_loop|assign|calculated|text|conditional|force_newline|newline|custom_block)* }
+newline = { "\n" }
+force_newline = { "{% \\n %}" }
 custom_block = {
     "{%" ~ PUSH(ident_static) ~ custom_block_args ~ "%}" ~
     (

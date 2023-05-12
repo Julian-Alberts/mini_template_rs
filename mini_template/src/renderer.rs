@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn condition1() {
         let tpl = String::from(
-            r#"Foo
+            r#"Foo{% \n %}
 {%if var1%}Bar {%endif%}
 Baz"#,
         );
@@ -221,7 +221,7 @@ Baz"#,
 
     #[test]
     fn condition2() {
-        let tpl = String::from("Foo\n{%if var1%}\nBar\n{%endif%}\nBaz");
+        let tpl = String::from("Foo{% \\n %}{%if var1%}Bar{% \\n %}{%endif%}Baz");
         let tpl = parse(tpl, &ParseContextBuilder::default().build()).unwrap();
 
         let variables = ValueManager::try_from_iter(value_iter!(

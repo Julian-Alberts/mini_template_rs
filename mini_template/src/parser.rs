@@ -104,6 +104,8 @@ fn parse_template_content(
             Ok(cb) => Some(Ok(Statement::CustomBlock(cb))),
             Err(e) => Some(Err(e)),
         },
+        Rule::force_newline => Some(Ok(Statement::ForceNewLine)),
+        Rule::newline => None,
         Rule::EOI => None,
         _ => unreachable!("Unexpected rule {:#?}", item.as_rule()),
     }
@@ -813,7 +815,7 @@ mod tests {
     fn parse_template_multi_line() {
         let template = String::from("{{var|modifier}}\n{{10|modifier:-32.09}}");
         let template = parse(template, &ParseContextBuilder::default().build());
-        assert!(template.is_ok());
+        assert!(template.is_ok(), "{template:#?}");
         let template = template.unwrap();
         assert_eq!(
             template,
@@ -828,7 +830,6 @@ mod tests {
                             span: Default::default()
                         }]
                     )),
-                    Statement::Literal("\n"),
                     Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Const(Value::Number((10usize).into())),
                         vec![Modifier {

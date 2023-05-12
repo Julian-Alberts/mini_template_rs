@@ -66,6 +66,7 @@ impl Render for Vec<Statement> {
                 #[cfg(feature = "include")]
                 Statement::Include(i) => i.render(context, buf)?,
                 Statement::CustomBlock(cb) => cb.render(context, buf)?,
+                Statement::ForceNewLine => buf.push('\n'),
             }
         }
 
