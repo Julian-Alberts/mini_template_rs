@@ -1,12 +1,12 @@
 WHITESPACE = _{" "|"\n"}
 modifier = {"|" ~ identifier ~ argument*}
 argument = { ":" ~ value }
-calculated = {!"\\" ~ "{" ~ calculated_value ~ "}"}
+calculated = {!"\\" ~ "{{" ~ calculated_value ~ "}}"}
 calculated_value = { value ~ modifier* }
 identifier = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
 text = {(!"{" ~ ("\\{" | ANY))+}
 
-assign = !{"{" ~ identifier ~ "=" ~ calculated_value ~ "}"}
+assign = !{"{{" ~ identifier ~ "=" ~ calculated_value ~ "}}"}
 
 // Template
 template = {SOI ~ template_content ~ EOI}
@@ -21,19 +21,19 @@ value = { boolean|identifier|number|string }
 
 // Blocks
 conditional = !{ 
-    "{" ~ if_key_word ~ condition ~ "}" ~
+    "{%" ~ if_key_word ~ condition ~ "%}" ~
         template_content ~
     (
-        "{" ~ else_key_word ~ "}" ~
+        "{%" ~ else_key_word ~ "%}" ~
             template_content
     )? ~
-    "{" ~ endif_key_word ~ "}" ~ "\n"?
+    "{%" ~ endif_key_word ~ "%}" ~ "\n"?
 }
 
 while_loop = !{ 
-    "{" ~ while_key_word ~ condition ~ "}" ~
+    "{%" ~ while_key_word ~ condition ~ "%}" ~
         template_content ~
-    "{" ~ endwhile_key_word ~ "}" ~ "\n"?
+    "{%" ~ endwhile_key_word ~ "%}" ~ "\n"?
 }
 
 // Condition

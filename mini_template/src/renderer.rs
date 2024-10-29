@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn replace_variables() {
-        let tpl = String::from("Simple {foo} template string");
+        let tpl = String::from("Simple {{foo}} template string");
         let tpl = parse(tpl).unwrap();
         let mut variables = HashMap::new();
         variables.insert("foo".to_owned(), Value::String("my test value".to_owned()));
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn modifier() {
-        let tpl = String::from("Simple {foo|upper} template string");
+        let tpl = String::from("Simple {{foo|upper}} template string");
         let tpl = parse(tpl).unwrap();
 
         let mut variables = HashMap::new();
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn modifier_values() {
-        let tpl = String::from(r#"Simple {foo|args:"BAR":42} template string"#);
+        let tpl = String::from(r#"Simple {{foo|args:"BAR":42}} template string"#);
         let tpl = parse(tpl).unwrap();
 
         let mut variables = HashMap::new();
@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn modifier_list() {
-        let tpl = String::from(r#"Simple {foo|upper|args:"bar":42} template string"#);
+        let tpl = String::from(r#"Simple {{foo|upper|args:"bar":42}} template string"#);
         let tpl = parse(tpl).unwrap();
 
         let mut variables = HashMap::new();
@@ -143,7 +143,7 @@ mod tests {
     fn condition1() {
         let tpl = String::from(
             r#"Foo
-{if var1}Bar {endif}
+{%if var1%}Bar {%endif%}
 Baz"#,
         );
         let tpl = parse(tpl).unwrap();
@@ -164,7 +164,7 @@ Baz"#,
 
     #[test]
     fn condition2() {
-        let tpl = String::from("Foo\n{if var1}\nBar\n{endif}\nBaz");
+        let tpl = String::from("Foo\n{%if var1%}\nBar\n{%endif%}\nBaz");
         let tpl = parse(tpl).unwrap();
 
         let mut variables = HashMap::new();
@@ -183,7 +183,7 @@ Baz"#,
 
     #[test]
     fn condition3() {
-        let tpl = String::from("Foo{if var1}Bar{else}Fizz{endif}Baz");
+        let tpl = String::from("Foo{%if var1%}Bar{%else%}Fizz{%endif%}Baz");
         let tpl = parse(tpl).unwrap();
 
         let mut variables = HashMap::new();

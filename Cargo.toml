@@ -1,0 +1,3 @@
+[workspace]
+members = ["mini_template", "mini_template_macro"]
+resolver = "2"
