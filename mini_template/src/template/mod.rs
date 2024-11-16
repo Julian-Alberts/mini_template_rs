@@ -29,37 +29,39 @@ pub struct Template {
 }
 
 impl Render for Template {
-    fn render<VC: VariableContainer>(
+    fn render<VC: VariableContainer, W: std::io::Write>(
         &self,
         context: &mut RenderContext<VC>,
-        buf: &mut String,
+        buf: &mut W,
     ) -> Result<()> {
         self.tpl.render(context, buf)
     }
 }
 
 pub trait Render {
-    fn render<VC: VariableContainer>(
+    fn render<VC: VariableContainer, W: std::io::Write>(
         &self,
         context: &mut RenderContext<VC>,
-        buf: &mut String,
+        buf: &mut W,
     ) -> Result<()>;
 }
 
 impl Render for Vec<Statement> {
-    fn render<VC: VariableContainer>(
+    fn render<VC: VariableContainer, W: std::io::Write>(
         &self,
         context: &mut RenderContext<VC>,
-        buf: &mut String,
+        buf: &mut W,
     ) -> Result<()> {
         for statement in self {
             match statement {
                 Statement::Literal(literal) =>
                 // Safety: literal points to tpl.tpl_str and should never be null
-                unsafe { buf.push_str(literal.as_ref().unwrap()) },
+                unsafe {
+                    buf.write_all(literal.as_ref().unwrap().as_bytes())?;
+                },
                 Statement::Calculated(cv) => {
                     let var = cv.calc(context)?;
-                    buf.push_str(&var.to_string()[..])
+                    buf.write_all(&var.to_string()[..].as_bytes())?;
                 }
                 #[cfg(feature = "conditional")]
                 Statement::Condition(c) => c.render(context, buf)?,
@@ -69,7 +71,33 @@ impl Render for Vec<Statement> {
                 Statement::Loop(l) => l.render(context, buf)?,
             }
         }
-
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::{parser::parse, template::Render, value::Value};
+
+    #[test]
+    fn move_template() {
+        let template = parse("template {{test}} template".to_string()).unwrap();
+        let old_addr = &template as *const _ as usize;
+        let template = Box::new(template);
+        let new_addr = template.as_ref() as *const _ as usize;
+        assert_ne!(new_addr, old_addr);
+        let mut buf = Vec::new();
+        template
+            .render(
+                &mut crate::renderer::RenderContext {
+                    modifier: &Default::default(),
+                    variables: HashMap::from_iter([("test".to_string(), Value::Number(12.0))]),
+                },
+                &mut buf,
+            )
+            .unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "template 12 template");
     }
 }

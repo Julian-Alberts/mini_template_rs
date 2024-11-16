@@ -15,10 +15,10 @@ pub struct Conditional {
 }
 
 impl Render for Conditional {
-    fn render<VC: VariableContainer>(
+    fn render<VC: VariableContainer, W: std::io::Write>(
         &self,
         context: &mut RenderContext<VC>,
-        buf: &mut String,
+        buf: &mut W,
     ) -> crate::error::Result<()> {
         if self.condition.eval(context)? {
             self.then_case.render(context, buf)

@@ -17,15 +17,21 @@ fn main() {
     mini_template.add_modifier("nth_lower", &modifiers::nth_lower);
 
     mini_template.add_template(0, TEMPLATE.to_owned()).unwrap();
-    let render = mini_template.render(
-        &0,
-        HashMap::from_iter([
-            (String::from("even"), Value::Number(4.)),
-            (String::from("zeros"), Value::Number(4.)),
-        ]),
-    );
 
-    println!("{}", render.unwrap())
+    let mut buf = Vec::new();
+
+    mini_template
+        .render(
+            &0,
+            HashMap::from_iter([
+                (String::from("even"), Value::Number(4.)),
+                (String::from("zeros"), Value::Number(4.)),
+            ]),
+            &mut buf,
+        )
+        .unwrap();
+
+    println!("{}", String::from_utf8(buf).unwrap())
 }
 
 mod modifiers {
@@ -39,7 +45,10 @@ mod modifiers {
         fn leading_zeros(input: usize) -> u32 => usize::leading_zeros
     );
 
-    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template", returns_result = true)]
+    #[mini_template::macros::create_modifier(
+        mini_template_crate = "mini_template",
+        returns_result = true
+    )]
     fn parse_as_usize(input: String) -> Result<usize, String> {
         match input.parse::<usize>() {
             Ok(o) => Ok(o),
@@ -47,7 +56,10 @@ mod modifiers {
         }
     }
 
-    #[mini_template::macros::create_modifier(mini_template_crate = "mini_template", defaults::n = 2)]
+    #[mini_template::macros::create_modifier(
+        mini_template_crate = "mini_template",
+        defaults::n = 2
+    )]
     fn nth_upper(input: String, n: usize) -> String {
         let mut buf = String::new();
         for (i, c) in input.chars().enumerate() {

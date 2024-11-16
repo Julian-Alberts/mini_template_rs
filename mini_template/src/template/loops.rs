@@ -20,10 +20,10 @@ impl Loop {
 }
 
 impl Render for Loop {
-    fn render<VC: VariableContainer>(
+    fn render<VC: VariableContainer, W: std::io::Write>(
         &self,
         context: &mut RenderContext<VC>,
-        buf: &mut String,
+        buf: &mut W,
     ) -> crate::error::Result<()> {
         while self.condition.eval(context)? {
             self.template.render(context, buf)?
@@ -72,9 +72,9 @@ mod tests {
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(1.))]),
         );
-        let mut buffer = String::new();
+        let mut buffer = Vec::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
-        assert_eq!(buffer.as_str(), "1")
+        assert_eq!(String::from_utf8(buffer).unwrap(), "1")
     }
 
     #[test]
@@ -103,9 +103,9 @@ mod tests {
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
         );
-        let mut buffer = String::new();
+        let mut buffer = Vec::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
-        assert_eq!(buffer.as_str(), "54321")
+        assert_eq!(String::from_utf8(buffer).unwrap(), "54321")
     }
 
     #[test]
@@ -123,7 +123,7 @@ mod tests {
             &modifiers,
             HashMap::from_iter([("var".to_owned(), Value::Number(5.))]),
         );
-        let mut buffer = String::new();
+        let mut buffer = Vec::new();
         assert!(l.render(&mut ctx, &mut buffer).is_ok());
         assert!(buffer.is_empty())
     }

@@ -20,12 +20,11 @@ impl<'a, VC: VariableContainer> RenderContext<'a, VC> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use mini_template_macro::create_modifier;
     use crate::{
-        modifier::Modifier, parser::parse, renderer::RenderContext,
-        template::Render, value::Value,
+        modifier::Modifier, parser::parse, renderer::RenderContext, template::Render, value::Value,
     };
+    use mini_template_macro::create_modifier;
+    use std::collections::HashMap;
 
     #[create_modifier]
     fn upper_case_modifier(data: String) -> String {
@@ -41,13 +40,13 @@ mod tests {
     fn literal() {
         let tpl = String::from("Simple template string");
         let tpl = parse(tpl).unwrap();
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
         tpl.render(
             &mut RenderContext::new(&HashMap::new(), HashMap::new()),
             &mut rendered,
         )
         .unwrap();
-        assert_eq!(rendered, tpl.tpl_str);
+        assert_eq!(String::from_utf8(rendered).unwrap(), tpl.tpl_str);
     }
 
     #[test]
@@ -56,7 +55,7 @@ mod tests {
         let tpl = parse(tpl).unwrap();
         let mut variables = HashMap::new();
         variables.insert("foo".to_owned(), Value::String("my test value".to_owned()));
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
 
         tpl.render(
             &mut RenderContext::new(&HashMap::new(), variables),
@@ -64,7 +63,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            rendered,
+            String::from_utf8(rendered).unwrap(),
             String::from("Simple my test value template string")
         );
     }
@@ -79,7 +78,7 @@ mod tests {
 
         let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
         modifiers.insert("upper", &upper_case_modifier);
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
 
         tpl.render(
             &mut RenderContext::new(&modifiers, variables),
@@ -87,7 +86,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            rendered,
+            String::from_utf8(rendered).unwrap(),
             String::from("Simple MY TEST VALUE template string")
         );
     }
@@ -102,7 +101,7 @@ mod tests {
 
         let mut modifiers: HashMap<&'static str, &Modifier> = HashMap::new();
         modifiers.insert("args", &args_modifier);
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
 
         tpl.render(
             &mut RenderContext::new(&modifiers, variables),
@@ -110,7 +109,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            rendered,
+            String::from_utf8(rendered).unwrap(),
             String::from("Simple my test value=BAR=42 template string")
         );
     }
@@ -127,14 +126,14 @@ mod tests {
         modifiers.insert("args", &args_modifier);
         modifiers.insert("upper", &upper_case_modifier);
 
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
         tpl.render(
             &mut RenderContext::new(&modifiers, variables),
             &mut rendered,
         )
         .unwrap();
         assert_eq!(
-            rendered,
+            String::from_utf8(rendered).unwrap(),
             String::from("Simple MY TEST VALUE=bar=42 template string")
         );
     }
@@ -153,13 +152,16 @@ Baz"#,
 
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
         tpl.render(
             &mut RenderContext::new(&modifiers, variables),
             &mut rendered,
         )
         .unwrap();
-        assert_eq!(rendered, String::from("Foo\nBar Baz"));
+        assert_eq!(
+            String::from_utf8(rendered).unwrap(),
+            String::from("Foo\nBar Baz")
+        );
     }
 
     #[test]
@@ -172,13 +174,16 @@ Baz"#,
 
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
         tpl.render(
             &mut RenderContext::new(&modifiers, variables),
             &mut rendered,
         )
         .unwrap();
-        assert_eq!(rendered, String::from("Foo\nBar\nBaz"));
+        assert_eq!(
+            String::from_utf8(rendered).unwrap(),
+            String::from("Foo\nBar\nBaz")
+        );
     }
 
     #[test]
@@ -191,22 +196,28 @@ Baz"#,
 
         let modifiers: HashMap<&str, &Modifier> = HashMap::new();
 
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
         tpl.render(
             &mut RenderContext::new(&modifiers, variables),
             &mut rendered,
         )
         .unwrap();
-        assert_eq!(rendered, String::from("FooBarBaz"));
+        assert_eq!(
+            String::from_utf8(rendered).unwrap(),
+            String::from("FooBarBaz")
+        );
 
         let mut variables = HashMap::new();
         variables.insert("var1".to_owned(), Value::Bool(false));
-        let mut rendered = String::new();
+        let mut rendered = Vec::new();
         tpl.render(
             &mut RenderContext::new(&modifiers, variables),
             &mut rendered,
         )
         .unwrap();
-        assert_eq!(rendered, String::from("FooFizzBaz"));
+        assert_eq!(
+            String::from_utf8(rendered).unwrap(),
+            String::from("FooFizzBaz")
+        );
     }
 }

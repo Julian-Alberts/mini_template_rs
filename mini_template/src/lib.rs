@@ -85,14 +85,20 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     /// * UnknownTemplate: There is no template with the given key registered
     /// * UnknownModifier: The template contains a unknown modifier
     /// * UnknownVariable: The template contains a unknown variable
-    pub fn render<VC: VariableContainer>(&self, key: &K, data: VC) -> error::Result<String> {
+    #[must_use]
+    pub fn render<VC: VariableContainer, W: std::io::Write>(
+        &self,
+        key: &K,
+        data: VC,
+        writer: &mut W,
+    ) -> error::Result<()> {
         let tpl = match self.template.get(key) {
             Some(t) => t,
             None => return Err(error::Error::UnknownTemplate),
         };
         let mut context = RenderContext::new(&self.modifier, data);
         let mut buf = String::new();
-        tpl.render(&mut context, &mut buf)?;
-        Ok(buf)
+        tpl.render(&mut context, writer)?;
+        Ok(())
     }
 }
