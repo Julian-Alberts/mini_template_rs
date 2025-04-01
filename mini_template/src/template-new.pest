@@ -1,0 +1,85 @@
+WHITESPACE = _{" "|"\n"|"\t"}
+template = { SOI ~ block_content ~ EOI }
+
+// #Instructions
+instruction = { block | print | assign | conditional | while_loop | each_loop | literal_text }
+assign = { "{%" ~ ident ~ "=" ~ expr ~ "%}" }
+literal_text = {(!"{" ~ ("\\{" | ANY))+}
+
+// ##Block
+block = {
+    "{%" ~ "block" ~ block_name ~ "%}" ~
+        block_content ~
+    "{%" ~ "endblock" ~ "%}"
+}
+block_content = { (instruction|comment)* }
+comment = { "{*" ~ (!"*}" ~ ANY)+ ~ "*}" }
+block_name = { string | ident }
+
+// ##Statement
+print = { "{{" ~ expr ~ "}}" }
+expr = { (modifier | parenthesised | value) ~ operation? }
+parenthesised = { "(" ~ expr ~ ")" }
+operation = { operator ~ expr }
+
+
+operator = { 
+bool_op_and | 
+bool_op_or | 
+bool_op_xor |
+compare_op_le |
+compare_op_lt |
+compare_op_eq |
+compare_op_ne |
+compare_op_ge |
+compare_op_gt 
+}
+
+bool_op_and = { "&&" }
+bool_op_or = { "||" }
+bool_op_xor = { "^" }
+compare_op_lt = {"<"}
+compare_op_le = {"<="}
+compare_op_eq = {"=="}
+compare_op_ne = {"!="}
+compare_op_ge = {">="}
+compare_op_gt = {">"}
+
+modifier = { ident ~ "(" ~ modifier_args ~ ")" }
+modifier_args = { (expr ~ ",")* ~ expr? }
+
+// ## Conditional
+conditional = {
+    "{%" ~ "if" ~ expr ~ "%}" ~
+        block_content ~
+    ("{%" ~ "else" ~ "%}" ~
+        block_content
+    )? ~
+    "{%" ~ "endif" ~ "%}"
+}
+
+// ## Loop
+// ### While
+while_loop = {
+"{%" ~ "while" ~ expr ~ "%}" ~
+    block_content ~
+"{%" ~ "endwhile" ~ "%}"
+}
+// ### Each
+each_loop = {
+"{%" ~ "each" ~ ident ~ "in" ~ expr ~ "%}" ~
+    block_content ~
+"{%" ~ "endeach" ~ "%}"
+}
+
+// #Values
+value = { string | number | boolean | ident }
+string = { "\"" ~ inner_string ~ "\"" }
+inner_string = {(!"\"" ~ ( "\\\""| ANY))*}
+number = { ("+"|"-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+boolean = {true_key_word|false_key_word}
+true_key_word = {"true"}
+false_key_word = {"false"}
+
+ident = @{('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
+

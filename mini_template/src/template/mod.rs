@@ -1,3 +1,5 @@
+mod parser;
+
 #[cfg(feature = "assign")]
 mod assign;
 mod calculated_value;
