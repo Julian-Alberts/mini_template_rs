@@ -6,14 +6,14 @@ struct TemplateParser;
 
 fn parse(template: &str) -> Result<Template, pest::error::Error<Rule>> {
     let mut t = TemplateParser::parse(Rule::template, template)?;
-    let Some(template) = t.next_as()? else {
+    let Some(template) = t.next_as() else {
         unreachable!()
     };
     Ok(template)
 }
 
 trait Parse<'a>: Sized {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>>;
+    fn parse(item: Pair<'a, Rule>) -> Self;
 }
 
 #[derive(Debug, PartialEq)]
@@ -22,12 +22,12 @@ pub struct Template<'a> {
 }
 
 impl<'a> Parse<'a> for Template<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::template);
-        let Some(block_content) = item.into_inner().next_as()? else {
+        let Some(block_content) = item.into_inner().next_as() else {
             unreachable!()
         };
-        Ok(Template { block_content })
+        Template { block_content }
     }
 }
 
@@ -37,12 +37,13 @@ pub struct BlockContent<'a> {
 }
 
 impl<'a> Parse<'a> for BlockContent<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::block_content);
-        item.into_inner()
+        let content = item
+            .into_inner()
             .map(BlockContentValue::parse)
-            .collect::<Result<_, _>>()
-            .map(|content| BlockContent { content })
+            .collect::<_>();
+        BlockContent { content }
     }
 }
 
@@ -53,14 +54,14 @@ pub enum BlockContentValue<'a> {
 }
 
 impl<'a> Parse<'a> for BlockContentValue<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert!(matches!(item.as_rule(), Rule::instruction | Rule::comment));
         let content = match item.as_rule() {
-            Rule::instruction => Self::Instruction(Parse::parse(item)?),
+            Rule::instruction => Self::Instruction(Parse::parse(item)),
             Rule::comment => Self::Comment,
             _ => unreachable!(),
         };
-        Ok(content)
+        content
     }
 }
 
@@ -76,22 +77,21 @@ pub enum Instruction<'a> {
 }
 
 impl<'a> Parse<'a> for Instruction<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::instruction);
         let Some(inner_item) = item.into_inner().next() else {
             unreachable!()
         };
-        let block = match inner_item.as_rule() {
-            Rule::block => Self::Block(Block::parse(inner_item)?),
-            Rule::print => Self::Print(Print::parse(inner_item)?),
-            Rule::assign => Self::Assign(Assign::parse(inner_item)?),
-            Rule::literal_text => Self::LiteralText(LiteralText::parse(inner_item)?),
-            Rule::while_loop => Self::WhileLoop(WhileLoop::parse(inner_item)?),
-            Rule::each_loop => Self::EachLoop(EachLoop::parse(inner_item)?),
-            Rule::conditional => Self::Conditional(Conditional::parse(inner_item)?),
+        match inner_item.as_rule() {
+            Rule::block => Self::Block(Block::parse(inner_item)),
+            Rule::print => Self::Print(Print::parse(inner_item)),
+            Rule::assign => Self::Assign(Assign::parse(inner_item)),
+            Rule::literal_text => Self::LiteralText(LiteralText::parse(inner_item)),
+            Rule::while_loop => Self::WhileLoop(WhileLoop::parse(inner_item)),
+            Rule::each_loop => Self::EachLoop(EachLoop::parse(inner_item)),
+            Rule::conditional => Self::Conditional(Conditional::parse(inner_item)),
             r => unreachable!("Unexpected {r:?}"),
-        };
-        Ok(block)
+        }
     }
 }
 
@@ -101,12 +101,12 @@ pub struct Print<'a> {
 }
 
 impl<'a> Parse<'a> for Print<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::print);
-        let Some(expr) = item.into_inner().next_as()? else {
+        let Some(expr) = item.into_inner().next_as() else {
             unreachable!()
         };
-        Ok(Print { expr })
+        Print { expr }
     }
 }
 
@@ -117,12 +117,12 @@ pub struct Assign<'a> {
 }
 
 impl<'a> Parse<'a> for Assign<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::assign);
         let mut inner = item.into_inner();
-        let ident = Ident::parse(inner.next().unwrap())?;
-        let statement = Expr::parse(inner.next().unwrap())?;
-        Ok(Assign { ident, statement })
+        let ident = Ident::parse(inner.next().unwrap());
+        let statement = Expr::parse(inner.next().unwrap());
+        Assign { ident, statement }
     }
 }
 
@@ -135,26 +135,26 @@ pub enum Expr<'a> {
 }
 
 impl<'a> Parse<'a> for Expr<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::expr);
         let mut inner = item.into_inner();
         let Some(next) = inner.next() else {
             unreachable!()
         };
         let stmt = match next.as_rule() {
-            Rule::modifier => Self::Modifier(Parse::parse(next)?),
-            Rule::value => Self::Value(Parse::parse(next)?),
-            Rule::parenthesised => Self::Parenthesised(Parse::parse(next)?),
+            Rule::modifier => Self::Modifier(Parse::parse(next)),
+            Rule::value => Self::Value(Parse::parse(next)),
+            Rule::parenthesised => Self::Parenthesised(Parse::parse(next)),
             _ => unreachable!(),
         };
-        if let Some(next) = inner.next_as::<Operation>()? {
-            Ok(Self::Binary(Binary {
+        if let Some(next) = inner.next_as::<Operation>() {
+            Self::Binary(Binary {
                 left: Box::new(stmt),
                 op: next.op,
                 right: next.right,
-            }))
+            })
         } else {
-            Ok(stmt)
+            stmt
         }
     }
 }
@@ -173,16 +173,16 @@ pub struct Modifier<'a> {
 }
 
 impl<'a> Parse<'a> for Modifier<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::modifier);
         let mut inner = item.into_inner();
-        let Some(modifier) = inner.next_as()? else {
+        let Some(modifier) = inner.next_as() else {
             unreachable!()
         };
-        let Some(args) = inner.next_as()? else {
+        let Some(args) = inner.next_as() else {
             unreachable!()
         };
-        Ok(Self { modifier, args })
+        Self { modifier, args }
     }
 }
 
@@ -192,13 +192,10 @@ pub struct ModifierArgs<'a> {
 }
 
 impl<'a> Parse<'a> for ModifierArgs<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::modifier_args);
-        let args = item
-            .into_inner()
-            .map(Parse::parse)
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { args })
+        let args = item.into_inner().map(Parse::parse).collect::<_>();
+        Self { args }
     }
 }
 
@@ -208,12 +205,12 @@ pub struct Parenthesised<'a> {
 }
 
 impl<'a> Parse<'a> for Parenthesised<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         let mut inner = item.into_inner();
-        let Some(statement) = inner.next_as()?.map(Box::new) else {
+        let Some(statement) = inner.next_as().map(Box::new) else {
             unreachable!()
         };
-        Ok(Self { statement })
+        Self { statement }
     }
 }
 
@@ -224,16 +221,16 @@ struct Operation<'a> {
 }
 
 impl<'a> Parse<'a> for Operation<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::operation);
         let mut inner = item.into_inner();
-        let Some(op) = inner.next_as()? else {
+        let Some(op) = inner.next_as() else {
             unreachable!()
         };
-        let Some(right) = inner.next_as()?.map(Box::new) else {
+        let Some(right) = inner.next_as().map(Box::new) else {
             unreachable!()
         };
-        Ok(Self { op, right })
+        Self { op, right }
     }
 }
 
@@ -251,7 +248,7 @@ pub enum Operator {
 }
 
 impl<'a> Parse<'a> for Operator {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::operator);
         let inner = item.into_inner().next().unwrap();
         let op = match inner.as_rule() {
@@ -266,7 +263,7 @@ impl<'a> Parse<'a> for Operator {
             Rule::compare_op_gt => Operator::Gt,
             _ => unimplemented!(),
         };
-        Ok(op)
+        op
     }
 }
 
@@ -279,17 +276,16 @@ pub enum Value<'a> {
 }
 
 impl<'a> Parse<'a> for Value<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::value);
         let item = item.into_inner().next().unwrap();
-        let s = match item.as_rule() {
-            Rule::string => Value::String(LitString::parse(item)?),
+        match item.as_rule() {
+            Rule::string => Value::String(LitString::parse(item)),
             Rule::number => Value::Number(item.as_str()),
             Rule::boolean => Value::Boolean(item.as_str() == "true"),
-            Rule::ident => Value::Ident(Ident::parse(item)?),
+            Rule::ident => Value::Ident(Ident::parse(item)),
             _ => unimplemented!(),
-        };
-        Ok(s)
+        }
     }
 }
 
@@ -300,15 +296,15 @@ pub struct Block<'a> {
 }
 
 impl<'a> Parse<'a> for Block<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::block);
         let mut inner = item.into_inner();
-        let block_name = Parse::parse(inner.next().unwrap())?;
-        let content = Parse::parse(inner.next().unwrap())?;
-        Ok(Block {
+        let block_name = Parse::parse(inner.next().unwrap());
+        let content = Parse::parse(inner.next().unwrap());
+        Block {
             block_name,
             content,
-        })
+        }
     }
 }
 
@@ -319,15 +315,14 @@ pub enum BlockName<'a> {
 }
 
 impl<'a> Parse<'a> for BlockName<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::block_name);
         let inner = item.into_inner().next().unwrap();
-        let name = match inner.as_rule() {
-            Rule::ident => BlockName::Ident(Parse::parse(inner)?),
-            Rule::string => BlockName::String(Parse::parse(inner)?),
+        match inner.as_rule() {
+            Rule::ident => BlockName::Ident(Parse::parse(inner)),
+            Rule::string => BlockName::String(Parse::parse(inner)),
             _ => unreachable!(),
-        };
-        Ok(name)
+        }
     }
 }
 
@@ -337,13 +332,13 @@ pub struct LitString<'a> {
 }
 
 impl<'a> Parse<'a> for LitString<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::string);
         let inner = item.into_inner().next().unwrap();
         debug_assert_eq!(inner.as_rule(), Rule::inner_string);
-        Ok(Self {
+        Self {
             str: inner.as_str(),
-        })
+        }
     }
 }
 
@@ -353,11 +348,11 @@ pub struct Ident<'a> {
 }
 
 impl<'a> Parse<'a> for Ident<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::ident);
-        Ok(Ident {
+        Ident {
             ident: item.as_str(),
-        })
+        }
     }
 }
 
@@ -367,11 +362,11 @@ pub struct LiteralText<'a> {
 }
 
 impl<'a> Parse<'a> for LiteralText<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::literal_text);
-        Ok(LiteralText {
+        LiteralText {
             text: item.as_str(),
-        })
+        }
     }
 }
 
@@ -383,21 +378,21 @@ pub struct Conditional<'a> {
 }
 
 impl<'a> Parse<'a> for Conditional<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::conditional);
         let mut items = item.into_inner();
-        let Some(cond) = items.next_as()? else {
+        let Some(cond) = items.next_as() else {
             unreachable!()
         };
-        let Some(then_case) = items.next_as()? else {
+        let Some(then_case) = items.next_as() else {
             unreachable!()
         };
-        let else_case = items.next_as()?;
-        Ok(Conditional {
+        let else_case = items.next_as();
+        Conditional {
             cond,
             then_case,
             else_case,
-        })
+        }
     }
 }
 
@@ -408,15 +403,15 @@ pub struct WhileLoop<'a> {
 }
 
 impl<'a> Parse<'a> for WhileLoop<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         let mut inner_items = item.into_inner();
-        let Some(cond) = inner_items.next_as()? else {
+        let Some(cond) = inner_items.next_as() else {
             unreachable!()
         };
-        let Some(block) = inner_items.next_as()? else {
+        let Some(block) = inner_items.next_as() else {
             unreachable!()
         };
-        Ok(WhileLoop { cond, block })
+        WhileLoop { cond, block }
     }
 }
 
@@ -428,33 +423,33 @@ pub struct EachLoop<'a> {
 }
 
 impl<'a> Parse<'a> for EachLoop<'a> {
-    fn parse(item: Pair<'a, Rule>) -> Result<Self, pest::error::Error<Rule>> {
+    fn parse(item: Pair<'a, Rule>) -> Self {
         let mut inner_items = item.into_inner();
-        let Some(target) = inner_items.next_as()? else {
+        let Some(target) = inner_items.next_as() else {
             unreachable!()
         };
-        let Some(src) = inner_items.next_as()? else {
+        let Some(src) = inner_items.next_as() else {
             unreachable!()
         };
-        let Some(block) = inner_items.next_as()? else {
+        let Some(block) = inner_items.next_as() else {
             unreachable!()
         };
-        Ok(EachLoop { target, src, block })
+        EachLoop { target, src, block }
     }
 }
 
 trait ItemFromPair<'a> {
-    fn next_as<T>(&mut self) -> Result<Option<T>, pest::error::Error<Rule>>
+    fn next_as<T>(&mut self) -> Option<T>
     where
         T: Parse<'a>;
 }
 
 impl<'a> ItemFromPair<'a> for pest::iterators::Pairs<'a, Rule> {
-    fn next_as<T>(&mut self) -> Result<Option<T>, pest::error::Error<Rule>>
+    fn next_as<T>(&mut self) -> Option<T>
     where
         T: Parse<'a>,
     {
-        self.next().map(Parse::parse).transpose()
+        self.next().map(Parse::parse)
     }
 }
 
@@ -468,7 +463,7 @@ mod tests {
     fn parse_string_value() {
         let input = "\"dies ist ein test\"";
         let pair = TemplateParser::parse(Rule::value, input).unwrap();
-        let value = Value::parse(pair.into_iter().next().unwrap()).unwrap();
+        let value = Value::parse(pair.into_iter().next().unwrap());
         assert_eq!(
             value,
             Value::String(LitString {
@@ -481,7 +476,7 @@ mod tests {
     fn parse_number_value() {
         fn test<'a>(input: &'a str) -> Value<'a> {
             let pair = TemplateParser::parse(Rule::value, input).unwrap();
-            Value::parse(pair.into_iter().next().unwrap()).unwrap()
+            Value::parse(pair.into_iter().next().unwrap())
         }
         assert_eq!(test("1"), Value::Number("1"));
         assert_eq!(test("1.0"), Value::Number("1.0"));
@@ -495,11 +490,11 @@ mod tests {
     fn parse_boolean_value() {
         let input = "true";
         let pair = TemplateParser::parse(Rule::value, input).unwrap();
-        let value = Value::parse(pair.into_iter().next().unwrap()).unwrap();
+        let value = Value::parse(pair.into_iter().next().unwrap());
         assert_eq!(value, Value::Boolean(true));
         let input = "false";
         let pair = TemplateParser::parse(Rule::value, input).unwrap();
-        let value = Value::parse(pair.into_iter().next().unwrap()).unwrap();
+        let value = Value::parse(pair.into_iter().next().unwrap());
         assert_eq!(value, Value::Boolean(false));
     }
 
@@ -507,7 +502,7 @@ mod tests {
     fn parse_ident_value() {
         let input = "MyIdentTest123_";
         let pair = TemplateParser::parse(Rule::value, input).unwrap();
-        let value = Value::parse(pair.into_iter().next().unwrap()).unwrap();
+        let value = Value::parse(pair.into_iter().next().unwrap());
         assert_eq!(
             value,
             Value::Ident(Ident {
@@ -520,7 +515,7 @@ mod tests {
     fn parse_ident() {
         let input = "MyIdentTest123_";
         let pair = TemplateParser::parse(Rule::ident, input).unwrap();
-        let value = Ident::parse(pair.into_iter().next().unwrap()).unwrap();
+        let value = Ident::parse(pair.into_iter().next().unwrap());
         assert_eq!(
             value,
             Ident {
@@ -533,7 +528,7 @@ mod tests {
     fn parse_string_literal() {
         fn test<'a>(input: &'a str) -> LitString<'a> {
             let pair = TemplateParser::parse(Rule::string, input).unwrap();
-            LitString::parse(pair.into_iter().next().unwrap()).unwrap()
+            LitString::parse(pair.into_iter().next().unwrap())
         }
         assert_eq!(
             test(r#""basic string""#),
@@ -554,7 +549,7 @@ mod tests {
     fn parse_block_name_ident() {
         let input = "ident_block_name";
         let pair = TemplateParser::parse(Rule::block_name, input).unwrap();
-        let value = BlockName::parse(pair.into_iter().next().unwrap()).unwrap();
+        let value = BlockName::parse(pair.into_iter().next().unwrap());
         assert_eq!(
             value,
             BlockName::Ident(Ident {
@@ -566,7 +561,7 @@ mod tests {
     fn parse_block_name_string() {
         let input = r#""string block name""#;
         let pair = TemplateParser::parse(Rule::block_name, input).unwrap();
-        let value = BlockName::parse(pair.into_iter().next().unwrap()).unwrap();
+        let value = BlockName::parse(pair.into_iter().next().unwrap());
         assert_eq!(
             value,
             BlockName::String(LitString {
@@ -593,7 +588,7 @@ mod tests {
             .zip(expected.into_iter())
             .for_each(|(input, exp)| {
                 let pair = TemplateParser::parse(Rule::operator, input).unwrap();
-                let value = Operator::parse(pair.into_iter().next().unwrap()).unwrap();
+                let value = Operator::parse(pair.into_iter().next().unwrap());
                 assert_eq!(value, exp)
             });
     }
