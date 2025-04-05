@@ -4,7 +4,9 @@ use pest::{iterators::Pair, Parser};
 #[grammar = "template-new.pest"]
 struct TemplateParser;
 
-fn parse(template: &str) -> Result<Template, pest::error::Error<Rule>> {
+pub type Error = pest::error::Error<Rule>;
+
+pub fn parse(template: &str) -> Result<Template, pest::error::Error<Rule>> {
     let mut t = TemplateParser::parse(Rule::template, template)?;
     let Some(template) = t.next_as() else {
         unreachable!()
@@ -33,7 +35,7 @@ impl<'a> Parse<'a> for Template<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct BlockContent<'a> {
-    content: Vec<BlockContentValue<'a>>,
+    pub content: Vec<BlockContentValue<'a>>,
 }
 
 impl<'a> Parse<'a> for BlockContent<'a> {
@@ -49,7 +51,7 @@ impl<'a> Parse<'a> for BlockContent<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum BlockContentValue<'a> {
-    Instruction(Instruction<'a>),
+    Instruction(Statement<'a>),
     Comment,
 }
 
@@ -66,7 +68,7 @@ impl<'a> Parse<'a> for BlockContentValue<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Instruction<'a> {
+pub enum Statement<'a> {
     Block(Block<'a>),
     Print(Print<'a>),
     Assign(Assign<'a>),
@@ -76,7 +78,7 @@ pub enum Instruction<'a> {
     Conditional(Conditional<'a>),
 }
 
-impl<'a> Parse<'a> for Instruction<'a> {
+impl<'a> Parse<'a> for Statement<'a> {
     fn parse(item: Pair<'a, Rule>) -> Self {
         debug_assert_eq!(item.as_rule(), Rule::instruction);
         let Some(inner_item) = item.into_inner().next() else {
@@ -97,7 +99,7 @@ impl<'a> Parse<'a> for Instruction<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct Print<'a> {
-    expr: Expr<'a>,
+    pub expr: Expr<'a>,
 }
 
 impl<'a> Parse<'a> for Print<'a> {
@@ -112,8 +114,8 @@ impl<'a> Parse<'a> for Print<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct Assign<'a> {
-    ident: Ident<'a>,
-    statement: Expr<'a>,
+    pub ident: Ident<'a>,
+    pub statement: Expr<'a>,
 }
 
 impl<'a> Parse<'a> for Assign<'a> {
@@ -291,8 +293,8 @@ impl<'a> Parse<'a> for Value<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct Block<'a> {
-    block_name: BlockName<'a>,
-    content: BlockContent<'a>,
+    pub(super) block_name: BlockName<'a>,
+    pub(super) content: BlockContent<'a>,
 }
 
 impl<'a> Parse<'a> for Block<'a> {
@@ -328,7 +330,7 @@ impl<'a> Parse<'a> for BlockName<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct LitString<'a> {
-    str: &'a str,
+    pub(super) str: &'a str,
 }
 
 impl<'a> Parse<'a> for LitString<'a> {
@@ -344,7 +346,7 @@ impl<'a> Parse<'a> for LitString<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct Ident<'a> {
-    ident: &'a str,
+    pub(super) ident: &'a str,
 }
 
 impl<'a> Parse<'a> for Ident<'a> {
@@ -398,8 +400,8 @@ impl<'a> Parse<'a> for Conditional<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct WhileLoop<'a> {
-    cond: Expr<'a>,
-    block: BlockContent<'a>,
+    pub cond: Expr<'a>,
+    pub block: BlockContent<'a>,
 }
 
 impl<'a> Parse<'a> for WhileLoop<'a> {
@@ -607,10 +609,10 @@ mod tests {
             Ok(Template {
                 block_content: BlockContent {
                     content: vec![
-                        BlockContentValue::Instruction(Instruction::Print(Print {
+                        BlockContentValue::Instruction(Statement::Print(Print {
                             expr: Expr::Value(Value::Ident(Ident { ident: "my_ident" }))
                         })),
-                        BlockContentValue::Instruction(Instruction::Conditional(Conditional {
+                        BlockContentValue::Instruction(Statement::Conditional(Conditional {
                             cond: Expr::Binary(Binary {
                                 left: Box::new(Expr::Value(Value::Ident(Ident {
                                     ident: "my_bool_ident"
@@ -631,7 +633,7 @@ mod tests {
                             }),
                             then_case: BlockContent {
                                 content: vec![BlockContentValue::Instruction(
-                                    Instruction::WhileLoop(WhileLoop {
+                                    Statement::WhileLoop(WhileLoop {
                                         cond: Expr::Binary(Binary {
                                             left: Box::new(Expr::Value(Value::Ident(Ident {
                                                 ident: "a"
@@ -643,8 +645,8 @@ mod tests {
                                         }),
                                         block: BlockContent {
                                             content: vec![
-                                                BlockContentValue::Instruction(
-                                                    Instruction::Assign(Assign {
+                                                BlockContentValue::Instruction(Statement::Assign(
+                                                    Assign {
                                                         ident: Ident { ident: "a" },
                                                         statement: Expr::Modifier(Modifier {
                                                             modifier: Ident { ident: "inc" },
@@ -656,11 +658,11 @@ mod tests {
                                                                 )]
                                                             }
                                                         })
-                                                    })
-                                                ),
+                                                    }
+                                                )),
                                                 {
                                                     BlockContentValue::Instruction(
-                                                        Instruction::Print(Print {
+                                                        Statement::Print(Print {
                                                             expr: Expr::Value(Value::Ident(
                                                                 Ident { ident: "b" },
                                                             )),

@@ -3,7 +3,6 @@
 mod error;
 pub mod macros;
 pub mod modifier;
-mod parser;
 mod renderer;
 mod template;
 pub mod value;
@@ -15,10 +14,9 @@ extern crate pest_derive;
 extern crate log;
 
 use modifier::Modifier;
-use parser::{parse, ParseError};
 use renderer::RenderContext;
 use std::{collections::HashMap, hash::Hash};
-use template::{Render, Template};
+use template::Template;
 use variable_container::VariableContainer;
 
 /// A Storage for Templates
@@ -73,8 +71,13 @@ impl<K: Eq + Hash> MiniTemplate<K> {
     }
 
     /// Register a new Template for a give key
-    pub fn add_template(&mut self, key: K, tpl: String) -> Result<Option<Template>, ParseError> {
-        let tpl = parse(tpl)?;
+    pub fn add_template(
+        &mut self,
+        key: K,
+        tpl_str: String,
+    ) -> Result<Option<Template>, template::parser::Error> {
+        let tpl = template::parser::parse(&tpl_str)?;
+        let tpl = Template { tpl_str, tpl };
         Ok(self.template.insert(key, tpl))
     }
 
