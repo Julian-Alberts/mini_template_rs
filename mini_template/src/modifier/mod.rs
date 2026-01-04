@@ -10,9 +10,9 @@ use super::value::Value;
 use crate::ValueManager;
 pub use error::*;
 
-pub type ModifierCallback = dyn Fn(&Value, Vec<&Value>) -> Result<Value>;
+pub type ModifierCallback = dyn Fn(&Value, Vec<&Value>) -> Result<Value> + Send + Sync;
 
-pub trait Modifier {
+pub trait Modifier: Send + Sync {
     fn name(&self) -> &str;
     fn call(&self, subject: &Value, args: Vec<&Value>) -> Result<Value>;
 }
@@ -120,6 +120,13 @@ mod tests {
     use crate::value_iter;
 
     use super::*;
+
+    fn assert_send<T: Send + Sync>() {}
+
+    #[test]
+    fn modifier_is_send_sync() {
+        assert_send::<Box<dyn Modifier>>();
+    }
 
     #[test]
     fn len() {
