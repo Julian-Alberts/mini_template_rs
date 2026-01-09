@@ -31,12 +31,12 @@ pub use statement::Statement;
 use crate::{error::Result, renderer::RenderContext};
 
 /// Only for internal use to store the template string
-pub(crate) enum TemplateStr {
+pub(crate) enum TemplateStr<'a> {
     Boxed(*mut str),
-    Ref(&'static str),
+    Ref(&'a str),
 }
 
-impl TemplateStr {
+impl TemplateStr<'a> {
     pub(crate) fn new(s: String) -> Self {
         let str_box = s.into_boxed_str();
         let str_box_ref = Box::leak(str_box);
@@ -64,13 +64,13 @@ impl TemplateStr {
     }
 }
 
-impl PartialEq for TemplateStr {
+impl PartialEq for TemplateStr<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
 
-impl std::fmt::Debug for TemplateStr {
+impl std::fmt::Debug for TemplateStr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = f.debug_struct("TemplateStr");
         s.field("value", &self.as_str()).finish()?;
@@ -78,25 +78,25 @@ impl std::fmt::Debug for TemplateStr {
     }
 }
 
-impl From<&'static str> for TemplateStr {
+impl From<&'static str> for TemplateStr<'_> {
     fn from(s: &'static str) -> Self {
         TemplateStr::from_static(s)
     }
 }
 
-impl From<String> for TemplateStr {
+impl From<String> for TemplateStr<'_> {
     fn from(s: String) -> Self {
         TemplateStr::new(s)
     }
 }
 
-impl From<Box<String>> for TemplateStr {
+impl From<Box<String>> for TemplateStr<'_> {
     fn from(s: Box<String>) -> Self {
         TemplateStr::new_boxed(s)
     }
 }
 
-impl Drop for TemplateStr {
+impl Drop for TemplateStr<'_> {
     fn drop(&mut self) {
         match self {
             TemplateStr::Boxed(ptr) => {
@@ -112,7 +112,7 @@ impl Drop for TemplateStr {
 
 #[derive(Debug, PartialEq)]
 pub struct Template {
-    pub(crate) tpl_str: TemplateStr,
+    pub(crate) tpl_str: TemplateStr<'static>,
     pub(crate) tpl: Vec<Statement>,
 }
 
