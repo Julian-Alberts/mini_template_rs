@@ -36,7 +36,7 @@ pub(crate) enum TemplateStr<'a> {
     Ref(&'a str),
 }
 
-impl TemplateStr<'a> {
+impl TemplateStr<'_> {
     pub(crate) fn new(s: String) -> Self {
         let str_box = s.into_boxed_str();
         let str_box_ref = Box::leak(str_box);

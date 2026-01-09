@@ -15,9 +15,9 @@ use crate::template::Conditional;
 use crate::template::Include;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
-use crate::template::{CustomBlock, CustomBlockParser, Modifier, TemplateStringBox};
+use crate::template::{CustomBlock, CustomBlockParser, Modifier};
 use crate::util::TemplateString;
-use crate::value::ident::{Ident, IdentPart, IdentPartType};
+use crate::value::ident::{Ident, IdentPart};
 use crate::{
     template::{CalculatedValue, Statement},
     util,
@@ -547,6 +547,8 @@ pub mod export {
 #[cfg(test)]
 mod tests {
     use std::vec;
+
+    use crate::value::ident::IdentPartType;
 
     use super::*;
 
