@@ -559,6 +559,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn ident_from_str() {
+        let ident = Ident::try_from("obj.val");
+        assert_eq!(
+            ident,
+            Ok(Ident {
+                part: Box::new(IdentPart::Static(TemplateString::Ptr("obj"))),
+                next: Some(Box::new(Ident {
+                    part: Box::new(IdentPart::Static(TemplateString::Ptr("val"))),
+                    next: None,
+                    span: Default::default(),
+                })),
+                span: Default::default(),
+            })
+        )
+    }
+
+    #[test]
     fn parse_template_item_literal() {
         let template = String::from("test literal");
         let item = TemplateParser::parse(Rule::text, &template);

@@ -1,5 +1,5 @@
 use crate::error::Error;
-use std::collections::BTreeMap;
+use std::collections::{btree_map::Entry, BTreeMap};
 
 use super::{ident::*, Value};
 
@@ -10,28 +10,35 @@ pub struct ValueManager {
 
 impl ValueManager {
     pub fn get_value(&self, ident: ResolvedIdent) -> crate::error::Result<&Value> {
-        self.get_value_recursive(&ident, &ident)
+        self.get_value_recursive(&ident)
     }
 
-    fn get_value_recursive(
-        &self,
-        ident: &ResolvedIdent,
-        full_ident: &ResolvedIdent,
-    ) -> crate::error::Result<&Value> {
-        let k = &get_ident_key(ident)?;
+    fn get_value_recursive(&self, ident: &ResolvedIdent) -> crate::error::Result<&Value> {
+        let mut ident_parts = ident.parts();
+        let mut vm = self;
+        if ident_parts.is_empty() {
+            return Err(Error::UnknownVariable(ident.clone()));
+        }
+        loop {
+            let part = &ident_parts[0];
+            ident_parts = &ident_parts[1..];
 
-        let value = match self.values.get(k) {
-            Some(v) => v,
-            None => return Err(Error::UnknownVariable(full_ident.clone())),
-        };
+            let k = get_ident_key(part)?;
+            let value = match vm.values.get(&k) {
+                Some(v) => v,
+                None => return Err(Error::UnknownVariable(ident.clone())),
+            };
 
-        if let Some(ident) = &ident.next {
-            match value {
-                Value::Object(vm) => vm.get_value_recursive(ident, full_ident),
-                _ => Err(Error::UnknownVariable(full_ident.clone())),
+            if ident_parts.is_empty() {
+                return Ok(value);
             }
-        } else {
-            Ok(value)
+
+            match value {
+                Value::Object(next_vm) => {
+                    vm = next_vm;
+                }
+                _ => return Err(Error::UnknownVariable(ident.clone())),
+            }
         }
     }
 
@@ -42,60 +49,75 @@ impl ValueManager {
     fn get_value_mut_recursive(
         &mut self,
         ident: &ResolvedIdent,
-        full_ident: &ResolvedIdent,
+        _full_ident: &ResolvedIdent,
     ) -> crate::error::Result<&mut Value> {
-        let k = &get_ident_key(ident)?;
+        self.get_value_mut_inner(ident)
+    }
 
-        let value = match self.values.get_mut(k) {
-            Some(v) => v,
-            None => return Err(Error::UnknownVariable(full_ident.clone())),
-        };
+    fn get_value_mut_inner(&mut self, ident: &ResolvedIdent) -> crate::error::Result<&mut Value> {
+        let mut ident_parts = ident.parts();
+        let mut vm = self;
+        if ident_parts.is_empty() {
+            return Err(Error::UnknownVariable(ident.clone()));
+        }
+        loop {
+            let part = &ident_parts[0];
+            let k = &get_ident_key(part)?;
+            let value = match vm.values.get_mut(k) {
+                Some(v) => v,
+                None => return Err(Error::UnknownVariable(ident.clone())),
+            };
 
-        if let Some(ident) = &ident.next {
-            match value {
-                Value::Object(vm) => vm.get_value_mut_recursive(ident, full_ident),
-                _ => Err(Error::UnknownVariable(full_ident.clone())),
+            ident_parts = &ident_parts[1..];
+
+            if ident_parts.is_empty() {
+                return Ok(value);
             }
-        } else {
-            Ok(value)
+
+            match value {
+                Value::Object(next_vm) => {
+                    vm = next_vm;
+                }
+                _ => return Err(Error::UnknownVariable(ident.clone())),
+            }
         }
     }
 
     pub fn set_value(&mut self, ident: ResolvedIdent, value: Value) -> crate::error::Result<()> {
-        self.set_value_recursive(&ident, value, &ident)
+        self.set_value_inner(ident.parts(), &ident, value)
     }
 
-    fn set_value_recursive(
+    fn set_value_inner(
         &mut self,
+        ident_parts: &[ResolvedIdentPart],
         ident: &ResolvedIdent,
         value: Value,
-        full_ident: &ResolvedIdent,
     ) -> crate::error::Result<()> {
-        let k = &get_ident_key(ident)?;
-
-        use None as EndOfPath;
-        use None as EmptyValue;
-        use Some as NextPath;
-        use Some as FoundValue;
-
-        match (self.values.get_mut(k), &ident.next) {
-            (_, EndOfPath) => {
-                self.values.insert(k.to_owned(), value);
+        if ident_parts.is_empty() {
+            return Err(Error::UnknownVariable(ident.clone()));
+        }
+        let k = get_ident_key(&ident_parts[0])?;
+        match ident_parts.len() {
+            1 => {
+                self.values.insert(k, value);
+                Ok(())
             }
-            (FoundValue(Value::Object(vm)), NextPath(next)) => {
-                vm.set_value_recursive(next, value, full_ident)?;
-            }
-            (FoundValue(_), NextPath(_)) => {
-                return Err(crate::error::Error::UnknownProperty(full_ident.clone()))
-            }
-            (EmptyValue, NextPath(next)) => {
-                let mut vm = Self::default();
-                vm.set_value_recursive(next, value, full_ident)?;
-                self.values.insert(k.to_owned(), Value::Object(vm));
-            }
-        };
-
-        Ok(())
+            _ => match self.values.entry(k) {
+                Entry::Occupied(mut v) => {
+                    if let Value::Object(vm) = v.get_mut() {
+                        vm.set_value_inner(&ident_parts[1..], ident, value)
+                    } else {
+                        Err(Error::UnknownProperty(ident.clone()))
+                    }
+                }
+                Entry::Vacant(entry) => {
+                    let mut new_vm = ValueManager::default();
+                    new_vm.set_value_inner(&ident_parts[1..], ident, value)?;
+                    entry.insert(Value::Object(new_vm));
+                    Ok(())
+                }
+            },
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -115,20 +137,22 @@ impl ValueManager {
     }
 }
 
-fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
-    match &*ident.part {
-        ResolvedIdentPart::Static(s) => Ok(s.get_string().to_owned()),
-        ResolvedIdentPart::Dynamic(Value::Number(super::Number::ISize(n))) => {
+fn get_ident_key(ident: &ResolvedIdentPart) -> crate::error::Result<String> {
+    match &ident.part {
+        ResolvedIdentPartType::Static(s) => Ok(s.get_string().to_owned()),
+        ResolvedIdentPartType::Dynamic(Value::Number(super::Number::ISize(n))) => {
             Ok((*n as usize).to_string())
         }
-        ResolvedIdentPart::Dynamic(Value::Number(super::Number::USize(n))) => Ok((n).to_string()),
-        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F32(n))) => {
+        ResolvedIdentPartType::Dynamic(Value::Number(super::Number::USize(n))) => {
+            Ok((n).to_string())
+        }
+        ResolvedIdentPartType::Dynamic(Value::Number(super::Number::F32(n))) => {
             Ok((*n as usize).to_string())
         }
-        ResolvedIdentPart::Dynamic(Value::Number(super::Number::F64(n))) => {
+        ResolvedIdentPartType::Dynamic(Value::Number(super::Number::F64(n))) => {
             Ok((*n as usize).to_string())
         }
-        ResolvedIdentPart::Dynamic(d) => match d.try_into() {
+        ResolvedIdentPartType::Dynamic(d) => match d.try_into() {
             Ok(s) => Ok(s),
             Err(_) => Err(Error::UnsupportedIdentifier),
         },
@@ -137,7 +161,8 @@ fn get_ident_key(ident: &ResolvedIdent) -> crate::error::Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::value::ident::{Ident, ResolvedIdent};
+    use crate::util::TemplateString;
+    use crate::value::ident::{Ident, ResolvedIdent, ResolvedIdentPart, ResolvedIdentPartType};
     use crate::{value_iter, Value, ValueManager};
 
     #[test]
@@ -174,6 +199,26 @@ mod tests {
     }
 
     #[test]
+    fn resolve_static_ident() {
+        let ident = Ident::try_from("obj.val")
+            .unwrap()
+            .resolve_ident(&ValueManager::default());
+        assert_eq!(
+            ident,
+            Ok(ResolvedIdent::new(vec![
+                ResolvedIdentPart {
+                    part: ResolvedIdentPartType::Static(TemplateString::Ptr("obj")),
+                    span: Default::default(),
+                },
+                ResolvedIdentPart {
+                    part: ResolvedIdentPartType::Static(TemplateString::Ptr("val")),
+                    span: Default::default(),
+                },
+            ]))
+        );
+    }
+
+    #[test]
     fn static_object_access() {
         let vm = ValueManager::try_from_iter(value_iter![
             "obj.val": Value::Bool(true)
@@ -184,6 +229,20 @@ mod tests {
         ident.chain("val".into());
 
         assert_eq!(vm.get_value(ident), Ok(&Value::Bool(true)))
+    }
+
+    #[test]
+    fn static_object_access_outer() {
+        let vm = ValueManager::try_from_iter(value_iter![
+            "obj.val": Value::Bool(true)
+        ])
+        .unwrap();
+
+        let ident: ResolvedIdent = "obj".into();
+
+        let mut inner = ValueManager::default();
+        inner.set_value("val".into(), Value::Bool(true)).unwrap();
+        assert_eq!(vm.get_value(ident), Ok(&Value::Object(inner)))
     }
 
     #[test]
@@ -269,6 +328,7 @@ mod tests {
     #[test]
     fn dynamic_object_access() {
         let vm = ValueManager::try_from_iter(value_iter![
+            "obj": Value::Object(Default::default()),
             "obj.val": Value::Bool(true)
         ])
         .unwrap();
