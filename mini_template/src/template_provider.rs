@@ -10,7 +10,7 @@ use crate::{
     CustomBlockParser, ParseError,
 };
 
-pub trait TemplateProvider {
+pub trait TemplateProvider: Send + Sync {
     fn get_template(&self, key: &str) -> Result<Option<Arc<Template>>, ParseError>;
     fn insert_template(&self, key: String, tpl: Template) -> Arc<Template>;
 }

@@ -1,7 +1,7 @@
 use super::Render;
 
 /// Custom blocks are currently unstable and subject to change.
-pub trait CustomBlockParser {
+pub trait CustomBlockParser: Send + Sync {
     fn name(&self) -> &str;
 
     fn parse(

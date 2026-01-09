@@ -192,8 +192,17 @@ mod tests {
             ident::{Ident, ResolvedIdent},
             Value,
         },
-        MiniTemplateBuilder, ValueManager,
+        MiniTemplate, MiniTemplateBuilder, ValueManager,
     };
+
+    fn is_send<T: Send>() {}
+    fn is_sync<T: Sync>() {}
+
+    #[test]
+    fn test_send_sync() {
+        is_send::<MiniTemplate>();
+        is_sync::<MiniTemplate>();
+    }
 
     #[test]
     fn try_rendering_unknown_template() {
