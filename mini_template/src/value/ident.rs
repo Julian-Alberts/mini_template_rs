@@ -4,10 +4,15 @@ use crate::ValueManager;
 use crate::{template::Span, util::TemplateString};
 use std::fmt::{Debug, Display, Formatter, Write};
 
-pub struct Ident {
+pub struct IdentOld {
     pub next: Option<Box<Ident>>,
-    pub part: Box<IdentPart>,
+    pub part: Box<IdentPartType>,
     pub span: Span,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct Ident {
+    parts: Vec<IdentPart>,
 }
 
 impl Ident {
@@ -15,52 +20,52 @@ impl Ident {
         &self,
         value_manager: &ValueManager,
     ) -> crate::error::Result<ResolvedIdent> {
-        let mut parts = Vec::new();
-        let mut current = self;
-        loop {
-            let part = match current.part.as_ref() {
-                IdentPart::Static(ident) => ResolvedIdentPartType::Static(ident.clone()),
-                IdentPart::Dynamic(StorageMethod::Const(v)) => {
-                    ResolvedIdentPartType::Dynamic(v.clone())
-                }
-                IdentPart::Dynamic(StorageMethod::Variable(ident)) => {
-                    let value = value_manager.get_value(ident.resolve_ident(value_manager)?)?;
-                    ResolvedIdentPartType::Dynamic(value.clone())
-                }
-            };
-            parts.push(ResolvedIdentPart {
-                part,
-                span: current.span.clone(),
-            });
-            if let Some(next) = &current.next {
-                current = next;
-            } else {
-                break;
-            }
-        }
+        let parts = self
+            .parts
+            .iter()
+            .map(|part| {
+                let part_type = match &part.part {
+                    IdentPartType::Static(ident) => ResolvedIdentPartType::Static(ident.clone()),
+                    IdentPartType::Dynamic(StorageMethod::Const(v)) => {
+                        ResolvedIdentPartType::Dynamic(v.clone())
+                    }
+                    IdentPartType::Dynamic(StorageMethod::Variable(ident)) => {
+                        let value = value_manager.get_value(ident.resolve_ident(value_manager)?)?;
+                        ResolvedIdentPartType::Dynamic(value.clone())
+                    }
+                };
+                crate::error::Result::Ok(ResolvedIdentPart {
+                    part: part_type,
+                    span: part.span.clone(),
+                })
+            })
+            .collect::<Result<_, _>>()?;
 
         Ok(ResolvedIdent::new(parts))
     }
 
-    pub fn new(part: IdentPart) -> Self {
+    pub fn new(part: IdentPartType) -> Self {
         Self {
-            next: None,
-            part: Box::new(part),
-            span: Span::default(),
+            parts: vec![IdentPart {
+                part,
+                span: Span::default(),
+            }],
         }
     }
 
-    pub fn new_with_span(part: IdentPart, span: Span) -> Self {
+    pub fn new_with_span(part: IdentPartType, span: Span) -> Self {
         Self {
-            next: None,
-            part: Box::new(part),
-            span,
+            parts: vec![IdentPart { part, span }],
         }
+    }
+
+    pub fn new_with_parts(parts: Vec<IdentPart>) -> Self {
+        Self { parts }
     }
 
     pub fn chain(&mut self, next: Ident) -> &mut Self {
-        self.next = Some(Box::new(next));
-        self.next.as_mut().unwrap()
+        self.parts.extend(next.parts);
+        self
     }
 }
 
@@ -68,49 +73,77 @@ impl Ident {
 impl Ident {
     pub fn new_static(ident: &'static str) -> Self {
         Self {
-            next: None,
-            part: Box::new(IdentPart::Static(TemplateString::Ptr(ident))),
-            span: Default::default(),
+            parts: vec![IdentPart {
+                part: IdentPartType::Static(TemplateString::Ptr(ident)),
+                span: Span::default(),
+            }],
         }
-    }
-}
-
-impl PartialEq for Ident {
-    fn eq(&self, other: &Self) -> bool {
-        self.next == other.next && self.part == other.part
     }
 }
 
 impl Debug for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match &*self.part {
-            IdentPart::Dynamic(ident) => write!(f, "[{:?}]", ident)?,
-            IdentPart::Static(ident) => {
-                write!(f, "{}", ident.get_string())?;
-                if self.next.is_some() {
-                    write!(f, ".")?;
+        for part in &self.parts {
+            match &part.part {
+                IdentPartType::Dynamic(ident) => write!(f, "[{:?}]", ident)?,
+                IdentPartType::Static(ident) => {
+                    write!(f, "{}", ident.get_string())?;
+                    if part != self.parts.last().unwrap() {
+                        write!(f, ".")?;
+                    }
                 }
             }
         }
-        if let Some(next) = &self.next {
-            write!(f, "{:?}", next)
+        if f.alternate() {
+            writeln!(f)?;
         } else {
-            Ok(())
+            write!(f, " => ")?;
+        }
+        let mut debug = f.debug_struct("Ident");
+        debug.field("parts", &self.parts).finish()?;
+        debug.finish()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct IdentPart {
+    pub part: IdentPartType,
+    pub(crate) span: Span,
+}
+
+impl IdentPart {
+    pub(crate) fn dynamic(part: StorageMethod, span: Span) -> Self {
+        Self {
+            part: IdentPartType::Dynamic(part),
+            span,
+        }
+    }
+
+    pub(crate) fn static_part(part: TemplateString, span: Span) -> Self {
+        Self {
+            part: IdentPartType::Static(part),
+            span,
         }
     }
 }
 
-#[derive(Debug)]
-pub enum IdentPart {
+impl PartialEq for IdentPart {
+    fn eq(&self, other: &Self) -> bool {
+        self.part == other.part
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum IdentPartType {
     Static(TemplateString),
     Dynamic(StorageMethod),
 }
 
-impl PartialEq for IdentPart {
+impl PartialEq for IdentPartType {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (IdentPart::Static(s), IdentPart::Static(o)) => s == o,
-            (IdentPart::Dynamic(s), IdentPart::Dynamic(o)) => s == o,
+            (IdentPartType::Static(s), IdentPartType::Static(o)) => s == o,
+            (IdentPartType::Dynamic(s), IdentPartType::Dynamic(o)) => s == o,
             _ => false,
         }
     }

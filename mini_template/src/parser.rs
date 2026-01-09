@@ -17,7 +17,7 @@ use crate::template::Include;
 use crate::template::Loop;
 use crate::template::{CustomBlock, CustomBlockParser, Modifier};
 use crate::util::TemplateString;
-use crate::value::ident::{Ident, IdentPart};
+use crate::value::ident::{Ident, IdentPart, IdentPartType};
 use crate::{
     template::{CalculatedValue, Statement},
     util,
@@ -391,51 +391,34 @@ impl<'i> TryFrom<&'i str> for Ident {
 
 fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
     assert_eq!(ident.as_rule(), Rule::identifier);
-    let ident_span = ident.as_span().into();
-    let mut inner = ident.into_inner().rev();
+    let inner = ident.into_inner();
 
-    fn ident_to_part(ident: Pair<Rule>) -> Result<IdentPart, ParseError> {
-        let ident = match ident.as_rule() {
-            Rule::ident_static => IdentPart::Static(TemplateString::Ptr(ident.as_str())),
-            Rule::ident_dynamic => {
-                IdentPart::Dynamic(parse_value(ident.into_inner().next().unwrap())?)
-            }
+    fn ident_to_part(
+        ident: Pair<Rule>,
+        span: crate::template::Span,
+    ) -> Result<IdentPart, ParseError> {
+        match ident.as_rule() {
+            Rule::ident_static => Ok(IdentPart::static_part(
+                TemplateString::Ptr(ident.as_str()),
+                span,
+            )),
+            Rule::ident_dynamic => Ok(IdentPart::dynamic(
+                parse_value(ident.into_inner().next().unwrap())?,
+                span,
+            )),
             _ => unreachable!(),
-        };
-        Ok(ident)
+        }
     }
 
-    let ident = inner.next().unwrap();
-    let ident_part = ident_to_part(ident)?;
-
-    let ident = inner.try_fold(
-        Ident {
-            part: Box::new(ident_part),
-            next: None,
-            span: ident_span,
-        },
-        |next, ident| {
+    let ident_parts = inner
+        .map(|ident| {
             let ident_span = ident.as_span().into();
-            let ident_part = ident_to_part(ident)?;
-            Ok(Ident {
-                part: Box::new(ident_part),
-                next: Some(Box::new(next)),
-                span: ident_span,
-            })
-        },
-    )?;
-
-    #[cfg(feature = "dynamic_global_access")]
+            let ident_part = ident_to_part(ident, ident_span)?;
+            Ok(ident_part)
+        })
+        .collect::<Result<_, _>>()?;
+    let ident = Ident::new_with_parts(ident_parts);
     return Ok(ident);
-
-    #[cfg(not(feature = "dynamic_global_access"))]
-    if let IdentPart::Dynamic(_) = &*ident.part {
-        Err(ParseError::DisabledFeature(
-            UnsupportedFeature::DynamicGlobalAccess,
-        ))
-    } else {
-        Ok(ident)
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -561,18 +544,11 @@ mod tests {
     #[test]
     fn ident_from_str() {
         let ident = Ident::try_from("obj.val");
-        assert_eq!(
-            ident,
-            Ok(Ident {
-                part: Box::new(IdentPart::Static(TemplateString::Ptr("obj"))),
-                next: Some(Box::new(Ident {
-                    part: Box::new(IdentPart::Static(TemplateString::Ptr("val"))),
-                    next: None,
-                    span: Default::default(),
-                })),
-                span: Default::default(),
-            })
-        )
+        let mut expected = Ident::new(IdentPartType::Static(TemplateString::Ptr("obj")));
+        expected.chain(Ident::new(IdentPartType::Static(TemplateString::Ptr(
+            "val",
+        ))));
+        assert_eq!(ident, Ok(expected))
     }
 
     #[test]
@@ -1052,7 +1028,7 @@ mod tests {
     mod ident {
         use crate::parser::{Rule, TemplateParser};
         use crate::util::TemplateString;
-        use crate::value::ident::{Ident, IdentPart};
+        use crate::value::ident::{Ident, IdentPartType};
         use crate::value::StorageMethod;
         use pest::Parser;
 
@@ -1077,11 +1053,16 @@ mod tests {
             let value = super::parse_identifier(value).unwrap();
             assert_eq!(
                 value,
-                Ident {
-                    part: Box::new(IdentPart::Static(TemplateString::Ptr("var"))),
-                    next: Some(Box::new(Ident::new_static("my"))),
-                    span: Default::default()
-                }
+                Ident::new_with_parts(vec![
+                    crate::value::ident::IdentPart::static_part(
+                        TemplateString::Ptr("var"),
+                        crate::template::Span::default()
+                    ),
+                    crate::value::ident::IdentPart::static_part(
+                        TemplateString::Ptr("my"),
+                        crate::template::Span::default()
+                    )
+                ]),
             );
         }
 
@@ -1093,20 +1074,11 @@ mod tests {
                 .next()
                 .unwrap();
             let value = super::parse_identifier(value).unwrap();
-            assert_eq!(
-                value,
-                Ident {
-                    part: Box::new(IdentPart::Static(TemplateString::Ptr("var"))),
-                    next: Some(Box::new(Ident {
-                        part: Box::new(IdentPart::Dynamic(StorageMethod::Variable(
-                            Ident::new_static("my")
-                        ))),
-                        next: None,
-                        span: Default::default()
-                    })),
-                    span: Default::default()
-                }
-            );
+            let mut expected = Ident::new(IdentPartType::Static(TemplateString::Ptr("var")));
+            expected.chain(Ident::new(IdentPartType::Dynamic(StorageMethod::Variable(
+                Ident::new_static("my"),
+            ))));
+            assert_eq!(value, expected);
         }
     }
 

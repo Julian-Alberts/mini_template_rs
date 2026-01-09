@@ -106,19 +106,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(feature = "dynamic_global_access"))]
-    fn dynamic_global_access_disabled() {
-        let tpl = String::from("Simple {{[foo]}} template string");
-        let tpl = parse(tpl, &ParseContextBuilder::default().build());
-        assert_eq!(
-            tpl,
-            Err(crate::parser::ParseError::DisabledFeature(
-                UnsupportedFeature::DynamicGlobalAccess
-            ))
-        );
-    }
-
-    #[test]
     fn modifier() {
         let tpl = String::from("Simple {{foo|upper}} template string");
         let tpl = parse(tpl, &ParseContextBuilder::default().build()).unwrap();

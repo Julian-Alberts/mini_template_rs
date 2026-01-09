@@ -5,6 +5,7 @@ use crate::{
     RenderContext,
 };
 
+#[derive(Clone)]
 pub enum StorageMethod {
     Const(Value),
     Variable(Ident),
