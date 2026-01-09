@@ -74,7 +74,7 @@ impl Ident {
     pub fn new_static(ident: &'static str) -> Self {
         Self {
             parts: vec![IdentPart {
-                part: IdentPartType::Static(TemplateString::Ptr(ident)),
+                part: IdentPartType::Static(TemplateString::Ref(ident)),
                 span: Span::default(),
             }],
         }
@@ -185,7 +185,7 @@ impl From<String> for ResolvedIdent {
 impl From<&'static str> for ResolvedIdent {
     fn from(static_path: &'static str) -> Self {
         Self::new(vec![ResolvedIdentPart {
-            part: ResolvedIdentPartType::Static(TemplateString::Ptr(static_path)),
+            part: ResolvedIdentPartType::Static(TemplateString::Ref(static_path)),
             span: Span::default(),
         }])
     }
@@ -266,7 +266,7 @@ pub enum ResolvedIdentPartType {
 
 impl From<&'static str> for ResolvedIdentPartType {
     fn from(static_path: &'static str) -> Self {
-        Self::Static(TemplateString::Ptr(static_path))
+        Self::Static(TemplateString::Ref(static_path))
     }
 }
 

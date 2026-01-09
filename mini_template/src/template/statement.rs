@@ -9,7 +9,7 @@ use crate::template::Include;
 
 #[derive(Debug)]
 pub enum Statement {
-    Literal(*const str),
+    Literal(&'static str),
     Calculated(CalculatedValue),
     #[cfg(feature = "conditional")]
     Condition(Conditional),
@@ -26,9 +26,7 @@ impl PartialEq for Statement {
     fn eq(&self, other: &Statement) -> bool {
         match (self, other) {
             (Statement::Calculated(s), Statement::Calculated(o)) => s == o,
-            (Statement::Literal(s), &Statement::Literal(o)) =>
-            // Safety: Both literals point to positions in the original template string.
-            unsafe { s.as_ref() == o.as_ref() },
+            (Statement::Literal(s), Statement::Literal(o)) => s == o,
             #[cfg(feature = "conditional")]
             (Statement::Condition(s), Statement::Condition(o)) => s == o,
             #[cfg(feature = "assign")]

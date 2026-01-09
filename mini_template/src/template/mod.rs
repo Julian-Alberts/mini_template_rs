@@ -31,12 +31,12 @@ pub use statement::Statement;
 use crate::{error::Result, renderer::RenderContext};
 
 /// Only for internal use to store the template string
-pub(crate) enum TemplateStr<'a> {
+pub(crate) enum TemplateStr {
     Boxed(*mut str),
-    Ref(&'a str),
+    Ref(&'static str),
 }
 
-impl TemplateStr<'_> {
+impl TemplateStr {
     pub(crate) fn new(s: String) -> Self {
         let str_box = s.into_boxed_str();
         let str_box_ref = Box::leak(str_box);
@@ -53,7 +53,7 @@ impl TemplateStr<'_> {
         Self::Ref(s)
     }
 
-    pub(crate) fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &'static str {
         match self {
             TemplateStr::Boxed(ptr) => unsafe {
                 // Safety: ptr was created from a Box<str> in TemplateStringBox::new
@@ -64,13 +64,13 @@ impl TemplateStr<'_> {
     }
 }
 
-impl PartialEq for TemplateStr<'_> {
+impl PartialEq for TemplateStr {
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
 
-impl std::fmt::Debug for TemplateStr<'_> {
+impl std::fmt::Debug for TemplateStr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = f.debug_struct("TemplateStr");
         s.field("value", &self.as_str()).finish()?;
@@ -78,25 +78,25 @@ impl std::fmt::Debug for TemplateStr<'_> {
     }
 }
 
-impl From<&'static str> for TemplateStr<'_> {
+impl From<&'static str> for TemplateStr {
     fn from(s: &'static str) -> Self {
         TemplateStr::from_static(s)
     }
 }
 
-impl From<String> for TemplateStr<'_> {
+impl From<String> for TemplateStr {
     fn from(s: String) -> Self {
         TemplateStr::new(s)
     }
 }
 
-impl From<Box<String>> for TemplateStr<'_> {
+impl From<Box<String>> for TemplateStr {
     fn from(s: Box<String>) -> Self {
         TemplateStr::new_boxed(s)
     }
 }
 
-impl Drop for TemplateStr<'_> {
+impl Drop for TemplateStr {
     fn drop(&mut self) {
         match self {
             TemplateStr::Boxed(ptr) => {
@@ -110,9 +110,12 @@ impl Drop for TemplateStr<'_> {
     }
 }
 
+unsafe impl Send for TemplateStr {}
+unsafe impl Sync for TemplateStr {}
+
 #[derive(Debug, PartialEq)]
 pub struct Template {
-    pub(crate) tpl_str: TemplateStr<'static>,
+    pub(crate) tpl_str: TemplateStr,
     pub(crate) tpl: Vec<Statement>,
 }
 
@@ -130,9 +133,7 @@ impl Render for Vec<Statement> {
     fn render(&self, context: &mut RenderContext, buf: &mut String) -> Result<()> {
         for statement in self {
             match statement {
-                Statement::Literal(literal) =>
-                // Safety: literal points to tpl.tpl_str and should never be null
-                unsafe { buf.push_str(literal.as_ref().unwrap()) },
+                Statement::Literal(literal) => buf.push_str(literal),
                 Statement::Calculated(cv) => {
                     let var = cv.calc(context)?;
                     buf.push_str(&var.to_string()[..])
@@ -151,5 +152,19 @@ impl Render for Vec<Statement> {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn is_sync<T: Sync>() {}
+    fn is_send<T: Send>() {}
+
+    #[test]
+    fn test_template_send_sync() {
+        is_sync::<Template>();
+        is_send::<Template>();
     }
 }

@@ -207,11 +207,11 @@ mod tests {
             ident,
             Ok(ResolvedIdent::new(vec![
                 ResolvedIdentPart {
-                    part: ResolvedIdentPartType::Static(TemplateString::Ptr("obj")),
+                    part: ResolvedIdentPartType::Static(TemplateString::Ref("obj")),
                     span: Default::default(),
                 },
                 ResolvedIdentPart {
-                    part: ResolvedIdentPartType::Static(TemplateString::Ptr("val")),
+                    part: ResolvedIdentPartType::Static(TemplateString::Ref("val")),
                     span: Default::default(),
                 },
             ]))

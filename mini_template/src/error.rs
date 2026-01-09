@@ -26,7 +26,7 @@ impl Display for Error {
             Self::Modifier(e) => e.fmt(f),
             Self::UnknownVariable(ident) => write!(f, "Unknown variable: {ident}"),
             Self::UnknownModifier(modifier) => crate::util::mark_area_in_string(
-                unsafe { modifier.span.input.as_ref().unwrap() },
+                modifier.span.input,
                 modifier.span.start,
                 modifier.span.end,
                 f,

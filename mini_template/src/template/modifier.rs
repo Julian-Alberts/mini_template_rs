@@ -4,18 +4,16 @@ use crate::RenderContext;
 
 #[derive(Debug)]
 pub struct Modifier {
-    pub name: *const str,
+    pub name: &'static str,
     pub args: Vec<StorageMethod>,
     pub span: Span,
 }
 
 impl Modifier {
     pub fn eval(&self, value: &Value, context: &RenderContext) -> crate::error::Result<Value> {
-        // Safety: modifier_name points to tpl.tpl_str and should never be null
-        let modifier_name = unsafe { self.name.as_ref().unwrap() };
-        let modifier = context.modifier.get(modifier_name).ok_or_else(|| {
+        let modifier = context.modifier.get(self.name).ok_or_else(|| {
             crate::error::Error::UnknownModifier(UnknownModifierError {
-                name: modifier_name.to_string(),
+                name: self.name.to_string(),
                 span: self.span.clone(),
             })
         })?;
@@ -30,7 +28,7 @@ impl Modifier {
 
 impl PartialEq for Modifier {
     fn eq(&self, other: &Self) -> bool {
-        unsafe { self.name.as_ref() == other.name.as_ref() && self.args == other.args }
+        self.name == other.name && self.args == other.args
     }
 }
 

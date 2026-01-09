@@ -11,4 +11,4 @@ pub trait CustomBlockParser {
     ) -> Result<Box<dyn CustomBlock>, crate::parser::ParseError>;
 }
 
-pub trait CustomBlock: std::fmt::Debug + Render {}
+pub trait CustomBlock: std::fmt::Debug + Render + Send + Sync {}

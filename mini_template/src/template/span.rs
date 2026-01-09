@@ -1,12 +1,12 @@
 #[derive(Debug, Clone, PartialEq)]
 pub struct Span {
-    pub input: *const str,
+    pub input: &'static str,
     pub start: usize,
     pub end: usize,
 }
 
-impl<'a> From<pest::Span<'a>> for Span {
-    fn from(span: pest::Span) -> Self {
+impl From<pest::Span<'static>> for Span {
+    fn from(span: pest::Span<'static>) -> Self {
         Self {
             input: span.as_str(),
             start: span.start(),
@@ -18,7 +18,7 @@ impl<'a> From<pest::Span<'a>> for Span {
 impl Default for Span {
     fn default() -> Self {
         Self {
-            input: "" as *const _,
+            input: "",
             start: 0,
             end: 0,
         }

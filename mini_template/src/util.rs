@@ -74,7 +74,7 @@ fn find_char_pos(input: &str, index: usize) -> (usize, usize) {
 
 #[derive(Debug, Clone)]
 pub enum TemplateString {
-    Ptr(*const str),
+    Ref(&'static str),
     Owned(String),
 }
 
@@ -82,9 +82,9 @@ impl PartialEq for TemplateString {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Owned(s), Self::Owned(o)) => s == o,
-            (Self::Ptr(s), Self::Ptr(o)) => unsafe { s.as_ref() == o.as_ref() },
-            (Self::Ptr(s), Self::Owned(o)) => unsafe { s.as_ref() == Some(o) },
-            (Self::Owned(s), Self::Ptr(o)) => unsafe { o.as_ref() == Some(s) },
+            (Self::Ref(s), Self::Ref(o)) => s == o,
+            (Self::Ref(s), Self::Owned(o)) => s == o,
+            (Self::Owned(s), Self::Ref(o)) => o == s,
         }
     }
 }
@@ -93,10 +93,7 @@ impl TemplateString {
     pub fn get_string(&self) -> &str {
         match self {
             TemplateString::Owned(s) => s,
-            TemplateString::Ptr(s) => unsafe {
-                s.as_ref()
-                    .expect("Values in TemplateString::Prt should point to a valid string")
-            },
+            TemplateString::Ref(s) => s,
         }
     }
 }

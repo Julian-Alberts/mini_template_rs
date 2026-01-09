@@ -68,7 +68,7 @@ pub fn parse(input: String, context: &ParseContext) -> Result<Template, ParseErr
 }
 
 fn parse_template_content(
-    item: Pair<Rule>,
+    item: Pair<'static, Rule>,
     context: &ParseContext,
 ) -> Option<Result<Statement, ParseError>> {
     match item.as_rule() {
@@ -122,7 +122,7 @@ fn parse_template_content(
 
 #[cfg(feature = "conditional")]
 fn parse_conditional(
-    conditional: Pair<Rule>,
+    conditional: Pair<'static, Rule>,
     context: &ParseContext,
 ) -> Result<Statement, ParseError> {
     assert_eq!(conditional.as_rule(), Rule::conditional);
@@ -157,7 +157,7 @@ fn parse_conditional(
 }
 
 #[cfg(feature = "condition")]
-fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
+fn parse_condition(condition: Pair<'static, Rule>) -> Result<Condition, ParseError> {
     assert_eq!(condition.as_rule(), Rule::condition);
     let mut inner = condition.into_inner();
 
@@ -224,14 +224,16 @@ fn parse_condition(condition: Pair<Rule>) -> Result<Condition, ParseError> {
     unreachable!()
 }
 
-fn parse_calculated(calculated: Pair<Rule>) -> Result<Statement, ParseError> {
+fn parse_calculated(calculated: Pair<'static, Rule>) -> Result<Statement, ParseError> {
     assert_eq!(calculated.as_rule(), Rule::calculated);
     let inner = calculated.into_inner().next().unwrap();
     Ok(Statement::Calculated(parse_calculated_value(inner)?))
 }
 
 #[cfg(feature = "condition")]
-fn parse_compare_condition(compare_condition: Pair<Rule>) -> Result<CompareCondition, ParseError> {
+fn parse_compare_condition(
+    compare_condition: Pair<'static, Rule>,
+) -> Result<CompareCondition, ParseError> {
     assert_eq!(compare_condition.as_rule(), Rule::compare_condition);
     let mut inner = compare_condition.into_inner();
     let calc_val_l = parse_calculated_value(inner.next().unwrap())?;
@@ -245,7 +247,7 @@ fn parse_compare_condition(compare_condition: Pair<Rule>) -> Result<CompareCondi
 }
 
 #[cfg(feature = "condition")]
-fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
+fn parse_compare_operator(compare_operator: Pair<'static, Rule>) -> CompareOperator {
     assert_eq!(compare_operator.as_rule(), Rule::compare_operator);
     let inner = compare_operator.into_inner().next().unwrap();
     match inner.as_rule() {
@@ -259,7 +261,9 @@ fn parse_compare_operator(compare_operator: Pair<Rule>) -> CompareOperator {
     }
 }
 
-fn parse_calculated_value(calculated_value: Pair<Rule>) -> Result<CalculatedValue, ParseError> {
+fn parse_calculated_value(
+    calculated_value: Pair<'static, Rule>,
+) -> Result<CalculatedValue, ParseError> {
     assert_eq!(calculated_value.as_rule(), Rule::calculated_value);
     let mut inner = calculated_value.into_inner();
     let value = parse_value(inner.next().unwrap())?;
@@ -270,7 +274,7 @@ fn parse_calculated_value(calculated_value: Pair<Rule>) -> Result<CalculatedValu
     Ok(CalculatedValue::new(value, modifiers))
 }
 
-fn parse_modifier(item: Pair<Rule>) -> Result<Modifier, ParseError> {
+fn parse_modifier(item: Pair<'static, Rule>) -> Result<Modifier, ParseError> {
     assert_eq!(item.as_rule(), Rule::modifier);
     let span = item.as_span().into();
     let mut items = item.into_inner();
@@ -280,13 +284,13 @@ fn parse_modifier(item: Pair<Rule>) -> Result<Modifier, ParseError> {
     Ok(Modifier { name, args, span })
 }
 
-fn parse_argument(argument: Pair<Rule>) -> Result<StorageMethod, ParseError> {
+fn parse_argument(argument: Pair<'static, Rule>) -> Result<StorageMethod, ParseError> {
     assert_eq!(argument.as_rule(), Rule::argument);
     let value = argument.into_inner().next().unwrap();
     parse_value(value)
 }
 
-fn parse_value(value: Pair<Rule>) -> Result<StorageMethod, ParseError> {
+fn parse_value(value: Pair<'static, Rule>) -> Result<StorageMethod, ParseError> {
     assert_eq!(value.as_rule(), Rule::value);
     let value = value.into_inner().next().unwrap();
     let value = match value.as_rule() {
@@ -315,7 +319,7 @@ fn parse_value(value: Pair<Rule>) -> Result<StorageMethod, ParseError> {
 }
 
 #[cfg(feature = "assign")]
-fn parse_assign(assign: Pair<Rule>) -> Result<Assign, ParseError> {
+fn parse_assign(assign: Pair<'static, Rule>) -> Result<Assign, ParseError> {
     assert_eq!(assign.as_rule(), Rule::assign);
     let mut inner = assign.into_inner();
     let ident = inner.next().unwrap();
@@ -326,7 +330,7 @@ fn parse_assign(assign: Pair<Rule>) -> Result<Assign, ParseError> {
 }
 
 #[cfg(feature = "include")]
-fn parse_include(include: Pair<Rule>) -> Result<Include, ParseError> {
+fn parse_include(include: Pair<'static, Rule>) -> Result<Include, ParseError> {
     assert_eq!(include.as_rule(), Rule::include);
     let mut inner = include.into_inner();
     let template_name = parse_calculated_value(inner.next().unwrap())?;
@@ -334,7 +338,7 @@ fn parse_include(include: Pair<Rule>) -> Result<Include, ParseError> {
 }
 
 #[cfg(feature = "loop")]
-fn parse_loop(l: Pair<Rule>, context: &ParseContext) -> Result<Loop, ParseError> {
+fn parse_loop(l: Pair<'static, Rule>, context: &ParseContext) -> Result<Loop, ParseError> {
     assert_eq!(l.as_rule(), Rule::while_loop);
     let mut inner = l.into_inner();
     let condition = parse_condition(inner.next().unwrap())?;
@@ -348,7 +352,7 @@ fn parse_loop(l: Pair<Rule>, context: &ParseContext) -> Result<Loop, ParseError>
 }
 
 fn parse_custom_block<'a>(
-    cm: Pair<Rule>,
+    cm: Pair<'static, Rule>,
     context: &ParseContext<'a>,
 ) -> Result<Box<dyn CustomBlock>, ParseError> {
     assert_eq!(cm.as_rule(), Rule::custom_block);
@@ -372,10 +376,10 @@ fn parse_custom_block<'a>(
     }
 }
 
-impl<'i> TryFrom<&'i str> for Ident {
+impl TryFrom<&'static str> for Ident {
     type Error = ParseError;
 
-    fn try_from(ident: &str) -> Result<Self, Self::Error> {
+    fn try_from(ident: &'static str) -> Result<Self, Self::Error> {
         let ident = match TemplateParser::parse(Rule::full_ident, ident) {
             Ok(t) => t,
             Err(e) => {
@@ -398,17 +402,17 @@ impl<'i> TryFrom<&'i str> for Ident {
     }
 }
 
-fn parse_identifier(ident: Pair<Rule>) -> Result<Ident, ParseError> {
+fn parse_identifier(ident: Pair<'static, Rule>) -> Result<Ident, ParseError> {
     assert_eq!(ident.as_rule(), Rule::identifier);
     let inner = ident.into_inner();
 
     fn ident_to_part(
-        ident: Pair<Rule>,
+        ident: Pair<'static, Rule>,
         span: crate::template::Span,
     ) -> Result<IdentPart, ParseError> {
         match ident.as_rule() {
             Rule::ident_static => Ok(IdentPart::static_part(
-                TemplateString::Ptr(ident.as_str()),
+                TemplateString::Ref(ident.as_str()),
                 span,
             )),
             Rule::ident_dynamic => Ok(IdentPart::dynamic(
@@ -555,8 +559,8 @@ mod tests {
     #[test]
     fn ident_from_str() {
         let ident = Ident::try_from("obj.val");
-        let mut expected = Ident::new(IdentPartType::Static(TemplateString::Ptr("obj")));
-        expected.chain(Ident::new(IdentPartType::Static(TemplateString::Ptr(
+        let mut expected = Ident::new(IdentPartType::Static(TemplateString::Ref("obj")));
+        expected.chain(Ident::new(IdentPartType::Static(TemplateString::Ref(
             "val",
         ))));
         assert_eq!(ident, Ok(expected))
@@ -564,8 +568,8 @@ mod tests {
 
     #[test]
     fn parse_template_item_literal() {
-        let template = String::from("test literal");
-        let item = TemplateParser::parse(Rule::text, &template);
+        let template = "test literal";
+        let item = TemplateParser::parse(Rule::text, template);
         assert!(item.is_ok());
         let item = item.unwrap().next();
         assert!(item.is_some());
@@ -593,8 +597,8 @@ mod tests {
 
     #[test]
     fn parse_template_item_calculated() {
-        let template = String::from("{{var}}");
-        let item = TemplateParser::parse(Rule::calculated, &template);
+        let template = "{{var}}";
+        let item = TemplateParser::parse(Rule::calculated, template);
         assert!(item.is_ok());
         let item = item.unwrap().next();
         assert!(item.is_some());
@@ -1066,11 +1070,11 @@ mod tests {
                 value,
                 Ident::new_with_parts(vec![
                     crate::value::ident::IdentPart::static_part(
-                        TemplateString::Ptr("var"),
+                        TemplateString::Ref("var"),
                         crate::template::Span::default()
                     ),
                     crate::value::ident::IdentPart::static_part(
-                        TemplateString::Ptr("my"),
+                        TemplateString::Ref("my"),
                         crate::template::Span::default()
                     )
                 ]),
@@ -1085,7 +1089,7 @@ mod tests {
                 .next()
                 .unwrap();
             let value = super::parse_identifier(value).unwrap();
-            let mut expected = Ident::new(IdentPartType::Static(TemplateString::Ptr("var")));
+            let mut expected = Ident::new(IdentPartType::Static(TemplateString::Ref("var")));
             expected.chain(Ident::new(IdentPartType::Dynamic(StorageMethod::Variable(
                 Ident::new_static("my"),
             ))));
@@ -1923,10 +1927,7 @@ mod legacy_tests {
             &ParseContextBuilder::default().build(),
         )
         .unwrap();
-        assert_eq!(
-            vec![Statement::Literal("Simple template string" as *const _)],
-            tpl.tpl
-        );
+        assert_eq!(vec![Statement::Literal("Simple template string")], tpl.tpl);
     }
 
     #[test]
@@ -1938,12 +1939,12 @@ mod legacy_tests {
         .unwrap();
         assert_eq!(
             vec![
-                Statement::Literal("Simple more " as *const _),
+                Statement::Literal("Simple more "),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![]
                 )),
-                Statement::Literal(" template " as *const _),
+                Statement::Literal(" template "),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("foo")),
                     vec![]
@@ -1962,7 +1963,7 @@ mod legacy_tests {
         .unwrap();
         assert_eq!(
             vec![
-                Statement::Literal("Simple " as *const _),
+                Statement::Literal("Simple "),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -1971,7 +1972,7 @@ mod legacy_tests {
                         span: Default::default()
                     }]
                 )),
-                Statement::Literal(" template" as *const _)
+                Statement::Literal(" template")
             ],
             tpl.tpl
         );
@@ -1986,7 +1987,7 @@ mod legacy_tests {
         .unwrap();
         assert_eq!(
             vec![
-                Statement::Literal("Simple " as *const _),
+                Statement::Literal("Simple "),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -1997,7 +1998,7 @@ mod legacy_tests {
                         span: Default::default()
                     }]
                 )),
-                Statement::Literal(" template" as *const _)
+                Statement::Literal(" template")
             ],
             tpl.tpl
         );
@@ -2012,7 +2013,7 @@ mod legacy_tests {
         .unwrap();
         assert_eq!(
             vec![
-                Statement::Literal("Simple " as *const _),
+                Statement::Literal("Simple "),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -2021,7 +2022,7 @@ mod legacy_tests {
                         span: Default::default()
                     }]
                 )),
-                Statement::Literal(" template" as *const _)
+                Statement::Literal(" template")
             ],
             tpl.tpl
         );
@@ -2036,7 +2037,7 @@ mod legacy_tests {
         .unwrap();
         assert_eq!(
             vec![
-                Statement::Literal("Simple " as *const _),
+                Statement::Literal("Simple "),
                 Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -2045,7 +2046,7 @@ mod legacy_tests {
                         span: Default::default()
                     }]
                 )),
-                Statement::Literal(" template" as *const _)
+                Statement::Literal(" template")
             ],
             tpl.tpl
         );
