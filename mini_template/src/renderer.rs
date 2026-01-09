@@ -45,6 +45,7 @@ mod tests {
     #[test]
     fn literal() {
         let tpl = String::from("Simple template string");
+        let tpl_str = tpl.clone();
         let tpl = parse(tpl, &ParseContextBuilder::default().build()).unwrap();
         let mut rendered = String::new();
         tpl.render(
@@ -56,7 +57,7 @@ mod tests {
             &mut rendered,
         )
         .unwrap();
-        assert_eq!(rendered, tpl.tpl_str);
+        assert_eq!(rendered, tpl_str);
     }
 
     #[test]

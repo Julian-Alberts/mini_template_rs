@@ -30,9 +30,89 @@ pub use statement::Statement;
 
 use crate::{error::Result, renderer::RenderContext};
 
+/// Only for internal use to store the template string
+pub(crate) enum TemplateStr {
+    Boxed(*mut str),
+    Ref(&'static str),
+}
+
+impl TemplateStr {
+    pub(crate) fn new(s: String) -> Self {
+        let str_box = s.into_boxed_str();
+        let str_box_ref = Box::leak(str_box);
+        Self::Boxed(str_box_ref)
+    }
+
+    pub(crate) fn new_boxed(s: Box<String>) -> Self {
+        let s = s.into_boxed_str();
+        let str_box_ref = Box::leak(s);
+        Self::Boxed(str_box_ref)
+    }
+
+    pub(crate) fn from_static(s: &'static str) -> Self {
+        Self::Ref(s)
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        match self {
+            TemplateStr::Boxed(ptr) => unsafe {
+                // Safety: ptr was created from a Box<str> in TemplateStringBox::new
+                &**ptr
+            },
+            TemplateStr::Ref(s) => s,
+        }
+    }
+}
+
+impl PartialEq for TemplateStr {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl std::fmt::Debug for TemplateStr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = f.debug_struct("TemplateStr");
+        s.field("value", &self.as_str()).finish()?;
+        s.finish()
+    }
+}
+
+impl From<&'static str> for TemplateStr {
+    fn from(s: &'static str) -> Self {
+        TemplateStr::from_static(s)
+    }
+}
+
+impl From<String> for TemplateStr {
+    fn from(s: String) -> Self {
+        TemplateStr::new(s)
+    }
+}
+
+impl From<Box<String>> for TemplateStr {
+    fn from(s: Box<String>) -> Self {
+        TemplateStr::new_boxed(s)
+    }
+}
+
+impl Drop for TemplateStr {
+    fn drop(&mut self) {
+        match self {
+            TemplateStr::Boxed(ptr) => {
+                // Safety: ptr was created from a Box<str> in TemplateStringBox::new
+                unsafe {
+                    let _ = Box::from_raw(*ptr);
+                }
+            }
+            TemplateStr::Ref(_) => {}
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Template {
-    pub(crate) tpl_str: String,
+    pub(crate) tpl_str: TemplateStr,
     pub(crate) tpl: Vec<Statement>,
 }
 

@@ -15,7 +15,7 @@ use crate::template::Conditional;
 use crate::template::Include;
 #[cfg(feature = "loop")]
 use crate::template::Loop;
-use crate::template::{CustomBlock, CustomBlockParser, Modifier};
+use crate::template::{CustomBlock, CustomBlockParser, Modifier, TemplateStringBox};
 use crate::util::TemplateString;
 use crate::value::ident::{Ident, IdentPart, IdentPartType};
 use crate::{
@@ -33,16 +33,25 @@ struct TemplateParser;
 pub fn parse(input: String, context: &ParseContext) -> Result<Template, ParseError> {
     let mut compiled_template = Template {
         tpl: Vec::new(),
-        tpl_str: input,
+        tpl_str: input.into(),
     };
-    let template = match TemplateParser::parse(Rule::template, &compiled_template.tpl_str) {
+    let template = match TemplateParser::parse(Rule::template, &compiled_template.tpl_str.as_str())
+    {
         Ok(t) => t,
         Err(e) => match e.line_col {
             LineColLocation::Pos(pos) => {
-                return Err(ParseError::Syntax(pos, pos, compiled_template.tpl_str));
+                return Err(ParseError::Syntax(
+                    pos,
+                    pos,
+                    compiled_template.tpl_str.as_str().to_string(),
+                ));
             }
             LineColLocation::Span(start, end) => {
-                return Err(ParseError::Syntax(start, end, compiled_template.tpl_str));
+                return Err(ParseError::Syntax(
+                    start,
+                    end,
+                    compiled_template.tpl_str.as_str().to_string(),
+                ));
             }
         },
     }
@@ -433,7 +442,7 @@ impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ParseError::Syntax(start, end, template) => {
-                util::mark_between_points(*start, *end, template, f)
+                util::mark_between_points(*start, *end, template.as_str(), f)
             }
             ParseError::CustomBlockError(s) => write!(f, "{}", s),
             ParseError::DisabledFeature(u) => write!(f, "{:#?}", u),
@@ -575,7 +584,7 @@ mod tests {
             template,
             Template {
                 tpl: vec![Statement::Literal("test literal")],
-                tpl_str: String::from("test literal")
+                tpl_str: String::from("test literal").into()
             }
         );
     }
@@ -611,7 +620,7 @@ mod tests {
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![],
                 ))],
-                tpl_str: String::from("{{var}}")
+                tpl_str: String::from("{{var}}").into()
             }
         );
     }
@@ -625,7 +634,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{{var|modifier}}"),
+                tpl_str: String::from("{{var|modifier}}").into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -647,7 +656,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{{var|modifier1|modifier2}}"),
+                tpl_str: String::from("{{var|modifier1|modifier2}}").into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![
@@ -676,7 +685,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{{var|modifier:var2}}"),
+                tpl_str: String::from("{{var|modifier:var2}}").into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -698,7 +707,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{{var|modifier:-32.09}}"#),
+                tpl_str: String::from(r#"{{var|modifier:-32.09}}"#).into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -720,7 +729,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{{var|modifier:null}}"#),
+                tpl_str: String::from(r#"{{var|modifier:null}}"#).into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -742,7 +751,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{{null|modifier:-32.09}}"#),
+                tpl_str: String::from(r#"{{null|modifier:-32.09}}"#).into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Null),
                     vec![Modifier {
@@ -764,7 +773,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{{10|modifier:-32.09}}"#),
+                tpl_str: String::from(r#"{{10|modifier:-32.09}}"#).into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Const(Value::Number((10.0f64).into())),
                     vec![Modifier {
@@ -786,7 +795,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from(r#"{{var|modifier:-32.09:"argument":var2:true}}"#),
+                tpl_str: String::from(r#"{{var|modifier:-32.09:"argument":var2:true}}"#).into(),
                 tpl: vec![Statement::Calculated(CalculatedValue::new(
                     StorageMethod::Variable(Ident::new_static("var")),
                     vec![Modifier {
@@ -813,7 +822,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{{var|modifier}}\n{{10|modifier:-32.09}}"),
+                tpl_str: String::from("{{var|modifier}}\n{{10|modifier:-32.09}}").into(),
                 tpl: vec![
                     Statement::Calculated(CalculatedValue::new(
                         StorageMethod::Variable(Ident::new_static("var")),
@@ -846,7 +855,7 @@ mod tests {
         assert_eq!(
             template,
             Template {
-                tpl_str: String::from("{%var = 10|modifier:-32.09%}"),
+                tpl_str: String::from("{%var = 10|modifier:-32.09%}").into(),
                 tpl: vec![Statement::Assign(Assign::new(
                     Ident::new_static("var"),
                     CalculatedValue::new(
