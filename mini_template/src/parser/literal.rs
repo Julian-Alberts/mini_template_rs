@@ -10,25 +10,25 @@ use nom::{
 use crate::parser::kw::{kw_false, kw_null, kw_true};
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Value {
+pub enum Literal {
     Null,
     Bool(bool),
     String(String),
-    Number(Number),
+    Number(NumberLiteral),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Number {
+pub enum NumberLiteral {
     F64(f64),
 }
 
 pub fn value<'a>(
     input: nom_span::Spanned<&'a str>,
-) -> nom::IResult<nom_span::Spanned<&'a str>, Value> {
+) -> nom::IResult<nom_span::Spanned<&'a str>, Literal> {
     alt((
-        map(kw_null, |_| Value::Null),
-        map(kw_true, |_| Value::Bool(true)),
-        map(kw_false, |_| Value::Bool(false)),
+        map(kw_null, |_| Literal::Null),
+        map(kw_true, |_| Literal::Bool(true)),
+        map(kw_false, |_| Literal::Bool(false)),
         string_value,
         number_value,
     ))
@@ -37,7 +37,7 @@ pub fn value<'a>(
 
 fn string_value<'a>(
     input: nom_span::Spanned<&'a str>,
-) -> nom::IResult<nom_span::Spanned<&'a str>, Value> {
+) -> nom::IResult<nom_span::Spanned<&'a str>, Literal> {
     let (input, str) = delimited(
         char('"'),
         opt(escaped_transform(
@@ -52,12 +52,12 @@ fn string_value<'a>(
         char('"'),
     )
     .parse(input)?;
-    Ok((input, Value::String(str.unwrap_or_default())))
+    Ok((input, Literal::String(str.unwrap_or_default())))
 }
 
 fn number_value<'a>(
     input: nom_span::Spanned<&'a str>,
-) -> nom::IResult<nom_span::Spanned<&'a str>, Value> {
+) -> nom::IResult<nom_span::Spanned<&'a str>, Literal> {
     let (input, number_str) = nom::combinator::recognize((
         nom::combinator::opt(nom::character::complete::char('-')),
         nom::character::complete::digit1,
@@ -70,24 +70,24 @@ fn number_value<'a>(
 
     let number: f64 = number_str.data().parse().unwrap();
 
-    Ok((input, Value::Number(Number::F64(number))))
+    Ok((input, Literal::Number(NumberLiteral::F64(number))))
 }
 
 #[cfg(test)]
 mod tests {
     use nom_span::Spanned;
 
-    use super::{Number, Value};
+    use super::{Literal, NumberLiteral};
 
     #[test]
     fn parse_as_correct_type() {
         let inputs = vec![
-            ("null", Value::Null),
-            ("true", Value::Bool(true)),
-            ("false", Value::Bool(false)),
-            ("\"hello\"", Value::String("hello".to_string())),
-            ("42", Value::Number(Number::F64(42.0))),
-            ("-3.14", Value::Number(Number::F64(-3.14))),
+            ("null", Literal::Null),
+            ("true", Literal::Bool(true)),
+            ("false", Literal::Bool(false)),
+            ("\"hello\"", Literal::String("hello".to_string())),
+            ("42", Literal::Number(NumberLiteral::F64(42.0))),
+            ("-3.14", Literal::Number(NumberLiteral::F64(-3.14))),
         ];
 
         for (input_str, expected_value) in inputs {
@@ -107,7 +107,7 @@ mod tests {
         assert!(result.is_ok());
         let (remaining, value) = result.unwrap();
         assert_eq!(*remaining.data(), " remaining");
-        assert_eq!(value, Value::Null);
+        assert_eq!(value, Literal::Null);
     }
 
     #[test]
@@ -117,7 +117,7 @@ mod tests {
         assert!(result.is_ok());
         let (remaining, value) = result.unwrap();
         assert_eq!(*remaining.data(), " remaining");
-        assert_eq!(value, Value::Bool(true));
+        assert_eq!(value, Literal::Bool(true));
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod tests {
         assert!(result.is_ok());
         let (remaining, value) = result.unwrap();
         assert_eq!(*remaining.data(), " remaining");
-        assert_eq!(value, Value::Bool(false));
+        assert_eq!(value, Literal::Bool(false));
     }
 
     #[test]
@@ -137,7 +137,7 @@ mod tests {
         assert!(result.is_ok());
         let (remaining, value) = result.unwrap();
         assert_eq!(*remaining.data(), " remaining");
-        assert_eq!(value, Value::String("hello".to_string()));
+        assert_eq!(value, Literal::String("hello".to_string()));
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod tests {
         let input: Spanned<&str> = nom_span::Spanned::new("\"\" remaining", true);
         let result = super::string_value(input);
         let (remaining, value) = result.unwrap();
-        assert_eq!(value, Value::String("".to_string()));
+        assert_eq!(value, Literal::String("".to_string()));
         assert_eq!(*remaining.data(), " remaining");
     }
 
@@ -155,7 +155,7 @@ mod tests {
             nom_span::Spanned::new("\"he said: \\\"hello\\\"\" remaining", true);
         let result = super::value(input);
         let (remaining, value) = result.unwrap();
-        assert_eq!(value, Value::String("he said: \"hello\"".to_string()));
+        assert_eq!(value, Literal::String("he said: \"hello\"".to_string()));
         assert_eq!(*remaining.data(), " remaining");
     }
 
@@ -164,7 +164,7 @@ mod tests {
         let input: Spanned<&str> = nom_span::Spanned::new(r#""path: C:\\folder" remaining"#, true);
         let result = super::value(input);
         let (remaining, value) = result.unwrap();
-        assert_eq!(value, Value::String(r#"path: C:\folder"#.to_string()));
+        assert_eq!(value, Literal::String(r#"path: C:\folder"#.to_string()));
         assert_eq!(*remaining.data(), " remaining");
     }
 
@@ -173,7 +173,7 @@ mod tests {
         let input: Spanned<&str> = nom_span::Spanned::new("\"line1\\nline2\" remaining", true);
         let result = super::value(input);
         let (remaining, value) = result.unwrap();
-        assert_eq!(value, Value::String("line1\nline2".to_string()));
+        assert_eq!(value, Literal::String("line1\nline2".to_string()));
         assert_eq!(*remaining.data(), " remaining");
     }
 
@@ -184,7 +184,7 @@ mod tests {
         assert!(result.is_ok());
         let (remaining, value) = result.unwrap();
         assert_eq!(*remaining.data(), " remaining");
-        assert_eq!(value, Value::Number(Number::F64(42.0)));
+        assert_eq!(value, Literal::Number(NumberLiteral::F64(42.0)));
     }
 
     #[test]
@@ -193,6 +193,6 @@ mod tests {
         let result = super::value(input);
         let (remaining, value) = result.unwrap();
         assert_eq!(*remaining.data(), " remaining");
-        assert_eq!(value, Value::Number(Number::F64(-3.14)));
+        assert_eq!(value, Literal::Number(NumberLiteral::F64(-3.14)));
     }
 }
