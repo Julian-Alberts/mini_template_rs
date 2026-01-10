@@ -1,2 +1,2 @@
 [workspace]
-members = ["mini_template", "mini_template_macro"]
+members = ["mini_template", "mini_template_macro", "nom-span"]

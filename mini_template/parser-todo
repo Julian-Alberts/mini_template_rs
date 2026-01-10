@@ -1,0 +1,118 @@
+WHITESPACE = _{" "|"\n"}
+modifier = {"|" ~ identifier ~ argument*}
+argument = { ":" ~ value }
+calculated = {!"\\" ~ "{{" ~ calculated_value ~ "}}"}
+calculated_value = { value ~ modifier* }
+identifier = {
+    (ident_static|ident_dynamic) ~
+    (
+        ("."~ident_static)|ident_dynamic
+    )*
+}
+full_ident = {
+    SOI ~ 
+    identifier ~
+    EOI
+}
+ident_static = @{!(key_words) ~ 'a'..'z' ~ ('A'..'Z'|'a'..'z'|'0'..'9'|"_")*}
+ident_dynamic = {"[" ~ value ~ "]"}
+text = {(!("{{" | "{%" | "\n") ~ ("\\{{" | "\\{%" | ANY))+}
+
+assign = !{"{%" ~ identifier ~ "=" ~ calculated_value ~ "%}"}
+
+// Template
+template = {SOI ~ template_content ~ EOI}
+template_content = ${ (include|while_loop|assign|calculated|text|conditional|force_newline|newline|custom_block)* }
+newline = { "\n" }
+force_newline = { "{% \\n %}" }
+custom_block = {
+    "{%" ~ PUSH(ident_static) ~ custom_block_args ~ "%}" ~
+    (
+    	custom_block_content ~ 
+    	"{%" ~ "end" ~ POP ~ "%}"
+    )?
+}
+
+
+custom_block_args = {
+    (!"%}" ~ ANY)*
+}
+
+custom_block_content = {
+    (!("{%" ~ "end" ~ PEEK ~ "%}") ~ ANY)*
+}
+
+// Values
+string = { "\"" ~ inner_string ~ "\"" }
+inner_string = {(!"\"" ~ ( "\\\""| ANY))*}
+number = { ("+"|"-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+boolean = {true_key_word|false_key_word}
+value = { boolean|identifier|number|string|null_literal }
+
+// Blocks
+conditional = !{ 
+    "{%" ~ if_key_word ~ condition ~ "%}" ~
+        template_content ~
+    (
+        "{%" ~ else_key_word ~ "%}" ~
+            template_content
+    )? ~
+    "{%" ~ "end" ~ if_key_word ~ "%}" ~ "\n"?
+}
+
+while_loop = !{ 
+    "{%" ~ while_key_word ~ condition ~ "%}" ~
+        template_content ~
+    "{%" ~ "end" ~ while_key_word ~ "%}" ~ "\n"?
+}
+
+include = {"{%" ~ include_key_word ~ calculated_value ~ "%}"}
+
+// Condition
+condition = {
+    (
+        not_operator* ~ (
+            ("(" ~ condition ~ ")") | 
+            compare_condition | 
+            calculated_value
+        )
+    )~ 
+    (
+        (and_operator|or_operator) ~ 
+        (compare_condition | calculated_value | condition)
+    )*
+}
+
+compare_condition = { calculated_value ~ compare_operator ~ calculated_value }
+
+compare_operator = { 
+    eq_operator|
+    ne_operator|
+    lt_operator|
+    le_operator|
+    gt_operator|
+    ge_operator
+}
+eq_operator = { "==" }
+ne_operator = { "!=" }
+lt_operator = { "<" }
+le_operator = { "<=" }
+gt_operator = { ">" }
+ge_operator = { ">=" }
+
+and_operator = {"&&"}
+or_operator = {"||"}
+
+not_operator = {"!"}
+
+// Keywords
+if_key_word = _{"if"}
+else_key_word = _{"else"}
+while_key_word = _{"while"}
+true_key_word = _{"true"}
+end_key_word = _{"end"}
+false_key_word = _{"false"}
+include_key_word = _{"include"}
+with_key_word = _{"with"}
+null_literal = {"null"}
+key_words = { end_key_word | if_key_word | else_key_word | true_key_word | false_key_word | while_key_word | null_literal|include_key_word|with_key_word}
