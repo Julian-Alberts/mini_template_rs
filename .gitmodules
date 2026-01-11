@@ -1,3 +1,3 @@
 [submodule "nom-span"]
 	path = nom-span
-	url = git@github.com:JulesGuesnon/nom-span.git
+	url = https://github.com/JulesGuesnon/nom-span.git
